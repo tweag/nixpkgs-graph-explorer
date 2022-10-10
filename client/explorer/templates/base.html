@@ -6,19 +6,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Nixpkgs explorer</title>
     {% block head %}
-    <link rel="stylesheet" href="/static/skeleton.css">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/skeleton.css') }}">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
     {% endblock %}
   </head>
   <body>
-    <h3>
-      Nixpkgs Dependency Explorer
-    </h3>
-    {% block content %}{% endblock %}
+    <div class="container">
+
+      <div class="row">
+        <div class="twelve columns">
+          <div style="display: flex; flex-direction: row; align-items: center;">
+            <img src="{{ url_for('static', filename='img/line-chart.png') }}" width="45" height="45"></img>
+            <h3 style="margin: 0;">Nixpkgs Dependency Explorer</h3>
+          </div>
+        </div>
+      </div>
+
+      <p>
+
+      <div class="row">
+        <div class="twelve columns">
+          {% block content %}{% endblock %}
+        </div>
+      </div>
+
+    </div>
     {% block js %}
     <!-- <script src="/assets/js/app.js"></script> -->
-    <script src="https://unpkg.com/htmx.org@1.8.0" integrity="sha384-cZuAZ+ZbwkNRnrKi05G/fjBX+azI9DNOkNYysZ0I/X5ZFgsmMiBXgDZof30F5ofc" crossorigin="anonymous"></script>
-    <!-- <script src="cytoscape.min.js"></script> -->
+    <script src="{{ url_for('static', filename='js/lib/htmx.min.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/lib/cytoscape.min.js') }}"></script>
     {% endblock %}
   </body>
 </html>
