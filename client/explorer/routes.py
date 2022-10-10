@@ -18,4 +18,4 @@ def index_post():
     # session['graph-data'] = utils.load_json('https://js.cytoscape.org/demos/colajs-graph/data.json')
     # resp = Response(result)
     # resp.headers['HX-Redirect'] = '/dashapp'
-    return render_template('query_result.html', result={"data": result})
+    return render_template('query_result.html', result=result)
