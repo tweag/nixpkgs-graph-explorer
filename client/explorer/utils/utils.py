@@ -5,7 +5,7 @@ import networkx as nx
 
 
 def do_things(_):
-    time.sleep(1)
+    # time.sleep(1)
     example = nx.lollipop_graph(10, 20)
     graph_data = nx.cytoscape_data(example)
     table_data = [{'id': id_, 'name': i, 'neighbours': j} for (id_, (i, j))  in enumerate(nx.to_dict_of_lists(example).items())]
