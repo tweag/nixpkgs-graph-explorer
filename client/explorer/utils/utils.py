@@ -3,6 +3,18 @@ import requests
 import json
 
 
+class Graph:
+
+    def __init__(self, value, branches):
+        self.value = value
+        self.branches = branches
+
+
+data = {
+
+        }
+
+
 def do_things(_):
     time.sleep(1)
     elements = [
