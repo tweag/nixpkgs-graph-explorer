@@ -2,32 +2,23 @@
 {% block title %}Nixpkgs Dependency Explorer{% endblock %}
 
 {% block content %}
-  <div id="query-body">
-    {% include "query_form.html" %}
-    <div id="query-result">
+  <div class="row">
+    <div class="twelve columns">
+      {% include "query_form.html" %}
     </div>
   </div>
-<script>
+  <div id="query-results" class="row">
+    <div id="query-result">
+    </div>
+    <div class="six columns">
+      <div id="cy">
+      </div>
+    </div>
+    <div class="six columns">
+      <div id="graph-results-table">
+      </div>
+    </div>
+  </div>
 
-// Select the node that will be observed for mutations
-const targetNode = document.getElementById('query-result');
-
-// Options for the observer (which mutations to observe)
-const config = { attributes: true, childList: true, subtree: true };
-
-// Callback function to execute when mutations are observed
-const callback = (mutationList, observer) => {
-  console.log($("#data-graph").attr("data-graph"));
-};
-
-// Create an observer instance linked to the callback function
-const observer = new MutationObserver(callback);
-
-// Start observing the target node for configured mutations
-observer.observe(targetNode, config);
-
-// Later, you can stop observing
-// observer.disconnect();
-
-</script>
+<script src="{{ url_for('static', filename='js/src/graph.js') }}"></script>
 {% endblock %}

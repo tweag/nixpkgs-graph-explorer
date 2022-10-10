@@ -3,9 +3,14 @@ import requests
 import json
 
 
-def do_things(query):
-    time.sleep(3)
-    return query
+def do_things(_):
+    time.sleep(1)
+    elements = [
+        {"data": { "id": "a" }},
+        {"data": { "id": "b" }},
+        {"data": { "id": "ab", "source": "a", "target": "b" }}
+    ]
+    return elements
 
 def load_json(st):
     if 'http' in st:
