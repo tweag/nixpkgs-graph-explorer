@@ -8,10 +8,17 @@ const config = { attributes: true, childList: true, subtree: true };
 const callback = (mutationList, observer) => {
   // create graph plot
   let graphData = JSON.parse($('#data-graph').attr('data-graph'))['graph-data'];
+  let edgeColour = 'gray'
+  let hiEdgeColour = 'red'
   let cy = cytoscape({
     container: document.getElementById('cy'),
     layout: {name: 'breadthfirst'},
     elements: graphData['elements'],
+    style: [
+      { selector: 'edge',
+        style: {lineColor: edgeColour}
+      }
+    ],
   });
 
   // create data table
@@ -27,9 +34,15 @@ const callback = (mutationList, observer) => {
 
   // when a node is selected on the graph, select the row in the table
   cy.on('tap', 'node', function(evt){
+    cy.edges().animate({
+      style: {lineColor: edgeColour}
+    })
     let node = evt.target;
     table.deselectRow();
     table.selectRow(node.id());
+    evt.target.connectedEdges().animate({
+      style: {lineColor: hiEdgeColour}
+    })
   });
 
   // when a row is selected in the table, select it on the graph
