@@ -1,5 +1,6 @@
 """Initialize Flask app."""
 from flask import Flask
+from . import routes
 
 
 def init_app():
@@ -7,11 +8,7 @@ def init_app():
     app = Flask(__name__, instance_relative_config=False)
     app.config.from_object('config.Config')
 
-    with app.app_context():
-        # Import parts of our core Flask app
-        from . import routes
+    # register "blueprints"
+    app.register_blueprint(routes.query_bp)
 
-        # register "blueprints"
-        app.register_blueprint(routes.query_bp)
-
-        return app
+    return app
