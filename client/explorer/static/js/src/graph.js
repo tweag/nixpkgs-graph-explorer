@@ -32,24 +32,29 @@ const callback = (mutationList, observer) => {
       data:tableData,
   });
 
-  // when a node is selected on the graph, select the row in the table
-  cy.on('tap', 'node', function(evt){
+
+  function nodeSelected(node) {
     cy.edges().animate({
       style: {lineColor: edgeColour}
     })
-    let node = evt.target;
-    table.deselectRow();
-    table.selectRow(node.id());
-    evt.target.connectedEdges().animate({
+    node.connectedEdges().animate({
       style: {lineColor: hiEdgeColour}
     })
+  };
+
+  // when a node is selected on the graph, select the row in the table
+  cy.on('tap', 'node', function(evt) {
+    table.deselectRow();
+    table.selectRow(evt.target.id());
   });
 
   // when a row is selected in the table, select it on the graph
-  table.on("rowSelectionChanged", function(data, rows){
+  table.on("rowSelectionChanged", function(data, rows) {
     if (data.length > 0) {
       cy.nodes().unselect();
-      cy.nodes(`#${ data[0].id }`).select();
+      let node = cy.nodes(`#${ data[0].id }`);
+      node.select();
+      nodeSelected(node);
     }
   });
 };
