@@ -8,17 +8,12 @@ const config = { attributes: true, childList: true, subtree: true };
 const callback = (mutationList, observer) => {
   // create graph plot
   let graphData = JSON.parse($('#data-graph').attr('data-graph'))['graph-data'];
-  let edgeColour = 'gray'
-  let hiEdgeColour = 'red'
+  let unselectedColour = 'gray'
+  let selectedColour = 'red'
   let cy = cytoscape({
     container: document.getElementById('cy'),
     layout: {name: 'breadthfirst'},
     elements: graphData['elements'],
-    style: [
-      { selector: 'edge',
-        style: {lineColor: edgeColour}
-      }
-    ],
   });
 
   // create data table
@@ -32,14 +27,28 @@ const callback = (mutationList, observer) => {
       data:tableData,
   });
 
+  function cleanUp() {
+    cy.edges().unselect();
+    cy.nodes().unselect();
+    cy.edges().removeStyle();
+    cy.nodes().removeStyle();
+  };
 
+  // select a node and style neighbouring elements
   function nodeSelected(node) {
-    cy.edges().animate({
-      style: {lineColor: edgeColour}
-    })
-    node.connectedEdges().animate({
-      style: {lineColor: hiEdgeColour}
-    })
+    cleanUp();
+
+    // select node
+    node.select();
+
+    // edges
+    cy.edges().removeStyle();
+    node.connectedEdges().style('line-color', 'red');
+
+    // nodes
+    cy.nodes(':unselected').removeStyle();
+    node.neighborhood().style('background-color', 'red');
+    cy.nodes(':selected').style('background-color', 'blue');
   };
 
   // when a node is selected on the graph, select the row in the table
@@ -48,12 +57,14 @@ const callback = (mutationList, observer) => {
     table.selectRow(evt.target.id());
   });
 
+  cy.on('tap', 'edge', function(evt) {
+    cleanUp();
+  });
+
   // when a row is selected in the table, select it on the graph
   table.on("rowSelectionChanged", function(data, rows) {
     if (data.length > 0) {
-      cy.nodes().unselect();
       let node = cy.nodes(`#${ data[0].id }`);
-      node.select();
       nodeSelected(node);
     }
   });

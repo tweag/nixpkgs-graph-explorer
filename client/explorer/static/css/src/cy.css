@@ -1,10 +1,16 @@
- #cy {
-   width: 500px;
-   height: 500px;
-   display: block;
- }
- #table-graph {
-   width: 500px;
-   height: 500px;
-   display: block;
- }
+#cy {
+  width: 500px;
+  height: 500px;
+  display: block;
+}
+
+#table-graph {
+  width: 500px;
+  height: 500px;
+  display: block;
+}
+
+.foo {
+  line-color: red;
+  width: 5;
+}
