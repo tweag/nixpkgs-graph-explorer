@@ -27,6 +27,9 @@ const callback = (mutationList, observer) => {
       data:tableData,
   });
 
+  $('#cy').addClass('outlined');
+  $('#table-graph').addClass('outlined');
+
   function cleanUp() {
     cy.edges().unselect();
     cy.nodes().unselect();
@@ -42,13 +45,26 @@ const callback = (mutationList, observer) => {
     node.select();
 
     // edges
-    cy.edges().removeStyle();
-    node.connectedEdges().style('line-color', 'red');
+    cy
+      .edges()
+      .removeStyle();
+    node
+      .connectedEdges()
+      .style('line-color', 'red');
 
     // nodes
-    cy.nodes(':unselected').removeStyle();
-    node.neighborhood().style('background-color', 'red');
-    cy.nodes(':selected').style('background-color', 'blue');
+    cy
+      .nodes(':unselected')
+      .removeStyle();
+    node
+      .connectedEdges()
+      .connectedNodes()
+      .style('background-color', 'red')
+      .style('label', function (ele) { return ele.data('id')})
+      .style('text-opacity', 1);
+    cy
+      .nodes(':selected')
+      .style('background-color', 'blue');
   };
 
   // when a node is selected on the graph, select the row in the table
