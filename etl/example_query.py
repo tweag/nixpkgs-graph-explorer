@@ -4,12 +4,6 @@ from contextlib import contextmanager
 from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 
-@contextmanager
-def gremlin_remote_connection(url: str):
-    r = DriverRemoteConnection(url,"g")
-    yield r
-    r.close()
-
 def main():
     print("WARNING: this is a WIP, this script is a proof of concept")
     with gremlin_remote_connection('ws://localhost:8182/gremlin') as remote:
