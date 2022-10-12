@@ -1,13 +1,7 @@
-  // Select the node that will be observed for mutations
-const targetNode = document.getElementById('query-result');
 
-// Options for the observer (which mutations to observe)
-const config = { attributes: true, childList: true, subtree: true };
 
-// Callback function to execute when mutations are observed
-const callback = (mutationList, observer) => {
-  // create graph plot
-  let graphData = JSON.parse($('#data-graph').attr('data-graph'))['graph-data'];
+function populateGraphAndTable(data) {
+  let graphData = data['graph-data'];
   let unselectedColour = 'gray'
   let selectedColour = 'red'
 
@@ -19,7 +13,7 @@ const callback = (mutationList, observer) => {
   });
 
   // create data table
-  let tableData = JSON.parse($('#data-graph').attr('data-graph'))['table-data'];
+  let tableData = data['table-data'];
   let table = new Tabulator('#table-graph', {
       selectable:1,
       columns:[
@@ -88,12 +82,38 @@ const callback = (mutationList, observer) => {
   });
 };
 
-// Create an observer instance linked to the callback function
-const observer = new MutationObserver(callback);
 
-// Start observing the target node for configured mutations
-observer.observe(targetNode, config);
+function sendData() {
+  const XHR = new XMLHttpRequest();
+  XHR.responseType = 'json';
 
-// Later, you can stop observing
-// observer.disconnect();
+  // Bind the FormData object and the form element
+  const FD = new FormData(form);
+
+  // Define what happens on successful data submission
+  XHR.addEventListener("load", (event) => {
+    populateGraphAndTable(event.target.response);
+  });
+
+  // Define what happens in case of error
+  XHR.addEventListener("error", (event) => {
+    alert('Oops! Something went wrong.');
+  });
+
+  // Set up our request
+  XHR.open("POST", "/");
+
+  // The data sent is what the user provided in the form
+  XHR.send(FD);
+}
+
+// Get the form element
+const form = document.getElementById("query-form");
+
+// Add 'submit' event handler
+form.addEventListener("submit", (event) => {
+  event.preventDefault();
+
+  sendData();
+});
 

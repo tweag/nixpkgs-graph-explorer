@@ -1,13 +1,7 @@
-<form hx-post="{{ dest }}" hx-target="#query-result">
+<form id="query-form">
   <div class="form-group">
   <label>Query</label>
-  <input type="text" class="form-control" name="query">
+  <input id="input-query" type="text" class="form-control" name="query">
   </div>
   <button class="btn btn-default">Submit</button>
 </form>
-<style>
-  form.htmx-request {
-    opacity: .5;
-    transition: opacity 300ms linear;
-  }
-</style>
