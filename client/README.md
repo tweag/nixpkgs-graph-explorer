@@ -13,21 +13,15 @@
 Following is an explanation of how to set up various development and production
 builds:
 
-# Development
 
-## Setting up a development environment - Docker
+## Setting up a development environment with Docker
 
 1. Ensure that `docker` and `docker-compose` are installed.
 2. Optionally update environment variables in `.env.dev`
-3. `docker-compose up` will build and run a development server
+3. `docker-compose up` will build and run the `flask` development server
 
-
-## Setting up a development environment - Virtualenv
-
-## Running locally 
-
-# Production
+## Setting up a production environment with Docker
 
 1. Ensure that `docker` and `docker-compose` are installed.
 2. Update environment variables in `.env.prod`
-3. `docker-compose -f docker-compose.prod.yml up` will build and run a production server
+3. `docker-compose -f docker-compose.prod.yml up` will build and run a production server using `gunicorn`
