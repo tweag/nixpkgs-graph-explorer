@@ -18,7 +18,8 @@ builds:
 ## Setting up a development environment - Docker
 
 1. Ensure that `docker` and `docker-compose` are installed.
-2. `docker-compose up` will build and run a development server
+2. Optionally update environment variables in `.env.dev`
+3. `docker-compose up` will build and run a development server
 
 
 ## Setting up a development environment - Virtualenv
@@ -27,3 +28,6 @@ builds:
 
 # Production
 
+1. Ensure that `docker` and `docker-compose` are installed.
+2. Update environment variables in `.env.prod`
+3. `docker-compose -f docker-compose.prod.yml up` will build and run a production server
