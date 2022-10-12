@@ -1,6 +1,6 @@
 # nixpkgs-graph-explorer
 
-## Running graph database
+## Running the graph database locally
 
 The database back-end is currently configured with sqlg. It is designed to be accessed via the Gremlin Server instance provided in the Docker Compose file.
 
