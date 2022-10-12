@@ -2,7 +2,7 @@ version: "3.9"
 services:
   web:
     build: .
-    command: gunicorn --bind 0.0.0.0:5000 wsgi:app
+    command: gunicorn wsgi:app
     ports:
       - "5000:5000"
     env_file:
