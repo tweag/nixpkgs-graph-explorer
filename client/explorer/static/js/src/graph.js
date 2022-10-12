@@ -10,6 +10,8 @@ const callback = (mutationList, observer) => {
   let graphData = JSON.parse($('#data-graph').attr('data-graph'))['graph-data'];
   let unselectedColour = 'gray'
   let selectedColour = 'red'
+
+  // create cytoscape graph
   let cy = cytoscape({
     container: document.getElementById('cy'),
     layout: {name: 'breadthfirst'},
