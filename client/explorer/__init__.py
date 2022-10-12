@@ -8,7 +8,7 @@ def init_app():
     # the defaults in config.py
     app.config.from_object('config.Default')
     # the current instance settings
-    app.config.from_pyfile('application.cfg', silent=True)
+    app.config.from_envvar('NIXPKGS_APPLICATION_SETTINGS')
     # additional env variables prefixed with `FLASK_`
     app.config.from_prefixed_env()
 
