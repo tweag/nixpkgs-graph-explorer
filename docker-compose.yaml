@@ -14,7 +14,7 @@ services:
       - pg_data:/var/lib/postgresql/data
   gremlin:
     build:
-      context: .
+      context: ./docker/sqlg
       dockerfile: sqlg.Dockerfile
     restart: always
     volumes:

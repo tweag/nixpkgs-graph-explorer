@@ -45,8 +45,8 @@ RUN mkdir /config && chown -R gremlin:gremlin /config
 RUN chmod -R u+rw /config
 
 # Bake in our required configuration
-COPY --chown=gremlin:gremlin ./config/gremlin-server.yaml /config
-COPY --chown=gremlin:gremlin ./config/gremlin-server-sqlg-postgres.groovy /config
+COPY --chown=gremlin:gremlin ./gremlin-server.yaml /config
+COPY --chown=gremlin:gremlin ./gremlin-server-sqlg-postgres.groovy /config
 
 # Switch to application user
 USER gremlin

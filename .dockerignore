@@ -1,0 +1,5 @@
+# Docs, etc.
+README.md
+
+# Custom Gremlin Server properties (may contain secrets)
+sqlg.properties
