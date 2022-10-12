@@ -1,6 +1,6 @@
 """Initialize Flask app."""
 from flask import Flask
-from . import routes
+from explorer.query_bp import query_bp
 
 
 def init_app():
@@ -11,6 +11,6 @@ def init_app():
     app.config.from_prefixed_env()
 
     # register "blueprints"
-    app.register_blueprint(routes.query_bp)
+    app.register_blueprint(query_bp, url_prefix='')
 
     return app

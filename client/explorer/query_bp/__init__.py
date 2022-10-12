@@ -1,11 +1,10 @@
 from flask import request, Response, render_template, Blueprint, session
-from .utils import utils
+from explorer.utils import utils
 
 # Blueprint Configuration
 query_bp = Blueprint(
     'query_bp', __name__,
     template_folder='templates',
-    static_folder='static'
 )
 
 @query_bp.get("/")
