@@ -7,12 +7,12 @@
     <title>Nixpkgs explorer</title>
     {% block head %}
     <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/lib/skeleton.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/lib/tabulator.min.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/skeleton/2.0.4/skeleton.min.css" integrity="sha512-EZLkOqwILORob+p0BXZc+Vm3RgJBOe1Iq/0fiI7r/wJgzOFZMlsqTa29UEl6v6U6gsV4uIpsNZoV32YZqrCRCQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/tabulator/5.4.1/css/tabulator.min.css" integrity="sha512-uXx6BpE3VCZ5j/eSrt2nUC4ZvIGiFx9JJD8gjiyi2wNBhczL31a8oCMPayARy/8pedUvjKkLw3VjmUyL9yRZkQ==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/src/cy.css') }}">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
-    <script src="{{ url_for('static', filename='js/lib/cytoscape.min.js') }}"></script>
-    <script src="{{ url_for('static', filename='js/lib/tabulator.min.js') }}"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.23.0/cytoscape.min.js" integrity="sha512-gEWKnYYa1/1c3jOuT9PR7NxiVI1bwn02DeJGsl+lMVQ1fWMNvtjkjxIApTdbJ/wcDjQmbf+McWahXwipdC9bGA==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tabulator/5.4.1/js/tabulator.min.js" integrity="sha512-qgnv6utZN6s+TNg5iq42pPsSW/4qocwCM4d9CYmQArdJWtK7Qt1NmF+TNCsjCq136SEnhoMYjAQQF6KXtdlH4Q==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
     {% endblock %}
   </head>
   <body>
