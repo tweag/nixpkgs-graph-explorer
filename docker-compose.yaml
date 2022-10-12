@@ -12,6 +12,11 @@ services:
       - 5432:5432
     volumes:
       - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   gremlin:
     build:
       context: ./docker/sqlg
@@ -22,6 +27,7 @@ services:
     ports:
       - 8182:8182
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
 volumes:
   pg_data: {}
