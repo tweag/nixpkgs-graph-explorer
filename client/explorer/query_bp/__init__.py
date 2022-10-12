@@ -9,7 +9,7 @@ query_bp = Blueprint(
 
 @query_bp.get("/")
 def index_get():
-    return render_template('query.html', dest='/')
+    return render_template('query.html')
 
 @query_bp.post("/")
 def index_post():
