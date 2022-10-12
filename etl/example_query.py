@@ -6,7 +6,7 @@ from gremlin_python.driver.driver_remote_connection import DriverRemoteConnectio
 
 def main():
     print("WARNING: this is a WIP, this script is a proof of concept")
-    with gremlin_remote_connection('ws://localhost:8182/gremlin') as remote:
+    with closing(DriverRemoteConnection('ws://localhost:8182/gremlin', 'g')) as remote:
         g = traversal().withRemote(remote)
 
         print("Querying existing verticies...")
