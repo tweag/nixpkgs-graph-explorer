@@ -13,11 +13,11 @@ docker-compose up
 Then, to run some test Gremlin queries, ensure python 3 is installed then install the required python dependencies with something like:
 
 ```
-pip install -r requirements.txt
+pip install -r etl/requirements.txt
 ```
 
 And then run the script:
 
 ```
-python example_query.py
+python etl/example_query.py
 ```
