@@ -11,6 +11,7 @@ def gremlin_remote_connection(url: str):
     r.close()
 
 def main():
+    print("WARNING: this is a WIP, this script is a proof of concept")
     with gremlin_remote_connection('ws://localhost:8182/gremlin') as remote:
         g = traversal().withRemote(remote)
 
