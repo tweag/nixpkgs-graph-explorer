@@ -1,0 +1,33 @@
+version: "3.9"
+services:
+  postgres:
+    image: postgres:14.5-bullseye
+    restart: always
+    environment:
+      # Note: The values here and those in config/sqlg.properties must match
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=nixgraph
+    ports:
+      - 5432:5432
+    volumes:
+      - pg_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+  gremlin:
+    build:
+      context: ./docker/sqlg
+      dockerfile: sqlg.Dockerfile
+    restart: always
+    volumes:
+      - ./config/sqlg.properties:/config/sqlg.properties
+    ports:
+      - 8182:8182
+    depends_on:
+      postgres:
+        condition: service_healthy
+volumes:
+  pg_data: {}
