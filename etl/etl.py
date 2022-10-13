@@ -35,18 +35,18 @@ def extract_from_nix(output):
 
 def gremlin_queries(dataframe0):
     # have a small subset of dataframe
-    dataframe = dataframe0[:14830]
+    dataframe = dataframe0[:1000]
     with gremlin_remote_connection('ws://localhost:8182/gremlin') as remote:
         g = traversal().withRemote(remote)
         # Remove nodes and edges
         g.V().drop().iterate()
         g.E().drop().iterate()
-
+    
         # Add nodes
         print("Adding nodes...")
         for _, row in dataframe.iterrows():
             # TODO: there's some outputPath = None
-            g.addV(row["path"]).property("outputPath", str(row["outputPath"])).iterate()
+            g.addV("outputPath").property("outputPath", str(row["outputPath"])).iterate()
             print(str(_) + " node(s) added", end='\r')
     
         # Add edges
@@ -54,14 +54,14 @@ def gremlin_queries(dataframe0):
         for _, row in dataframe.iterrows():
             if row["outputPath"] != None:
                 for target in row["buildInputs"]:
-                    g.V().has("outputPath", row["outputPath"]).addE("buildInputs").to(__.V().has("outputPath", target)).property("label", "buildInputs").iterate()
+                    if g.V().has("outputPath", target).toList() != []:
+                        g.V().has("outputPath", row["outputPath"]).addE("buildInputs").to(__.V().has("outputPath", target)).property("label", "buildInputs").iterate()
 
-        print("Querying nodes...")
-        pprint(g.V().elementMap().toList())
+        print("Querying number of nodes...")
+        pprint(g.V().count().toList())
 
-        print("Querying edges...")
-        pprint(g.E().valueMap().limit(5).toList())
-        print(g.V().count().toList())
+        print("Querying number of edges...")
+        pprint(g.E().count().toList())
         print("Done.")
 
 def main():
