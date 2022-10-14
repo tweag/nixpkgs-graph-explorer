@@ -3,40 +3,26 @@ import pandas as pd
 import requests
 import pathlib
 from pprint import pprint
-from contextlib import closing, contextmanager
-
-import os
+from contextlib import closing
 
 from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.process.graph_traversal import __
 
 
-@contextmanager
-def gremlin_remote_connection(url: str):
-    r = DriverRemoteConnection(url,"g")
-    yield r
-    r.close()
-
-def extract_from_nix(output):    
+def extract_from_nix():    
     nixpkgs_graph_nix_file_path = (
         pathlib.Path(__file__).parent.joinpath("nixpkgs-graph.nix").resolve()
     )
-    print("Downloading data from nix as a dataframe...")
-    output_file = open(output, "w")
-    with closing(output_file) as f:
-        subprocess.run(
-            args=['NIXPKGS_FLAKE_REF="github:nixos/nixpkgs/master" nix eval --json --file '+ str(nixpkgs_graph_nix_file_path) + ' --extra-experimental-features "nix-command flakes"'],
-            stdout=f,
-            shell=True
-        )
-    dataframe = pd.read_json(output)
+    print("Downloading data from nix as a dataframe...")    
+    result = subprocess.run('NIXPKGS_FLAKE_REF="github:nixos/nixpkgs/master" nix eval --json --file '+ str(nixpkgs_graph_nix_file_path) + ' --extra-experimental-features "nix-command flakes"', shell=True, stdout=subprocess.PIPE)
+    dataframe = pd.read_json(result.stdout.decode(), orient="records")    
     return dataframe
 
-def gremlin_queries(dataframe0):
+def gremlin_queries(dataframe):
     # have a small subset of dataframe
-    dataframe = dataframe0[:1000]
-    with gremlin_remote_connection('ws://localhost:8182/gremlin') as remote:
+    dataframe = dataframe[:1000]
+    with closing(DriverRemoteConnection('ws://localhost:8182/gremlin', "g")) as remote:
         g = traversal().withRemote(remote)
         # Remove nodes and edges
         g.V().drop().iterate()
@@ -63,12 +49,10 @@ def gremlin_queries(dataframe0):
         print("Querying number of edges...")
         pprint(g.E().count().toList())
         print("Done.")
-
+        
 def main():
     # Extract data from nix as a dataframe
-    filepath = pathlib.Path(__file__).parent.joinpath("nodes.json").resolve()
-    df = extract_from_nix(filepath) if not os.path.exists(filepath) else pd.read_json(filepath)
-    
+    df = extract_from_nix()
     # Load data to database via sqlg and query the data
     gremlin_queries(df)
 
