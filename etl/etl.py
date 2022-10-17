@@ -9,7 +9,6 @@ from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.process.graph_traversal import __
 
-
 def extract_from_nix():    
     nixpkgs_graph_nix_file_path = (
         pathlib.Path(__file__).parent.joinpath("nixpkgs-graph.nix").resolve()
@@ -20,11 +19,10 @@ def extract_from_nix():
     return dataframe
 
 def gremlin_queries(dataframe):
-    # have a small subset of dataframe
-    dataframe = dataframe[:1000]
     with closing(DriverRemoteConnection('ws://localhost:8182/gremlin', "g")) as remote:
         g = traversal().withRemote(remote)
         # Remove nodes and edges
+        print("Initiating... (removing nodes and edges)")
         g.V().drop().iterate()
         g.E().drop().iterate()
     
@@ -32,7 +30,7 @@ def gremlin_queries(dataframe):
         print("Adding nodes...")
         for _, row in dataframe.iterrows():
             # TODO: there's some outputPath = None
-            g.addV("outputPath").property("outputPath", str(row["outputPath"])).iterate()
+            g.V().has("outputPath", str(row["outputPath"])).fold().coalesce(__.unfold() ,__.addV("outputPath").property("outputPath", str(row["outputPath"]))).iterate()
             print(str(_) + " node(s) added", end='\r')
     
         # Add edges
@@ -41,7 +39,8 @@ def gremlin_queries(dataframe):
             if row["outputPath"] != None:
                 for target in row["buildInputs"]:
                     if g.V().has("outputPath", target).toList() != []:
-                        g.V().has("outputPath", row["outputPath"]).addE("buildInputs").to(__.V().has("outputPath", target)).property("label", "buildInputs").iterate()
+                        g.V().has("outputPath", row["outputPath"]).as_("v").V().has("outputPath", target).coalesce(__.inE("buildInputs").where(__.outV().as_("v")), __.addE('buildInputs').from_("v").property("label", "buildInputs")).iterate()
+            print("Adding edges started from the " + str(_) + "(th) node", end='\r')
 
         print("Querying number of nodes...")
         pprint(g.V().count().toList())
