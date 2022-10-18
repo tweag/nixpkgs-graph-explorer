@@ -18,6 +18,29 @@ def extract_from_nix():
     dataframe = pd.read_json(result.stdout.decode(), orient="records")    
     return dataframe
 
+def unique_insert_node(g, row):
+    g.V().has("outputPath", str(row["outputPath"])) \
+        .fold() \
+        .coalesce(__.unfold(), \
+                  __.addV() \
+                  .property("outputPath", str(row["outputPath"])) \
+                  .property("path", row["path"]) \
+                  .property("pname", row["pname"]) \
+                  .property("version", row["version"])) \
+        .iterate()
+
+def unique_insert_edge(g, row, target):
+    if g.V().has("outputPath", target).toList() != []:
+        g.V().has("outputPath", row["outputPath"]) \
+             .as_("v") \
+             .V().has("outputPath", target) \
+                 .coalesce(__.inE("buildInputs") \
+                           .where(__.outV().as_("v")), \
+                           __.addE('buildInputs').from_("v") \
+                           .property("label", "buildInputs")) \
+                 .iterate()
+
+
 def gremlin_queries(dataframe):
     with closing(DriverRemoteConnection('ws://localhost:8182/gremlin', "g")) as remote:
         g = traversal().withRemote(remote)
@@ -30,7 +53,7 @@ def gremlin_queries(dataframe):
         print("Adding nodes...")
         for _, row in dataframe.iterrows():
             # TODO: there's some outputPath = None
-            g.V().has("outputPath", str(row["outputPath"])).fold().coalesce(__.unfold() ,__.addV("outputPath").property("outputPath", str(row["outputPath"]))).iterate()
+            unique_insert_node(g, row)
             print(str(_) + " node(s) added", end='\r')
     
         # Add edges
@@ -38,8 +61,7 @@ def gremlin_queries(dataframe):
         for _, row in dataframe.iterrows():
             if row["outputPath"] != None:
                 for target in row["buildInputs"]:
-                    if g.V().has("outputPath", target).toList() != []:
-                        g.V().has("outputPath", row["outputPath"]).as_("v").V().has("outputPath", target).coalesce(__.inE("buildInputs").where(__.outV().as_("v")), __.addE('buildInputs').from_("v").property("label", "buildInputs")).iterate()
+                    unique_insert_edge(g, row, target)
             print("Adding edges started from the " + str(_) + "(th) node", end='\r')
 
         print("Querying number of nodes...")
