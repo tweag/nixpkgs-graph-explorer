@@ -35,6 +35,9 @@ RUN chmod -R 700 /gremlin-server
 # Enable gremlinpython support
 RUN ./bin/gremlin-server.sh install "org.apache.tinkerpop" "gremlin-python" "3.4.13"
 
+# Enable cypher support
+RUN ./bin/gremlin-server.sh install "org.opencypher.gremlin" "cypher-gremlin-server-plugin" "1.0.4"
+
 # Enable sqlg support
 ARG SQLG_VERSION=2.1.6
 

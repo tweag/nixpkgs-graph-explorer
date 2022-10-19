@@ -29,5 +29,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+  web:
+    build: ./client
+    command: gunicorn wsgi:app
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./client/.env.prod
 volumes:
   pg_data: {}

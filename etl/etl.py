@@ -1,6 +1,5 @@
 import subprocess
 import pandas as pd
-import requests
 import pathlib
 from pprint import pprint
 from contextlib import closing
