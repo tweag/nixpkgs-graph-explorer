@@ -37,11 +37,11 @@ services:
           - gremlin
   web:
     build: ./client
-    command: gunicorn wsgi:app
+    command: python wsgi.py
     ports:
       - 5000:5000
     env_file:
-      - ./client/.env.prod
+      - ./client/.env.dev
     depends_on:
       - gremlin
     networks:

@@ -11,13 +11,14 @@ def main():
 
         print("Querying existing verticies...")
         pprint(g.V().elementMap().limit(10).toList())
-        print("Adding an example vertex...")
-        pprint(g.addV("fooLabel").toList())
-        print("Querying verticies again...")
-        pprint(g.V().elementMap().limit(10).toList())
-        print("Removing verticies...")
-        pprint(g.V().drop().iterate())
+        # print("Adding an example vertex...")
+        # pprint(g.addV("fooLabel").toList())
+        # print("Querying verticies again...")
+        # pprint(g.V().elementMap().limit(10).toList())
+        # print("Removing verticies...")
+        # pprint(g.V().drop().iterate())
         print("Done.")
 
 if __name__ == "__main__":
     main()
+

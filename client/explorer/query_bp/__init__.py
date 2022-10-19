@@ -1,5 +1,7 @@
 from flask import request, Response, render_template, Blueprint, jsonify
 from explorer.utils import utils
+from explorer.queries import query
+from pprint import pprint
 
 # Blueprint Configuration
 query_bp = Blueprint(
@@ -13,5 +15,6 @@ def index_get():
 
 @query_bp.post("/")
 def index_post():
-    result = utils.do_things(request.form['query'])
+    result = query.do_query(request.form['query'])
+    pprint(result)
     return jsonify(result)
