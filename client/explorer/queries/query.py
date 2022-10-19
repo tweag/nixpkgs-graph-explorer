@@ -17,6 +17,3 @@ def do_query(query):
         pprint(results)
         client.close()
         return results
-
-if __name__ == "__main__":
-    do_query('g.V().elementMap().limit(10)')
