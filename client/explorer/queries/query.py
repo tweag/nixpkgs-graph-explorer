@@ -8,6 +8,7 @@ from gremlin_python.driver.client import Client
 
 def do_query(query):
     print("Instantiating client0")
+    # Note: this hostname is aliased in docker-compose
     with closing(Client('ws://gremlin:8182/gremlin', 'g')) as client:
         # result_set = client.submit('g.V().limit(10).toList()')
         ro_query = query # + ".withStrategies(ReadOnlyStrategy)"
