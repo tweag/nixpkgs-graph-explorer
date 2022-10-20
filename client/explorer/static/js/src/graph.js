@@ -8,7 +8,7 @@ function populateGraphAndTable(data) {
   // create cytoscape graph
   let cy = cytoscape({
     container: document.getElementById('cy'),
-    layout: {name: 'breadthfirst'},
+    layout: {name: 'circle'},
     elements: graphData['elements'],
   });
 
@@ -17,7 +17,7 @@ function populateGraphAndTable(data) {
   let table = new Tabulator('#table-graph', {
       selectable:1,
       columns:[
-      {title:'Name', field:'name', sorter: 'number'},
+      {title:'ID', field:'id', sorter: 'string'},
       {title:'Neighbours', field:'neighbours', sorter:'number', hozAlign:'left'},
       ],
       data:tableData,
@@ -92,7 +92,18 @@ function sendData() {
 
   // Define what happens on successful data submission
   XHR.addEventListener("load", (event) => {
-    populateGraphAndTable(event.target.response);
+    data = event.target.response;
+    if ('error' in data) {
+      swal('Oops! Something went wrong.');
+      swal({
+        title: "Error",
+        text: "We couldn't generate a graph from your query!",
+        icon: "error",
+        button: "OK",
+      });
+    } else {
+      populateGraphAndTable(data);
+    }
   });
 
   // Define what happens in case of error
