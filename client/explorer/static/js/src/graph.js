@@ -1,5 +1,4 @@
 
-
 function populateGraphAndTable(data) {
   let graphData = data['graph-data'];
   let unselectedColour = 'gray'
@@ -8,8 +7,31 @@ function populateGraphAndTable(data) {
   // create cytoscape graph
   let cy = cytoscape({
     container: document.getElementById('cy'),
-    layout: {name: 'circle'},
+    layout: {
+      name: 'breadthfirst',
+    },
     elements: graphData['elements'],
+    style: [ // the stylesheet for the graph
+      {
+        selector: 'node',
+        style: {
+          'background-color': '#666',
+          'label': 'data(id)'
+        }
+      },
+
+      {
+        selector: 'edge',
+        style: {
+          'width': 3,
+          'line-color': '#ccc',
+          'target-arrow-color': '#ccc',
+          'target-arrow-shape': 'triangle',
+          'curve-style': 'bezier',
+          'label': 'data(label)'
+        }
+      }
+    ],
   });
 
   // create data table
@@ -46,7 +68,8 @@ function populateGraphAndTable(data) {
       .removeStyle();
     node
       .connectedEdges()
-      .style('line-color', 'red');
+      .style('line-color', 'red')
+      .style('target-arrow-color', 'red');
 
     // nodes
     cy
@@ -56,8 +79,8 @@ function populateGraphAndTable(data) {
       .connectedEdges()
       .connectedNodes()
       .style('background-color', 'red')
-      .style('label', function (ele) { return ele.data('id')})
-      .style('text-opacity', 1);
+      // .style('label', function (ele) { return ele.data('id')})
+      // .style('text-opacity', 1);
     cy
       .nodes(':selected')
       .style('background-color', 'blue');
