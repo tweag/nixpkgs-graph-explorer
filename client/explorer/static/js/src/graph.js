@@ -121,18 +121,15 @@ function sendData() {
   XHR.addEventListener("load", (event) => {
     data = event.target.response;
     if ('error' in data) {
-      swal({
-        title: "Error",
-        text: "We couldn't parse your query! Is it valid Gremlin?",
-        icon: "error",
-        button: "OK",
-      });
+      $.notify("Error: Could not parse Gremlin query. Is it valid?", "error");
     } else {
       if ('raw' in data) {
         populateText(data['raw']);
       };
       if ('cyto' in data) {
         populateGraphAndTable(data['cyto']);
+      } else {
+        $.notify("Warning: We could not generate a graph visualisation. Raw data returned.", "warn");
       };
       $('#query-result')[0].classList.remove('no-result');
     }
@@ -140,12 +137,7 @@ function sendData() {
 
   // Define what happens in case of error
   XHR.addEventListener("error", (event) => {
-    swal({
-      title: "Error",
-      text: 'Oops! Something went wrong.',
-      icon: "error",
-      button: "OK",
-    });
+    $.notify("Error: Could not parse Gremlin query. Is it valid?", "error");
   });
 
   // Set up our request
