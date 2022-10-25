@@ -23,6 +23,10 @@ let
           inherit path;
           # can't name it `outPath` because serialization would only output it instead of dict
           # see Nix `toString` docs
+          pname = (builtins.tryEval (if okValue ? pname then okValue.pname else "")).value;
+          version =
+            (builtins.tryEval (if okValue ? version then okValue.version else "")).value;
+ 
           outputPath =
             let
               pEvalResult = builtins.tryEval (toString okValue);
