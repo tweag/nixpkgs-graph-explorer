@@ -5,18 +5,19 @@ from gremlin_python.structure.graph import Path
 
 import networkx as nx
 
-def do_query(query:str)-> dict[str, dict]|None:
+def do_query(query:str)-> dict|None:
     results = []
     # Note: this hostname is aliased in docker-compose
-    with closing(Client('ws://gremlin:8182/gremlin', 'g')) as client:
+    # with closing(Client('ws://gremlin:8182/gremlin', 'g')) as client:
+    with closing(Client('ws://localhost:8182/gremlin', 'g')) as client:
         results = client.submit(query, request_options={'evaluationTimeout': 5000}).all().result()
 
     G = make_graph(results, prune_nix=True)
     match G:
         case None:
-            return None
-        case _:
-            return make_cyto_data(G)
+            return {"raw": str(results)}
+        case G:
+            return {"raw": str(results), "cyto": make_cyto_data(G)}
 
 def make_cyto_data(G:nx.Graph)-> dict[str, dict]:
     graph_data = nx.cytoscape_data(G)
@@ -24,10 +25,10 @@ def make_cyto_data(G:nx.Graph)-> dict[str, dict]:
     data = {"graph-data": graph_data, "table-data": table_data}
     return data
 
-def make_graph(paths:list[Path], prune_nix: bool = False)-> nx.Graph|None:
+def make_graph(data:list, prune_nix: bool = False)-> nx.Graph|None:
     G = nx.Graph()
     all_paths = True
-    for p in paths:
+    for p in data:
         match p:
             case Path():
                 pass
@@ -35,7 +36,7 @@ def make_graph(paths:list[Path], prune_nix: bool = False)-> nx.Graph|None:
                 all_paths = False
                 break
     if all_paths:
-        for p in paths:
+        for p in data:
             add_path_to_graph(G, p, prune_nix)
         return G
     else:

@@ -1,4 +1,8 @@
 
+function populateText(data) {
+  document.getElementById('raw-data').value = data;
+};
+
 function populateGraphAndTable(data) {
   let graphData = data['graph-data'];
   let unselectedColour = 'gray'
@@ -125,7 +129,12 @@ function sendData() {
         button: "OK",
       });
     } else {
-      populateGraphAndTable(data);
+      if ('raw' in data) {
+        populateText(data['raw']);
+      }
+      if ('cyto' in data) {
+        populateGraphAndTable(data['cyto']);
+      }
     }
   });
 
