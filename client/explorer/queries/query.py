@@ -20,20 +20,23 @@ class GremlinResult:
             return {"raw": str(self.raw)}
 
     def make_graph(self):
-        G = nx.Graph()
-        all_paths = True
-        for p in self.raw:
-            match p:
-                case Path():
-                    pass
-                case _:
-                    all_paths = False
-                    break
-        if all_paths:
+        try:
+            G = nx.Graph()
+            all_paths = True
             for p in self.raw:
-                self.add_path_to_graph(G, p, self.prune_nix)
-            self.G = G
-        else:
+                match p:
+                    case Path():
+                        pass
+                    case _:
+                        all_paths = False
+                        break
+            if all_paths:
+                for p in self.raw:
+                    self.add_path_to_graph(G, p, self.prune_nix)
+                self.G = G
+            else:
+                self.G = None
+        except:
             self.G = None
 
     @staticmethod
@@ -64,8 +67,7 @@ class GremlinResult:
 def do_query(query:str)-> dict|None:
     results = []
     # Note: this hostname is aliased in docker-compose
-    # with closing(Client('ws://gremlin:8182/gremlin', 'g')) as client:
-    with closing(Client('ws://localhost:8182/gremlin', 'g')) as client:
+    with closing(Client('ws://gremlin:8182/gremlin', 'g')) as client:
         results = client.submit(query, request_options={'evaluationTimeout': 5000}).all().result()
 
     G = GremlinResult(results)

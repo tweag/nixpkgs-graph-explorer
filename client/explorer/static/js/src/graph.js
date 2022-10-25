@@ -121,26 +121,31 @@ function sendData() {
   XHR.addEventListener("load", (event) => {
     data = event.target.response;
     if ('error' in data) {
-      swal('Oops! Something went wrong.');
       swal({
         title: "Error",
-        text: "We couldn't generate a graph from your query!",
+        text: "We couldn't parse your query! Is it valid Gremlin?",
         icon: "error",
         button: "OK",
       });
     } else {
       if ('raw' in data) {
         populateText(data['raw']);
-      }
+      };
       if ('cyto' in data) {
         populateGraphAndTable(data['cyto']);
-      }
+      };
+      $('#query-result')[0].classList.remove('no-result');
     }
   });
 
   // Define what happens in case of error
   XHR.addEventListener("error", (event) => {
-    alert('Oops! Something went wrong.');
+    swal({
+      title: "Error",
+      text: 'Oops! Something went wrong.',
+      icon: "error",
+      button: "OK",
+    });
   });
 
   // Set up our request
@@ -159,4 +164,8 @@ form.addEventListener("submit", (event) => {
 
   sendData();
 });
+
+
+
+
 
