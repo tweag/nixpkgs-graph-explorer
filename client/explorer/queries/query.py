@@ -8,8 +8,7 @@ import networkx as nx
 def do_query(query:str)-> dict[str, dict]|None:
     results = []
     # Note: this hostname is aliased in docker-compose
-    # with closing(Client('ws://gremlin:8182/gremlin', 'g')) as client:
-    with closing(Client('ws://localhost:8182/gremlin', 'g')) as client:
+    with closing(Client('ws://gremlin:8182/gremlin', 'g')) as client:
         results = client.submit(query, request_options={'evaluationTimeout': 5000}).all().result()
 
     G = make_graph(results, prune_nix=True)
