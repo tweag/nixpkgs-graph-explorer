@@ -67,7 +67,7 @@ class GremlinResult:
 def do_query(query:str)-> dict|None:
     results = []
     # Note: this hostname is aliased in docker-compose
-    with closing(Client('ws://gremlin:8182/gremlin', 'g')) as client:
+    with closing(Client('ws://gremlin:8182/gremlin', 'gReadOnly')) as client:
         results = client.submit(query, request_options={'evaluationTimeout': 5000}).all().result()
 
     G = GremlinResult(results)
