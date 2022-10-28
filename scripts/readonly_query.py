@@ -3,8 +3,6 @@ from contextlib import closing
 
 from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
-from gremlin_python.process.graph_traversal import __
-from gremlin_python.process.strategies import *
 
 def main():
     with closing(DriverRemoteConnection('ws://localhost:8182/gremlin', 'gReadOnly')) as remote:
