@@ -1,0 +1,11 @@
+version: "3.9"
+services:
+  web:
+    build: .
+    command: /opt/nixpkgs-graph-explorer localhost 5002 localhost 8182
+    ports:
+      - 5002:5002
+    # depends_on:
+    #   - gremlin
+    # networks:
+    #   - backend

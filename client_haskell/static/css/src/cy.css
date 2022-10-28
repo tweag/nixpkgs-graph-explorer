@@ -1,0 +1,21 @@
+#cy {
+  width: auto;
+  height: 500px;
+  display: block;
+}
+
+#table-graph {
+  width: auto;
+  height: 500px;
+  display: block;
+}
+
+.outlined {
+  outline-color: black;
+  outline-width: 1px;
+  outline-style: solid;
+}
+
+.no-result {
+  display: none;
+}

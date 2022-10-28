@@ -1,0 +1,7 @@
+.stack-work/
+.stack-work-profiling/
+*#*.hs#
+.vscode/*
+dist
+dist-newstyle
+*.hie
