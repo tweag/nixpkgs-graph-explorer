@@ -36,7 +36,7 @@ function populateGraphAndTable(data) {
         }
       }
     ],
-  });
+  }).fit();
 
   // create data table
   let tableData = data['table-data'];
