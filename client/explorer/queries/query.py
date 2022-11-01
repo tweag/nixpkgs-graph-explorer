@@ -6,21 +6,37 @@ from gremlin_python.structure.graph import Path
 import networkx as nx
 
 class GremlinResult:
+    # Note: this hostname is aliased in docker-compose
+    gremlin_host = 'ws://gremlin:8182/gremlin'
     prune_nix = False
+    warning = None
+    cyto_data = None
+    G = None
 
-    def __init__(self, data):
-        self.raw = data
+    def __init__(self, query:str):
+        self.query = query.strip()
+        self.do_query()
         self.make_graph()
         self.make_cyto_data()
 
+    def do_query(self):
+        with closing(Client(self.gremlin_host, 'gReadOnly')) as client:
+            self.raw = client.submit(self.query, request_options={'evaluationTimeout': 5000}).all().result()
+
     def to_dict(self):
+        r = {"raw":  str(self.raw)}
+        if self.warning:
+            r["warning"] = self.warning
         if self.cyto_data:
-            return {"raw": str(self.raw), "cyto": self.cyto_data}
-        else:
-            return {"raw": str(self.raw)}
+            r["cyto"] = self.cyto_data
+        return r
 
     def make_graph(self):
+        print(0, 'make_graph')
         try:
+            # We only attempt to plot vertex-based queries, not edge-based
+            if not self.query.startswith('g.V'):
+                raise ValueError("Only vertex-based queries (g.V()...) will be plotted.")
             G = nx.Graph()
             all_paths = True
             for p in self.raw:
@@ -35,8 +51,9 @@ class GremlinResult:
                     self.add_path_to_graph(G, p, self.prune_nix)
                 self.G = G
             else:
-                self.G = None
-        except:
+                raise ValueError("Only Gremlin results consisting of paths will be plotted.")
+        except Exception as e:
+            self.warning = str(e)
             self.G = None
 
     @staticmethod
@@ -63,14 +80,4 @@ class GremlinResult:
             self.cyto_data = {"graph-data": graph_data, "table-data": table_data}
         else:
             self.cyto_data = None
-
-def do_query(query:str)-> dict|None:
-    results = []
-    # Note: this hostname is aliased in docker-compose
-    with closing(Client('ws://gremlin:8182/gremlin', 'gReadOnly')) as client:
-        results = client.submit(query, request_options={'evaluationTimeout': 5000}).all().result()
-
-    G = GremlinResult(results)
-    return G.to_dict()
-
 

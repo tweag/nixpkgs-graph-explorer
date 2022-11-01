@@ -20,7 +20,7 @@ function populateGraphAndTable(data) {
         selector: 'node',
         style: {
           'background-color': '#666',
-          'label': 'data(id)'
+          'label': 'data(name)'
         }
       },
 
@@ -43,7 +43,7 @@ function populateGraphAndTable(data) {
   let table = new Tabulator('#table-graph', {
       selectable:1,
       columns:[
-      {title:'ID', field:'id', sorter: 'string'},
+      {title:'ID', field:'name', sorter: 'string'},
       {title:'Neighbours', field:'neighbours', sorter:'number', hozAlign:'left'},
       ],
       data:tableData,
@@ -128,8 +128,9 @@ function sendData() {
       };
       if ('cyto' in data) {
         populateGraphAndTable(data['cyto']);
-      } else {
-        $.notify("Warning: We could not generate a graph visualisation. Raw data returned.", "warn");
+      };
+      if ('warning' in data) {
+        $.notify(`Warning: ${data["warning"]}`, "warn");
       };
       $('#query-result')[0].classList.remove('no-result');
     }

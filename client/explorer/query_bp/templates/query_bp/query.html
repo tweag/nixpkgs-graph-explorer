@@ -1,13 +1,13 @@
-{% extends "base.html" %}
+{% extends "query_bp/base.html" %}
 {% block title %}Nixpkgs Dependency Explorer{% endblock %}
 
 {% block content %}
   <div class="row">
     <div class="twelve columns">
-      {% include "query_form.html" %}
+      {% include "query_bp/query_form.html" %}
     </div>
     <div class="twelve columns">
-      {% include "query_results.html" %}
+      {% include "query_bp/query_results.html" %}
     </div>
   </div>
 
