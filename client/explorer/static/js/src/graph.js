@@ -125,14 +125,22 @@ function sendData() {
     } else {
       if ('raw' in data) {
         populateText(data['raw']);
+        $('#query-results-raw')[0].classList.remove('no-result');
+      } else {
+        $('#query-results-raw')[0].classList.add('no-result');
       };
       if ('cyto' in data) {
         populateGraphAndTable(data['cyto']);
+        $('#query-results-graph')[0].classList.remove('no-result');
+        $('#query-results-table')[0].classList.remove('no-result');
+      } else {
+        populateGraphAndTable({'graph-data': {'elements': []}, 'table-data': []});
+        $('#query-results-graph')[0].classList.add('no-result');
+        $('#query-results-table')[0].classList.add('no-result');
       };
       if ('warning' in data) {
         $.notify(`Warning: ${data["warning"]}`, "warn");
       };
-      $('#query-result')[0].classList.remove('no-result');
     }
   });
 
