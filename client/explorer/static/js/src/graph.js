@@ -5,10 +5,8 @@ function populateText(data) {
 
 function populateGraphAndTable(data) {
   let graphData = data['graph-data'];
-  let unselectedColour = 'gray'
-  let selectedColour = 'red'
-
   // create cytoscape graph
+  console.log(graphData);
   let cy = cytoscape({
     container: document.getElementById('cy'),
     layout: {
@@ -120,8 +118,12 @@ function sendData() {
   // Define what happens on successful data submission
   XHR.addEventListener("load", (event) => {
     data = event.target.response;
-    if ('error' in data) {
-      $.notify("Error: Could not parse Gremlin query. Is it valid?", "error");
+    if (XHR.status >= 400) {
+      console.log(0);
+      $.notify(`Error: ${ XHR.statusText }`, "error");
+    } else if ('error' in data) {
+      console.log(1);
+      $.notify(`Error: ${ data.error }`, "error");
     } else {
       if ('raw' in data) {
         populateText(data['raw']);
@@ -146,6 +148,7 @@ function sendData() {
 
   // Define what happens in case of error
   XHR.addEventListener("error", (event) => {
+    console.log(2);
     $.notify("Error: Could not parse Gremlin query. Is it valid?", "error");
   });
 

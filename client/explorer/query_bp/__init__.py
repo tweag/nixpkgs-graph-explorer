@@ -23,8 +23,8 @@ def index_post():
         result = GR.to_dict()
         match result:
             case None:
-                raise Exception("fail")
+                raise Exception("Could not get Gremlin result from server.")
             case _:
                 return jsonify(result)
-    except:
-        return jsonify({"error": "fail"})
+    except Exception as e:
+        return jsonify({"error": str(e)})
