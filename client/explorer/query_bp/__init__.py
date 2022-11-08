@@ -19,7 +19,7 @@ def index_get():
 @query_bp.post("/")
 def index_post():
     try:
-        GR = query.GremlinResult(request.form['query'])
+        GR = query.GremlinResult(request.form['query'], clean_gremlin=True)
         result = GR.to_dict()
         match result:
             case None:
