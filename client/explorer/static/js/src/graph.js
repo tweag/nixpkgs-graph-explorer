@@ -41,7 +41,7 @@ function populateGraphAndTable(data) {
   let table = new Tabulator('#table-graph', {
       selectable:1,
       columns:[
-      {title:'ID', field:'name', sorter: 'string'},
+      {title:'ID', field:'id', sorter: 'string'},
       {title:'Neighbours', field:'neighbours', sorter:'number', hozAlign:'left'},
       ],
       data:tableData,
