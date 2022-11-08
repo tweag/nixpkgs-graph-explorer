@@ -1,4 +1,5 @@
 
+
 function populateText(data) {
   document.getElementById('raw-data').value = data;
 };
@@ -10,7 +11,10 @@ function populateGraphAndTable(data) {
   let cy = cytoscape({
     container: document.getElementById('cy'),
     layout: {
-      name: 'breadthfirst',
+      name: 'elk',
+      elk: {
+        algorithm: 'layered',
+      },
     },
     elements: graphData['elements'],
     style: [ // the stylesheet for the graph
@@ -30,11 +34,12 @@ function populateGraphAndTable(data) {
           'target-arrow-color': '#ccc',
           'target-arrow-shape': 'triangle',
           'curve-style': 'bezier',
-          'label': 'data(label)'
+          'label': '' // 'data(label)'
         }
       }
     ],
   }).fit();
+
 
   // create data table
   let tableData = data['table-data'];
