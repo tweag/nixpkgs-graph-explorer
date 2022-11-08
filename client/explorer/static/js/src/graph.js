@@ -7,7 +7,6 @@ function populateText(data) {
 function populateGraphAndTable(data) {
   let graphData = data['graph-data'];
   // create cytoscape graph
-  console.log(graphData);
   let cy = cytoscape({
     container: document.getElementById('cy'),
     layout: {
@@ -124,10 +123,8 @@ function sendData() {
   XHR.addEventListener("load", (event) => {
     data = event.target.response;
     if (XHR.status >= 400) {
-      console.log(0);
       $.notify(`Error: ${ XHR.statusText }`, "error");
     } else if ('error' in data) {
-      console.log(1);
       $.notify(`Error: ${ data.error }`, "error");
     } else {
       if ('raw' in data) {
@@ -153,7 +150,6 @@ function sendData() {
 
   // Define what happens in case of error
   XHR.addEventListener("error", (event) => {
-    console.log(2);
     $.notify("Error: Could not parse Gremlin query. Is it valid?", "error");
   });
 

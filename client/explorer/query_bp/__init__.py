@@ -14,7 +14,15 @@ def bad_request(e):
 
 @query_bp.get("/")
 def index_get():
-    return render_template('query_bp/query.html')
+    default_query = """g.V()
+.filter{it.get().value('pname').matches('auto-multiple-choice')}
+.repeat(outE().otherV().simplePath())
+.until(__.not(outE().simplePath()))
+.path()
+.by('pname')
+.by(label)
+    """
+    return render_template('query_bp/query.html', data={"default_query": default_query})
 
 @query_bp.post("/")
 def index_post():
