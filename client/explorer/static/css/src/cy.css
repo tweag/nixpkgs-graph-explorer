@@ -19,3 +19,7 @@
 .no-result {
   display: none;
 }
+
+#input-query {
+  height: 150px;
+}
