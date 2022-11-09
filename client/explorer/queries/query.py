@@ -10,7 +10,6 @@ import networkx as nx
 
 class GremlinResult:
     # Note: this hostname is aliased in docker-compose
-    gremlin_host = 'ws://gremlin:8182/gremlin'
     prune_nix = False
     clean_gremlin = False
     warning = None
@@ -19,7 +18,8 @@ class GremlinResult:
     result = []
     raw = ""
 
-    def __init__(self, query:str, clean_gremlin=False):
+    def __init__(self, client, query:str, clean_gremlin=False):
+        self.client = client
         self.query = query.strip()
         self.clean_gremlin = clean_gremlin
         self.do_query()
@@ -32,9 +32,8 @@ class GremlinResult:
         Do Gremlin query
         """
         try:
-            with closing(Client(self.gremlin_host, 'gReadOnly')) as client:
-                self.result = client.submit(self.query, request_options={'evaluationTimeout': 5000}).all().result()
-                self.raw = str(self.result)
+            self.result = self.client.submit(self.query, request_options={'evaluationTimeout': 5000}).all().result()
+            self.raw = str(self.result)
         except Exception:
             raise ValueError("Could not get result from server or query is invalid")
 

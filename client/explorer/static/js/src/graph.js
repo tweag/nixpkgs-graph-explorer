@@ -12,7 +12,7 @@ function populateGraphAndTable(data) {
     layout: {
       name: 'elk',
       elk: {
-        algorithm: 'layered',
+        algorithm: 'layered'
       },
     },
     elements: graphData['elements'],
