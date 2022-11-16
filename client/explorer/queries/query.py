@@ -9,36 +9,62 @@ import networkx as nx
 
 
 class GremlinResult:
-    # Note: this hostname is aliased in docker-compose
-    gremlin_host = 'ws://gremlin:8182/gremlin'
-    prune_nix = False
-    clean_gremlin = False
-    warning = None
-    cyto_data = None
+    """
+    Class to encapsulate a Gremlin query and result.
+
+    Attributes
+    ----------
+    query : str
+        Gremlin query string
+    clean_gremlin: bool
+        If true, Python `T` Enums in Gremlin results will be replaced with sensible strings.
+
+    Methods
+    -------
+    to_dict():
+        create a result dictionary to be returned to the front-end as JSON
+    """
+
     G = None
-    result = []
+    cyto_data = None
     raw = ""
+    result = []
+    warning = None
 
     def __init__(self, query:str, clean_gremlin=False):
         self.query = query.strip()
         self.clean_gremlin = clean_gremlin
-        self.do_query()
-        self.clean_raw_result()
-        self.make_graph()
-        self.make_cyto_data()
 
-    def do_query(self):
+        # the query is submitted to the Gremlin server
+        self.__do_query()
+
+        # the Gremlin query string possibly cleaned of Python Enums depending
+        # on `clean_gremlin`
+        self.__clean_raw_result()
+
+        # a NetworkX graph object is possibly constructed from the
+        self.__make_graph()
+
+        # NetworkX graph is serialised to Cytoscape format
+        self.__make_cyto_data()
+
+    @staticmethod
+    def __gremlin_host():
+        "Note: this hostname is aliased in docker-compose."
+        return 'ws://gremlin:8182/gremlin'
+
+    def __do_query(self):
         """
         Do Gremlin query
         """
         try:
-            with closing(Client(self.gremlin_host, 'gReadOnly')) as client:
+            with closing(Client(self.__gremlin_host(), 'gReadOnly')) as client:
                 self.result = client.submit(self.query, request_options={'evaluationTimeout': 5000}).all().result()
                 self.raw = str(self.result)
         except Exception:
             raise ValueError("Could not get result from server or query is invalid")
 
-    def clean_raw_result(self):
+    def __clean_raw_result(self):
         """
         Clean ugly T Enums in Gremlin result
         """
@@ -64,9 +90,9 @@ class GremlinResult:
             r["cyto"] = self.cyto_data
         return r
 
-    def make_graph(self):
+    def __make_graph(self):
         """
-        Generate a NetworkX graph from the Gremlin result
+        Attempt to generate a NetworkX graph from the Gremlin result
         """
         try:
             # We only attempt to plot vertex-based queries, not edge-based
@@ -83,7 +109,7 @@ class GremlinResult:
                         break
             if all_paths:
                 for p in self.result:
-                    self.add_path_to_graph(G, p)
+                    self.__add_path_to_graph(G, p)
                 self.G = G
             else:
                 raise ValueError("Only Gremlin results consisting of paths can be plotted. Graph not generated.")
@@ -91,7 +117,7 @@ class GremlinResult:
             self.warning = str(e)
 
     @staticmethod
-    def add_path_to_graph(G:nx.Graph, path:Path)-> nx.Graph:
+    def __add_path_to_graph(G:nx.Graph, path:Path)-> nx.Graph:
         """
         Add Gremlin Path to NetworkX graph
         """
@@ -113,9 +139,9 @@ class GremlinResult:
             G.add_edge(node0, node1, label=edge)
         return G
 
-    def make_cyto_data(self):
+    def __make_cyto_data(self):
         """
-        Convert NetworkX graph to Cytoscape data
+        Serialise NetworkX graph to Cytoscape data
         """
         try:
             if self.G:
