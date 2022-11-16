@@ -1,11 +1,26 @@
 from flask import request, render_template, Blueprint, jsonify, abort
 from explorer.queries import query
+from gremlin_python.driver.client import Client
+
+
+# shared gremlin query client with connection pool-size of 4
+gremlin_client = Client('ws://gremlin:8182/gremlin', 'gReadOnly', pool_size=4)
 
 # Blueprint Configuration
 query_bp = Blueprint(
     'query_bp', __name__,
     template_folder='templates',
 )
+
+# default example query for form input
+default_query = """g.V()
+.filter{it.get().value('pname').matches('auto-multiple-choice')}
+.repeat(outE().otherV().simplePath())
+.until(__.not(outE().simplePath()))
+.path()
+.by('pname')
+.by(label)
+"""
 
 @query_bp.errorhandler(400)
 def bad_request(e):
@@ -14,20 +29,12 @@ def bad_request(e):
 
 @query_bp.get("/")
 def index_get():
-    default_query = """g.V()
-.filter{it.get().value('pname').matches('auto-multiple-choice')}
-.repeat(outE().otherV().simplePath())
-.until(__.not(outE().simplePath()))
-.path()
-.by('pname')
-.by(label)
-    """
     return render_template('query_bp/query.html', data={"default_query": default_query})
 
 @query_bp.post("/")
 def index_post():
     try:
-        GR = query.GremlinResult(request.form['query'], clean_gremlin=True)
+        GR = query.GremlinResult(gremlin_client, request.form['query'], clean_gremlin=True)
         result = GR.to_dict()
         match result:
             case None:

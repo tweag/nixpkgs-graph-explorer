@@ -1,5 +1,3 @@
-from contextlib import closing
-from gremlin_python.driver.client import Client
 from gremlin_python.structure.graph import Path
 from gremlin_python.process.traversal import T
 
@@ -14,6 +12,8 @@ class GremlinResult:
 
     Attributes
     ----------
+    client : gremlin_python.driver.client.Client
+        Gremlin Client which manages its own connection pool
     query : str
         Gremlin query string
     clean_gremlin: bool
@@ -31,7 +31,8 @@ class GremlinResult:
     result = []
     warning = None
 
-    def __init__(self, query:str, clean_gremlin=False):
+    def __init__(self, client, query:str, clean_gremlin=False):
+        self.client = client
         self.query = query.strip()
         self.clean_gremlin = clean_gremlin
 
@@ -48,19 +49,13 @@ class GremlinResult:
         # NetworkX graph is serialised to Cytoscape format
         self.__make_cyto_data()
 
-    @staticmethod
-    def __gremlin_host():
-        "Note: this hostname is aliased in docker-compose."
-        return 'ws://gremlin:8182/gremlin'
-
     def __do_query(self):
         """
         Do Gremlin query
         """
         try:
-            with closing(Client(self.__gremlin_host(), 'gReadOnly')) as client:
-                self.result = client.submit(self.query, request_options={'evaluationTimeout': 5000}).all().result()
-                self.raw = str(self.result)
+            self.result = self.client.submit(self.query, request_options={'evaluationTimeout': 5000}).all().result()
+            self.raw = str(self.result)
         except Exception:
             raise ValueError("Could not get result from server or query is invalid")
 
