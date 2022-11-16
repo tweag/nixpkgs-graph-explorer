@@ -1,23 +1,51 @@
 
 
+function populateText(data) {
+  document.getElementById('raw-data').value = data;
+};
+
 function populateGraphAndTable(data) {
   let graphData = data['graph-data'];
-  let unselectedColour = 'gray'
-  let selectedColour = 'red'
-
   // create cytoscape graph
   let cy = cytoscape({
     container: document.getElementById('cy'),
-    layout: {name: 'breadthfirst'},
+    layout: {
+      name: 'elk',
+      elk: {
+        algorithm: 'layered',
+      },
+    },
     elements: graphData['elements'],
-  });
+    style: [ // the stylesheet for the graph
+      {
+        selector: 'node',
+        style: {
+          'background-color': '#666',
+          'label': 'data(name)'
+        }
+      },
+
+      {
+        selector: 'edge',
+        style: {
+          'width': 3,
+          'line-color': '#ccc',
+          'target-arrow-color': '#ccc',
+          'target-arrow-shape': 'triangle',
+          'curve-style': 'bezier',
+          'label': '' // 'data(label)'
+        }
+      }
+    ],
+  }).fit();
+
 
   // create data table
   let tableData = data['table-data'];
   let table = new Tabulator('#table-graph', {
       selectable:1,
       columns:[
-      {title:'Name', field:'name', sorter: 'number'},
+      {title:'ID', field:'id', sorter: 'string'},
       {title:'Neighbours', field:'neighbours', sorter:'number', hozAlign:'left'},
       ],
       data:tableData,
@@ -46,7 +74,8 @@ function populateGraphAndTable(data) {
       .removeStyle();
     node
       .connectedEdges()
-      .style('line-color', 'red');
+      .style('line-color', 'red')
+      .style('target-arrow-color', 'red');
 
     // nodes
     cy
@@ -56,8 +85,8 @@ function populateGraphAndTable(data) {
       .connectedEdges()
       .connectedNodes()
       .style('background-color', 'red')
-      .style('label', function (ele) { return ele.data('id')})
-      .style('text-opacity', 1);
+      // .style('label', function (ele) { return ele.data('id')})
+      // .style('text-opacity', 1);
     cy
       .nodes(':selected')
       .style('background-color', 'blue');
@@ -92,12 +121,36 @@ function sendData() {
 
   // Define what happens on successful data submission
   XHR.addEventListener("load", (event) => {
-    populateGraphAndTable(event.target.response);
+    data = event.target.response;
+    if (XHR.status >= 400) {
+      $.notify(`Error: ${ XHR.statusText }`, "error");
+    } else if ('error' in data) {
+      $.notify(`Error: ${ data.error }`, "error");
+    } else {
+      if ('raw' in data) {
+        populateText(data['raw']);
+        $('#query-results-raw')[0].classList.remove('no-result');
+      } else {
+        $('#query-results-raw')[0].classList.add('no-result');
+      };
+      if ('cyto' in data) {
+        populateGraphAndTable(data['cyto']);
+        $('#query-results-graph')[0].classList.remove('no-result');
+        $('#query-results-table')[0].classList.remove('no-result');
+      } else {
+        populateGraphAndTable({'graph-data': {'elements': []}, 'table-data': []});
+        $('#query-results-graph')[0].classList.add('no-result');
+        $('#query-results-table')[0].classList.add('no-result');
+      };
+      if ('warning' in data) {
+        $.notify(`Warning: ${data["warning"]}`, "warn");
+      };
+    }
   });
 
   // Define what happens in case of error
   XHR.addEventListener("error", (event) => {
-    alert('Oops! Something went wrong.');
+    $.notify("Error: Could not parse Gremlin query. Is it valid?", "error");
   });
 
   // Set up our request
@@ -116,4 +169,8 @@ form.addEventListener("submit", (event) => {
 
   sendData();
 });
+
+
+
+
 

@@ -12,5 +12,4 @@ def init_app():
 
     # register "blueprints"
     app.register_blueprint(query_bp, url_prefix='')
-
     return app
