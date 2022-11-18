@@ -28,7 +28,7 @@ resource "google_compute_instance" "instance_with_ip" {
   name         = "nixpkgs-graph-explorer-vm-1"
   machine_type = "e2-small"
   zone         = "us-west1-a"
-  tags         = ["ssh"]
+  tags         = ["ssh", "http-server", "https-server", "firewall-postgresql", "firewall-gremlin", "firewall-web"]
 
   boot_disk {
     initialize_params {
