@@ -23,10 +23,15 @@ resource "google_compute_address" "static" {
   region = "us-west1"
 }
 
+resource "google_compute_disk" "default" {
+  name = "compute-disk"
+  size = "10"
+}
+
 # Create a single Compute Engine instance
 resource "google_compute_instance" "instance_with_ip" {
   name         = "nixpkgs-graph-explorer-vm-1"
-  machine_type = "e2-small"
+  machine_type = "e2-medium"
   zone         = "us-west1-a"
   tags         = ["ssh", "http-server", "https-server", "firewall-postgresql", "firewall-gremlin", "firewall-web"]
 
@@ -51,6 +56,16 @@ resource "google_compute_instance" "instance_with_ip" {
   }
 
   metadata_startup_script = "${file("./install.docker.sh")}"
+
+  lifecycle {
+    ignore_changes = [attached_disk]
+  }
+}
+
+# connect compute & disk
+resource "google_compute_attached_disk" "default" {
+  disk     = google_compute_disk.default.id
+  instance = google_compute_instance.instance_with_ip.id
 }
 
 resource "google_compute_firewall" "ssh" {

@@ -17,3 +17,7 @@ curl -O -J -L https://github.com/docker/compose/releases/download/v2.11.2/docker
 chmod +x docker-compose-linux-x86_64
 sudo mv ./docker-compose-linux-x86_64 /usr/bin/docker-compose
 sudo apt update
+
+# Install Nix
+sh <(curl -L https://nixos.org/nix/install) --no-daemon
+  . /home/$USER/.nix-profile/etc/profile.d/nix.sh
