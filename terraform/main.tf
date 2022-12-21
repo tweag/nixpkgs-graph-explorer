@@ -18,18 +18,13 @@ resource "google_compute_subnetwork" "default" {
   network       = google_compute_network.vpc_network.id
 }
 
-resource "google_compute_address" "static" {
-  name   = "ipv4-address"
-  region = "us-west1"
-}
-
 resource "google_compute_disk" "default" {
   name = "compute-disk"
   size = "10"
 }
 
 # Create a single Compute Engine instance
-resource "google_compute_instance" "instance_with_ip" {
+resource "google_compute_instance" "default" {
   name         = "nixpkgs-graph-explorer-vm-1"
   machine_type = "e2-medium"
   zone         = "us-west1-a"
@@ -46,7 +41,6 @@ resource "google_compute_instance" "instance_with_ip" {
 
     access_config {
       # Include this section to give the VM an external IP address
-      nat_ip = google_compute_address.static.address
     }
   }
 
@@ -65,7 +59,7 @@ resource "google_compute_instance" "instance_with_ip" {
 # connect compute & disk
 resource "google_compute_attached_disk" "default" {
   disk     = google_compute_disk.default.id
-  instance = google_compute_instance.instance_with_ip.id
+  instance = google_compute_instance.default.id
 }
 
 resource "google_compute_firewall" "ssh" {
