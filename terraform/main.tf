@@ -45,8 +45,9 @@ resource "google_compute_instance" "default" {
   }
 
   scheduling {
-    preemptible       = true
-    automatic_restart = false
+    preemptible        = true
+    automatic_restart  = false
+    provisioning_model = SPOT
   }
 
   metadata_startup_script = "${file("./install.docker.sh")}"
