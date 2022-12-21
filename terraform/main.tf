@@ -28,7 +28,7 @@ resource "google_compute_instance" "default" {
   name         = "nixpkgs-graph-explorer-vm-1"
   machine_type = "e2-medium"
   zone         = "us-west1-a"
-  tags         = ["ssh", "http-server", "https-server", "firewall-postgresql", "firewall-gremlin", "firewall-web"]
+  tags         = ["ssh", "http-server", "https-server", "firewall-web"]
 
   boot_disk {
     initialize_params {
@@ -72,30 +72,8 @@ resource "google_compute_firewall" "ssh" {
   direction     = "INGRESS"
   network       = "default"
   priority      = 1000
-  source_ranges = ["0.0.0.0/0"]
+  source_ranges = ["176.158.157.138/32"]
   target_tags   = ["ssh"]
-}
-
-resource "google_compute_firewall" "postgresql" {
-  name    = "firewall-postgresql"
-  network = "default"
-  allow {
-    protocol = "tcp"
-    ports    = ["5432"]
-  }
-  target_tags   = ["firewall-postgresql"]
-  source_ranges = ["0.0.0.0/0"]
-}
-
-resource "google_compute_firewall" "gremlin" {
-  name    = "firewall-gremlin"
-  network = "default"
-  allow {
-    protocol = "tcp"
-    ports    = ["8182"]
-  }
-  target_tags   = ["firewall-gremlin"]
-  source_ranges = ["0.0.0.0/0"]
 }
 
 resource "google_compute_firewall" "web" {
