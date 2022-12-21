@@ -20,4 +20,9 @@ sudo apt update
 
 # Install Nix
 sh <(curl -L https://nixos.org/nix/install) --no-daemon
-  . /home/$USER/.nix-profile/etc/profile.d/nix.sh
+ . /home/\$USER/.nix-profile/etc/profile.d/nix.sh
+
+# Get the application source code from the Google Cloud Storage bucket.
+mkdir /nixpkgs-graph-explorer
+sudo gsutil -m cp -r gs://codebase-nixpkgs-graph-explorer/nixpkgs-graph-explorer/* /nixpkgs-graph-explorer/
+chmod -R 777 /nixpkgs-graph-explorer

@@ -47,13 +47,19 @@ resource "google_compute_instance" "default" {
   scheduling {
     preemptible        = true
     automatic_restart  = false
-    provisioning_model = SPOT
+    provisioning_model = "SPOT"
   }
 
   metadata_startup_script = "${file("./install.docker.sh")}"
 
   lifecycle {
     ignore_changes = [attached_disk]
+  }
+
+  service_account {
+    # Google recommends custom service accounts that have cloud-platform scope and permissions granted via IAM Roles.
+    email  = "cloud-storage-bucket@nixpkgs-graph-explorer.iam.gserviceaccount.com"
+    scopes = ["cloud-platform"]
   }
 }
 
@@ -75,6 +81,17 @@ resource "google_compute_firewall" "ssh" {
   source_ranges = ["176.158.157.138/32"]
   target_tags   = ["ssh"]
 }
+
+# resource "google_compute_firewall" "gremlin" {
+#   name    = "firewall-gremlin"
+#   network = "default"
+#   allow {
+#     protocol = "tcp"
+#     ports    = ["8182"]
+#   }
+#   target_tags   = ["firewall-gremlin"]
+#   source_ranges = ["0.0.0.0/0"]
+# }
 
 resource "google_compute_firewall" "web" {
   name    = "firewall-web"
