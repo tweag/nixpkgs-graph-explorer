@@ -15,6 +15,10 @@ resource "google_compute_subnetwork" "default" {
   name          = "nixpkgs-graph-explorer-subnet"
   ip_cidr_range = "192.168.1.0/24"
   region        = "us-west1"
+
+  stack_type       = "IPV4_IPV6"
+  ipv6_access_type = "EXTERNAL"
+  
   network       = google_compute_network.vpc_network.id
 }
 
@@ -28,7 +32,7 @@ resource "google_compute_instance" "default" {
   name         = "nixpkgs-graph-explorer-vm-1"
   machine_type = "e2-medium"
   zone         = "us-west1-a"
-  tags         = ["ssh", "http-server", "https-server", "firewall-web"]
+  tags         = ["ssh", "ssh-ipv6", "http-server", "https-server", "firewall-web"]
 
   boot_disk {
     initialize_params {
@@ -82,16 +86,18 @@ resource "google_compute_firewall" "ssh" {
   target_tags   = ["ssh"]
 }
 
-# resource "google_compute_firewall" "gremlin" {
-#   name    = "firewall-gremlin"
-#   network = "default"
-#   allow {
-#     protocol = "tcp"
-#     ports    = ["8182"]
-#   }
-#   target_tags   = ["firewall-gremlin"]
-#   source_ranges = ["0.0.0.0/0"]
-# }
+resource "google_compute_firewall" "ssh-ipv6" {
+  name = "allow-ssh-ipv6"
+  allow {
+    ports    = ["22"]
+    protocol = "tcp"
+  }
+  direction     = "INGRESS"
+  network       = "default"
+  priority      = 1000
+  source_ranges = ["2001:171b:c9b5:6230:cca9:6c33:ef44:3097/128"]
+  target_tags   = ["ssh-ipv6"]
+}
 
 resource "google_compute_firewall" "web" {
   name    = "firewall-web"

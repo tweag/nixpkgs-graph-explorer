@@ -26,3 +26,7 @@ sh <(curl -L https://nixos.org/nix/install) --no-daemon
 mkdir /nixpkgs-graph-explorer
 sudo gsutil -m cp -r gs://codebase-nixpkgs-graph-explorer/nixpkgs-graph-explorer/* /nixpkgs-graph-explorer/
 chmod -R 777 /nixpkgs-graph-explorer
+
+sudo systemctl enable docker
+cd /nixpkgs-graph-explorer
+sudo docker-compose up -d
