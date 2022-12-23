@@ -27,6 +27,21 @@ resource "google_compute_disk" "default" {
   size = "10"
 }
 
+resource "google_compute_instance_group" "default" {
+  name      = "nixpkgs-graph-explorer-instance-group"
+  zone      = "us-west1-a"
+  instances = [google_compute_instance.default.self_link]
+
+  # lifecycle {
+  #   create_before_destroy = true
+  # }
+
+  named_port {
+    name = "http"
+    port = 5000
+  }
+}
+
 # Create a single Compute Engine instance
 resource "google_compute_instance" "default" {
   name         = "nixpkgs-graph-explorer-vm-1"
