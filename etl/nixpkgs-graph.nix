@@ -31,7 +31,7 @@ let
           # see Nix `toString` docs
           pname = (builtins.tryEval (if okValue ? pname then okValue.pname else "")).value;
           version = (builtins.tryEval (if okValue ? version then okValue.version else "")).value;
-          id = (builtins.tryEval (if okValue ? name then okValue.name else "")).value;
+          name = (builtins.tryEval (if okValue ? name then okValue.name else "")).value;
           outputPath =
             let
               pEvalResult = builtins.tryEval (toString okValue);

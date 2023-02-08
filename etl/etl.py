@@ -31,6 +31,7 @@ def unique_insert_node(g, row):
                   .property("outputPath", str(row["outputPath"])) \
                   .property("path", row["path"]) \
                   .property("pname", row["pname"]) \
+                  .property("name", row["name"]) \
                   .property("version", row["version"])) \
         .iterate()
 
@@ -44,7 +45,6 @@ def unique_insert_edge(g, row, target):
                            __.addE("dependsOn").from_("v") \
                            .property("label", "buildInputs")) \
                  .iterate()
-
 
 def gremlin_queries(dataframe):
     with closing(DriverRemoteConnection('ws://localhost:8182/gremlin', "g")) as remote:
@@ -60,6 +60,7 @@ def gremlin_queries(dataframe):
             # TODO: there's some outputPath = None
             unique_insert_node(g, row)
             print(str(_) + " node(s) added", end='\r')
+        print('\n')
 
         # Add edges
         print("Adding edges...")
