@@ -32,6 +32,26 @@ let
             in
             if pEvalResult.success then pEvalResult.value
             else null;
+          outputNameAll =
+            let
+              pEvalResult = builtins.tryEval (toString (if okValue ? outputs then okValue.outputs else ""));
+            in
+            if pEvalResult.success then splitString " " pEvalResult.value
+            else [];
+          outputPathAll =
+            let
+              outputs =
+                let
+                  pEvalResult = builtins.tryEval (toString (if okValue ? outputs then okValue.outputs else ""));
+                in
+                if pEvalResult.success then splitString " " pEvalResult.value
+                else [];
+            in
+            map
+              (p:
+                (builtins.tryEval (if okValue ? ${p} then toString okValue.${p} else "")).value
+              )
+              (outputs);
           buildInputs =
             map
               (p:
