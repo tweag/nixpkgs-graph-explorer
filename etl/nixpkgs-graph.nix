@@ -3,7 +3,13 @@
 
 let
   nixpkgsFlakeRef = builtins.getEnv "NIXPKGS_FLAKE_REF";
-  pkgs = import (builtins.getFlake nixpkgsFlakeRef) { };
+  pkgs = import (builtins.getFlake nixpkgsFlakeRef) {
+    config = {
+      permittedInsecurePackages = [
+        "python-2.7.18.6"
+      ];
+    };
+  };
 in
 
 with pkgs.lib;
