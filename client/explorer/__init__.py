@@ -1,6 +1,6 @@
 """Initialize Flask app."""
 from flask import Flask
-from explorer.query_bp import query_bp
+from explorer.query_bp import query_bp, gremlin_client
 
 
 def init_app():
@@ -12,5 +12,4 @@ def init_app():
 
     # register "blueprints"
     app.register_blueprint(query_bp, url_prefix='')
-
-    return app
+    return app, gremlin_client

@@ -1,5 +1,10 @@
-from flask import request, Response, render_template, Blueprint, jsonify
-from explorer.utils import utils
+from flask import request, render_template, Blueprint, jsonify, abort
+from explorer.queries import query
+from gremlin_python.driver.client import Client
+
+
+# shared gremlin query client with connection pool-size of 4
+gremlin_client = Client('ws://gremlin:8182/gremlin', 'gReadOnly', pool_size=4)
 
 # Blueprint Configuration
 query_bp = Blueprint(
@@ -7,11 +12,34 @@ query_bp = Blueprint(
     template_folder='templates',
 )
 
+# default example query for form input
+default_query = """g.V()
+.filter{it.get().value('pname').matches('auto-multiple-choice')}
+.repeat(outE().otherV().simplePath())
+.until(__.not(outE().simplePath()))
+.path()
+.by('pname')
+.by(label)
+"""
+
+@query_bp.errorhandler(400)
+def bad_request(e):
+    # note that we set the 500 status explicitly
+    return render_template('query_bp/query.html', data={"error": e}), 400
+
 @query_bp.get("/")
 def index_get():
-    return render_template('query.html')
+    return render_template('query_bp/query.html', data={"default_query": default_query})
 
 @query_bp.post("/")
 def index_post():
-    result = utils.do_things(request.form['query'])
-    return jsonify(result)
+    try:
+        GR = query.GremlinResult(gremlin_client, request.form['query'], clean_gremlin=True)
+        result = GR.to_dict()
+        match result:
+            case None:
+                raise Exception("Could not get Gremlin result from server.")
+            case _:
+                return jsonify(result)
+    except Exception as e:
+        return jsonify({"error": str(e)})
