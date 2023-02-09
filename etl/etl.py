@@ -14,14 +14,22 @@ def extract_from_nix():
     )
     print("Downloading data from nix as a dataframe...")    
     result = subprocess.run('NIXPKGS_FLAKE_REF="github:nixos/nixpkgs/master" nix eval --json --file '+ str(nixpkgs_graph_nix_file_path) + ' --extra-experimental-features "nix-command flakes"', shell=True, stdout=subprocess.PIPE)
-    dataframe = pd.read_json(result.stdout.decode(), orient="records")    
+    dataframe = pd.read_json(result.stdout.decode(), orient="records")
     return dataframe
 
 def data_process(dataframe):
     dataframe["path"] = dataframe.groupby(["outputPath"])["path"].transform(lambda x : ", ".join(x))
     dataframe = dataframe.loc[dataframe.astype(str).drop_duplicates().index]
     dataframe["path"] = dataframe["path"].fillna("")
+    dataframe = dataframe.reset_index()
     return dataframe
+
+def path_to_outpath(dataframe, path: str):
+    for _, row in dataframe.iterrows():
+        if path in row["outputPathAll"]:
+            return row["outputPath"]
+    else:
+        return "not found."
 
 def unique_insert_node(g, row):
     g.V().has("package", "outputPath", str(row["outputPath"])) \
@@ -35,7 +43,7 @@ def unique_insert_node(g, row):
                   .property("version", row["version"])) \
         .iterate()
 
-def unique_insert_edge(g, row, target):
+def unique_insert_edge(g, row, target, label):
     if g.V().has("package", "outputPath", target).toList() != []:
         g.V().has("package", "outputPath", row["outputPath"]) \
              .as_("v") \
@@ -43,7 +51,7 @@ def unique_insert_edge(g, row, target):
                  .coalesce(__.inE("dependsOn") \
                            .where(__.outV().as_("v")), \
                            __.addE("dependsOn").from_("v") \
-                           .property("label", "buildInputs")) \
+                           .property("label", label)) \
                  .iterate()
 
 def gremlin_queries(dataframe):
@@ -67,7 +75,13 @@ def gremlin_queries(dataframe):
         for _, row in dataframe.iterrows():
             if row["outputPath"] != None:
                 for target in row["buildInputs"]:
-                    unique_insert_edge(g, row, target)
+                    target_out_path = path_to_outpath(dataframe, target)
+                    if target_out_path != 'not found.':
+                        unique_insert_edge(g, row, target_out_path, "buildInputs")
+                for target in row["propagatedBuildInputs"]:
+                    target_out_path = path_to_outpath(dataframe, target)
+                    if target_out_path != 'not found.':
+                        unique_insert_edge(g, row, target_out_path, "propagatedBuildInputs")
             print("Adding edges started from the " + str(_) + "(th) node", end='\r')
 
         print("Querying number of nodes...")
@@ -77,7 +91,7 @@ def gremlin_queries(dataframe):
         pprint(g.E().count().toList())
 
         print("Done.")
-        
+
 def main():
     # Extract data from nix as a dataframe
     df = extract_from_nix()
