@@ -18,14 +18,40 @@ def extract_from_nix():
     return dataframe
 
 def data_process(dataframe):
-    dataframe["path"] = dataframe.groupby(["outputPath"])["path"].transform(lambda x : ", ".join(x))
+    dataframe["path"] = dataframe.groupby(["outputPath"])["path"] \
+                                 .transform(lambda x : ", ".join(x))
     dataframe = dataframe.loc[dataframe.astype(str).drop_duplicates().index]
     dataframe["path"] = dataframe["path"].fillna("")
-    dataframe = dataframe.reset_index()
+    dataframe = dataframe.reset_index(drop=True)
+    outputName = get_outputNames(dataframe)
+    dataframe["buildInputsName"] = \
+        dataframe["buildInputs"].apply((lambda x : \
+                                        path_to_name(x, outputName)))
+    dataframe["propagatedBuildInputsName"] = \
+        dataframe["propagatedBuildInputs"].apply((lambda x : \
+                                                  path_to_name(x, outputName)))
     return dataframe
 
-def path_to_outpath(dataframe, path: str):
-    for _, row in dataframe.iterrows():
+def get_outputNames(dataframe):
+    outputNameSet = set()
+    for name in dataframe["outputNameAll"].drop_duplicates():
+        outputNameSet = outputNameSet.union(set(name))
+    return outputNameSet
+
+def path_to_name(x: list, outputName):
+    names = []
+    for p in x:
+        if p != None:
+            names.append("-".join(p.split("-")[1:-1]) \
+                         if p.split("-")[-1] in outputName \
+                         else p[44:] )
+    return names
+
+def path_to_outputpath(dataframe, path: str, name: str):
+    df_name = dataframe.query('name == @name')
+    if df_name.empty:
+        return "not found."
+    for _, row in df_name.iterrows():
         if path in row["outputPathAll"]:
             return row["outputPath"]
     else:
@@ -74,19 +100,26 @@ def gremlin_queries(dataframe):
         print("Adding edges...")
         for _, row in dataframe.iterrows():
             if row["outputPath"] != None:
-                for target in row["buildInputs"]:
-                    target_out_path = path_to_outpath(dataframe, target)
-                    if target_out_path != 'not found.':
-                        unique_insert_edge(g, row, target_out_path, "buildInputs")
-                for target in row["propagatedBuildInputs"]:
-                    target_out_path = path_to_outpath(dataframe, target)
-                    if target_out_path != 'not found.':
-                        unique_insert_edge(g, row, target_out_path, "propagatedBuildInputs")
+                for i in range(len(row["buildInputs"])):
+                    target_outputpath = path_to_outputpath(dataframe, \
+                                                           row["buildInputs"][i], \
+                                                           row["buildInputsName"][i])
+                    if target_outputpath != 'not found.':
+                        unique_insert_edge(g, row, target_outputpath, "buildInputs")
+                for i in range(len(row["propagatedBuildInputs"])):
+                    target_outputpath = path_to_outputpath(dataframe, \
+                                                           row["propagatedBuildInputs"][i], \
+                                                           row["propagatedBuildInputsName"][i])
+                    if target_outputpath != 'not found.':
+                        unique_insert_edge(g, row, target_outputpath, "propagatedBuildInputs")
             print("Adding edges started from the " + str(_) + "(th) node", end='\r')
+        print('\n')
 
+        # Query number of nodes
         print("Querying number of nodes...")
         pprint(g.V().count().toList())
 
+        # Query number of edges
         print("Querying number of edges...")
         pprint(g.E().count().toList())
 
