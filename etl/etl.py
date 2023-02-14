@@ -51,7 +51,7 @@ def path_to_name(x: list, outputName):
 def path_to_outputpath(dataframe, path: str, name: str):
     df_name = dataframe.query('name == @name')
     if df_name.empty:
-        return "not found."
+        return None
     for _, row in df_name.iterrows():
         if path in row["outputPathAll"]:
             return row["outputPath"]
