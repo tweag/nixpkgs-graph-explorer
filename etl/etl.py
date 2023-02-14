@@ -45,7 +45,7 @@ def data_process(dataframe):
 
 def get_output_names(dataframe: pd.DataFrame):
     return set(
-        name for names in dataframe["outputNameAll"].drop_duplicates() for name in names
+        ele["name"] for paths in dataframe["outputPathAll"] for ele in paths
     )
 
 
