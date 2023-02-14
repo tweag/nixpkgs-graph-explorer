@@ -105,7 +105,7 @@ def gremlin_queries(dataframe):
                     target_outputpath = path_to_outputpath(dataframe, \
                                                            row["buildInputs"][i], \
                                                            row["buildInputsName"][i])
-                    if target_outputpath != 'not found.':
+                    if target_outputpath is not None:
                         unique_insert_edge(g, row, target_outputpath, "buildInputs")
                 for i in range(len(row["propagatedBuildInputs"])):
                     target_outputpath = path_to_outputpath(dataframe, \
