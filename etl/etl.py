@@ -48,7 +48,7 @@ def path_to_name(x: list, outputName):
                          else p[44:] )
     return names
 
-def path_to_outputpath(dataframe, path: str, name: str):
+def path_to_outputpath(dataframe: pd.DataFrame, path: str, name: str) -> Optional[str]:
     df_name = dataframe.query('name == @name')
     if df_name.empty:
         return None
