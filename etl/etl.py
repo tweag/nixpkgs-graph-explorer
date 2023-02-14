@@ -23,7 +23,7 @@ def data_process(dataframe):
     dataframe = dataframe.loc[dataframe.astype(str).drop_duplicates().index]
     dataframe["path"] = dataframe["path"].fillna("")
     dataframe = dataframe.reset_index(drop=True)
-    outputName = get_outputNames(dataframe)
+    output_names = get_outputNames(dataframe)
     dataframe["buildInputsName"] = \
         dataframe["buildInputs"].apply((lambda x : \
                                         path_to_name(x, outputName)))
