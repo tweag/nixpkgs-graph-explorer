@@ -111,7 +111,7 @@ def gremlin_queries(dataframe):
                     target_outputpath = path_to_outputpath(dataframe, \
                                                            row["propagatedBuildInputs"][i], \
                                                            row["propagatedBuildInputsName"][i])
-                    if target_outputpath != 'not found.':
+                    if target_outputpath is not None:
                         unique_insert_edge(g, row, target_outputpath, "propagatedBuildInputs")
             print("Adding edges started from the " + str(_) + "(th) node", end='\r')
         print('\n')
