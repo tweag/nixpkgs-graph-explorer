@@ -32,7 +32,7 @@ def data_process(dataframe):
                                                   path_to_name(x, outputName)))
     return dataframe
 
-def get_outputNames(dataframe):
+def get_output_names(dataframe):
     outputNameSet = set()
     for name in dataframe["outputNameAll"].drop_duplicates():
         outputNameSet = outputNameSet.union(set(name))
