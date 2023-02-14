@@ -39,7 +39,7 @@ def get_output_names(dataframe):
          for name in names
      )
 
-def path_to_name(x: list, outputName):
+def path_to_name(x: list, output_names: List[str]):
     names = []
     for p in x:
         if p != None:
