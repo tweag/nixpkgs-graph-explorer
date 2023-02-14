@@ -32,24 +32,23 @@ def data_process(dataframe):
     dataframe = dataframe.loc[dataframe.astype(str).drop_duplicates().index]
     dataframe["path"] = dataframe["path"].fillna("")
     dataframe = dataframe.reset_index(drop=True)
-    outputName = get_outputNames(dataframe)
-    dataframe["buildInputsName"] = dataframe["buildInputs"].apply(
-        (lambda x: path_to_name(x, outputName))
-    )
-    dataframe["propagatedBuildInputsName"] = dataframe["propagatedBuildInputs"].apply(
-        (lambda x: path_to_name(x, outputName))
-    )
+    output_names = get_outputNames(dataframe)
+    dataframe["buildInputsName"] = \
+        dataframe["buildInputs"].apply((lambda x : \
+                                        path_to_name(x, outputName)))
+    dataframe["propagatedBuildInputsName"] = \
+        dataframe["propagatedBuildInputs"].apply((lambda x : \
+                                                  path_to_name(x, outputName)))
     return dataframe
 
+def get_output_names(dataframe):
+    return set(
+        name
+         for names in dataframe["outputNameAll"].drop_duplicates()
+         for name in names
+     )
 
-def get_outputNames(dataframe):
-    outputNameSet = set()
-    for name in dataframe["outputNameAll"].drop_duplicates():
-        outputNameSet = outputNameSet.union(set(name))
-    return outputNameSet
-
-
-def path_to_name(x: list, outputName):
+def path_to_name(x: list, output_names: List[str]):
     names = []
     for p in x:
         if p != None:
@@ -60,16 +59,15 @@ def path_to_name(x: list, outputName):
             )
     return names
 
-
-def path_to_outputpath(dataframe, path: str, name: str):
-    df_name = dataframe.query("name == @name")
+def path_to_outputpath(dataframe: pd.DataFrame, path: str, name: str) -> Optional[str]:
+    df_name = dataframe.query('name == @name')
     if df_name.empty:
-        return "not found."
+        return None
     for _, row in df_name.iterrows():
         if path in row["outputPathAll"]:
             return row["outputPath"]
     else:
-        return "not found."
+        return None
 
 
 def unique_insert_node(g, row):
@@ -115,23 +113,19 @@ def gremlin_queries(dataframe):
         for _, row in dataframe.iterrows():
             if row["outputPath"] != None:
                 for i in range(len(row["buildInputs"])):
-                    target_outputpath = path_to_outputpath(
-                        dataframe, row["buildInputs"][i], row["buildInputsName"][i]
-                    )
-                    if target_outputpath != "not found.":
+                    target_outputpath = path_to_outputpath(dataframe, \
+                                                           row["buildInputs"][i], \
+                                                           row["buildInputsName"][i])
+                    if target_outputpath is not None:
                         unique_insert_edge(g, row, target_outputpath, "buildInputs")
                 for i in range(len(row["propagatedBuildInputs"])):
-                    target_outputpath = path_to_outputpath(
-                        dataframe,
-                        row["propagatedBuildInputs"][i],
-                        row["propagatedBuildInputsName"][i],
-                    )
-                    if target_outputpath != "not found.":
-                        unique_insert_edge(
-                            g, row, target_outputpath, "propagatedBuildInputs"
-                        )
-            print("Adding edges started from the " + str(_) + "(th) node", end="\r")
-        print("\n")
+                    target_outputpath = path_to_outputpath(dataframe, \
+                                                           row["propagatedBuildInputs"][i], \
+                                                           row["propagatedBuildInputsName"][i])
+                    if target_outputpath is not None:
+                        unique_insert_edge(g, row, target_outputpath, "propagatedBuildInputs")
+            print("Adding edges started from the " + str(_) + "(th) node", end='\r')
+        print('\n')
 
         # Query number of nodes
         print("Querying number of nodes...")
