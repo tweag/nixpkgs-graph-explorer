@@ -3,6 +3,7 @@ import pandas as pd
 import pathlib
 from pprint import pprint
 from contextlib import closing
+from typing import List, Optional
 
 from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
