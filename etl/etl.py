@@ -32,17 +32,17 @@ def data_process(dataframe):
     dataframe = dataframe.loc[dataframe.astype(str).drop_duplicates().index]
     dataframe["path"] = dataframe["path"].fillna("")
     dataframe = dataframe.reset_index(drop=True)
-    output_names = get_outputNames(dataframe)
+    output_names = get_output_names(dataframe)
     dataframe["buildInputsName"] = dataframe["buildInputs"].apply(
-        (lambda x: path_to_name(x, outputName))
+        (lambda x: path_to_name(x, output_names))
     )
     dataframe["propagatedBuildInputsName"] = dataframe["propagatedBuildInputs"].apply(
-        (lambda x: path_to_name(x, outputName))
+        (lambda x: path_to_name(x, output_names))
     )
     return dataframe
 
 
-def get_output_names(dataframe):
+def get_output_names(dataframe: pd.DataFrame):
     return set(
         name for names in dataframe["outputNameAll"].drop_duplicates() for name in names
     )
