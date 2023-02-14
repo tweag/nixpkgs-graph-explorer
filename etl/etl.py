@@ -56,7 +56,7 @@ def path_to_outputpath(dataframe, path: str, name: str):
         if path in row["outputPathAll"]:
             return row["outputPath"]
     else:
-        return "not found."
+        return None
 
 def unique_insert_node(g, row):
     g.V().has("package", "outputPath", str(row["outputPath"])) \
