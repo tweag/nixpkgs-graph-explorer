@@ -44,9 +44,7 @@ def data_process(dataframe):
 
 
 def get_output_names(dataframe: pd.DataFrame):
-    return set(
-        ele["name"] for paths in dataframe["outputPathAll"] for ele in paths
-    )
+    return set(ele["name"] for paths in dataframe["outputPathAll"] for ele in paths)
 
 
 def path_to_name(x: list, output_names: List[str]):
@@ -55,7 +53,7 @@ def path_to_name(x: list, output_names: List[str]):
         if p != None:
             names.append(
                 "-".join(p.split("-")[1:-1])
-                if p.split("-")[-1] in outputName
+                if p.split("-")[-1] in output_names
                 else p[44:]
             )
     return names
@@ -63,13 +61,10 @@ def path_to_name(x: list, output_names: List[str]):
 
 def path_to_outputpath(dataframe: pd.DataFrame, path: str, name: str) -> Optional[str]:
     df_name = dataframe.query("name == @name")
-    if df_name.empty:
+    mask = df_name.outputPathAll.apply(lambda x: path in [ele["path"] for ele in x])
+    if df_name[mask].empty:
         return None
-    for _, row in df_name.iterrows():
-        if path in row["outputPathAll"]:
-            return row["outputPath"]
-    else:
-        return None
+    return df_name[mask].outputPath.iloc[0]
 
 
 def unique_insert_node(g, row):
