@@ -26,7 +26,7 @@ def extract_from_nix():
     return dataframe
 
 
-def data_process(dataframe):
+def data_process(dataframe: pd.DataFrame):
     dataframe["path"] = dataframe.groupby(["outputPath"])["path"].transform(
         lambda x: ", ".join(x)
     )
@@ -44,10 +44,12 @@ def data_process(dataframe):
 
 
 def get_output_names(dataframe: pd.DataFrame):
+    """Returns a set of all possible path names of outputPath of the dataframe."""
     return set(ele["name"] for paths in dataframe["outputPathAll"] for ele in paths)
 
 
 def path_to_name(x: list, output_names: List[str]):
+    """Takes in a list of full addresses, extracts the package name from each of the address, and returns a list of package names."""
     names = []
     for p in x:
         if p != None:
@@ -60,6 +62,7 @@ def path_to_name(x: list, output_names: List[str]):
 
 
 def path_to_outputpath(dataframe: pd.DataFrame, path: str, name: str) -> Optional[str]:
+    """Returns the outputPath of the path with other path names."""
     df_name = dataframe.query("name == @name")
     mask = df_name.outputPathAll.apply(lambda x: path in [ele["path"] for ele in x])
     if df_name[mask].empty:
