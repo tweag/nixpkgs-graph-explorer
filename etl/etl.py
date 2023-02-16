@@ -62,7 +62,13 @@ def path_to_name(x: list, output_names: List[str]):
 
 
 def path_to_outputpath(dataframe: pd.DataFrame, path: str, name: str) -> Optional[str]:
-    """Returns the outputPath of the path with other path names."""
+    """Analyzes the full address of a package, and maps it to the output path with the same package.
+
+    Args:
+        dataframe: The dataframe consisting of outputPath, outputPathAll, and other attributes.
+        path: The full address of a package.
+        name: The package name of which the full address 'path' refers to.
+    """
     df_name = dataframe.query("name == @name")
     mask = df_name.outputPathAll.apply(lambda x: path in [ele["path"] for ele in x])
     if df_name[mask].empty:
