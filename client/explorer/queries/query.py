@@ -93,7 +93,7 @@ class GremlinResult:
             # We only attempt to plot vertex-based queries, not edge-based
             if not self.query.startswith('g.V'):
                 raise ValueError("Only vertex-based queries (g.V()...) can be plotted. Graph not generated.")
-            G = nx.Graph()
+            G = nx.DiGraph()
             all_paths = True
             for p in self.result:
                 match p:
