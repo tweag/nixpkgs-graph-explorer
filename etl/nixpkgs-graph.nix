@@ -32,6 +32,8 @@ let
           pname = (builtins.tryEval (if okValue ? pname then okValue.pname else "")).value;
           version = (builtins.tryEval (if okValue ? version then okValue.version else "")).value;
           name = (builtins.tryEval (if okValue ? name then okValue.name else "")).value;
+          brokenState = (builtins.tryEval (if okValue ? meta.broken then okValue.meta.broken else "")).value;
+          license = (builtins.tryEval (if okValue ? meta.license.fullName then okValue.meta.license.fullName else "")).value;
           outputPath =
             let
               pEvalResult = builtins.tryEval (toString okValue);
