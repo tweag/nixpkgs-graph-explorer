@@ -20,13 +20,14 @@ def extract_from_nix():
         + str(nixpkgs_graph_nix_file_path)
         + ' --extra-experimental-features "nix-command flakes"',
         shell=True,
+        check=True,
         stdout=subprocess.PIPE,
     )
     dataframe = pd.read_json(result.stdout.decode(), orient="records")
     return dataframe
 
 
-def data_process(dataframe: pd.DataFrame):
+def process_data(dataframe: pd.DataFrame):
     dataframe["path"] = dataframe.groupby(["outputPath"])["path"].transform(
         lambda x: ", ".join(x)
     )
@@ -65,9 +66,9 @@ def path_to_outputpath(dataframe: pd.DataFrame, path: str, name: str) -> Optiona
     """Analyzes the full address of a package, and maps it to the output path with the same package.
 
     Args:
-        dataframe: The dataframe consisting of outputPath, outputPathAll, and other attributes.
-        path: The full address of a package.
-        name: The package name of which the full address 'path' refers to.
+        dataframe(pd.DataFrame): The dataframe consisting of name, outputPath, outputPathAll, and other attributes.
+        path(str): The full address of a package.
+        name(str): The package name of which the full address 'path' refers to.
     """
     df_name = dataframe.query("name == @name")
     mask = df_name.outputPathAll.apply(lambda x: path in [ele["path"] for ele in x])
@@ -100,7 +101,29 @@ def unique_insert_edge(g, row, target, label):
         ).iterate()
 
 
-def gremlin_queries(dataframe):
+def ingest_graph(dataframe: pd.DataFrame) -> None:
+    """Ingests a Pandas DataFrame containing package properties and dependency information and writes the resulting graph to a Gremlin server at ws://localhost:8182/gremlin.
+
+    The function removes any existing nodes and edges from the graph, adds the nodes and edges defined in the DataFrame, and then queries the number of nodes and edges in the graph.
+
+    Args:
+        dataframe (pd.DataFrame): A Pandas DataFrame containing package properties and dependency information. The DataFrame should have the following columns:
+            - outputPath (str): the output path of the package
+            - outputPathAll (list[dict]): list of dicts containing output names and their output paths
+            - path (str): the path of the package
+            - pname (str): the pname of the package
+            - name (str): the name of the package
+            - version (str): the version of the package
+            - brokenState (bool): indicates if the package is in a broken state
+            - license (str): the license of the package
+            - buildInputs (list[str]): list of build inputs of the package
+            - propagatedBuildInputs (list[str]): list of propagated build inputs of the package
+            - buildInputsName (list[str]): list of names of the build inputs
+            - propagatedBuildInputsName (list[str]): list of names of the propagated build inputs
+
+    Returns:
+        None. The function writes the graph to a Gremlin server and prints status messages to the console.
+    """
     with closing(DriverRemoteConnection("ws://localhost:8182/gremlin", "g")) as remote:
         g = traversal().withRemote(remote)
         # Remove nodes and edges
@@ -154,9 +177,9 @@ def main():
     # Extract data from nix as a dataframe
     df = extract_from_nix()
     # Process data by grouping by outputPath and concatenating `path` as a single string
-    df = data_process(df)
+    df = process_data(df)
     # Load data to database via sqlg and query the data
-    gremlin_queries(df)
+    ingest_graph(df)
 
 
 if __name__ == "__main__":
