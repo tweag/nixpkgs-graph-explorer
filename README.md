@@ -21,3 +21,11 @@ And then run the script:
 ```
 python etl/example_query.py
 ```
+
+You can use docker to run the etl script:
+
+```bash
+cd etl
+docker build -t etl .
+docker run --rm -it --name=etl -e GREMLIN_HOST="gremlin:8182" --network=nixpkgs-graph-explorer_backend etl python etl.py
+```
