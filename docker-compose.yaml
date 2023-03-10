@@ -35,17 +35,17 @@ services:
       backend:
         aliases:
           - gremlin
-  web:
-    build: ./client
-    command: gunicorn wsgi:app
-    ports:
-      - 5000:5000
-    env_file:
-      - ./client/.env.prod
-    depends_on:
-      - gremlin
-    networks:
-      - backend
+  # web:
+  #   build: ./client
+  #   command: gunicorn wsgi:app
+  #   ports:
+  #     - 5000:5000
+  #   env_file:
+  #     - ./client/.env.prod
+  #   depends_on:
+  #     - gremlin
+  #   networks:
+  #     - backend
 volumes:
   pg_data: {}
 networks:

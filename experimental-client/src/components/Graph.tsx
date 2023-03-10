@@ -20,6 +20,7 @@ export type NodeEventHandler = (
   event: EventObjectNode,
   extraParams?: any
 ) => void;
+
 export type CoreEventHandler = (
   event: EventObjectCore,
   extraParams?: any
@@ -37,16 +38,18 @@ export type Edge = {
 };
 
 interface GraphProps {
+  /** An array of all vertices included in the graph */
   vertices: Vertex[];
+  /** An array of all edges included in the graph */
   edges: Edge[];
-  // The Component's styling
+  /** The component's styling */
   style: React.CSSProperties;
-  // Optional current node
+  /** Id of the currently selected node */
   selectedNodeId?: NodeId;
-  // Callback which will be invoked when nodes are clicked
-  onNodeClick: NodeEventHandler;
-  // Callback which will be invoked when background is clicked
-  onBackgroundClick: CoreEventHandler;
+  /** Callback which will be invoked when nodes are clicked */
+  onNodeClick?: NodeEventHandler;
+  /** Callback which will be invoked when background is clicked */
+  onBackgroundClick?: CoreEventHandler;
 }
 
 export type NodeId = string | null;
@@ -103,6 +106,7 @@ export default class Graph extends Component<GraphProps> {
   }
 
   componentDidMount(): void {
+    // TODO: Should we just be using a component property instead of hard-coding this here?
     const style: Stylesheet[] = [
       {
         selector: "container",
@@ -129,7 +133,6 @@ export default class Graph extends Component<GraphProps> {
         },
       },
     ];
-    // FIXME: Query this data
     const vertexElements: ElementDefinition[] = this.props.vertices.map((v) => {
       return { data: { ...v } as NodeDataDefinition };
     });
