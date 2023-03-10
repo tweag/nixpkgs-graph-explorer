@@ -101,8 +101,8 @@ def unique_insert_edge(g, row, target, label):
         ).iterate()
 
 
-def ingest_graph(dataframe: pd.DataFrame) -> None:
-    """Ingests a Pandas DataFrame containing package properties and dependency information and writes the resulting graph to a Gremlin server at ws://localhost:8182/gremlin.
+def ingest_graph(dataframe: pd.DataFrame, connstring: str) -> None:
+    """Ingests a Pandas DataFrame containing package properties and dependency information and writes the resulting graph to a Gremlin server.
 
     The function removes any existing nodes and edges from the graph, adds the nodes and edges defined in the DataFrame, and then queries the number of nodes and edges in the graph.
 
@@ -120,11 +120,12 @@ def ingest_graph(dataframe: pd.DataFrame) -> None:
             - propagatedBuildInputs (list[str]): list of propagated build inputs of the package
             - buildInputsName (list[str]): list of names of the build inputs
             - propagatedBuildInputsName (list[str]): list of names of the propagated build inputs
+        connstring (str): A connection string for connecting to the Gremlin server
 
     Returns:
         None. The function writes the graph to a Gremlin server and prints status messages to the console.
     """
-    with closing(DriverRemoteConnection("ws://localhost:8182/gremlin", "g")) as remote:
+    with closing(DriverRemoteConnection(connstring, "g")) as remote:
         g = traversal().withRemote(remote)
         # Remove nodes and edges
         print("Initiating... (removing nodes and edges)")
@@ -179,7 +180,7 @@ def main():
     # Process data by grouping by outputPath and concatenating `path` as a single string
     df = process_data(df)
     # Load data to database via sqlg and query the data
-    ingest_graph(df)
+    ingest_graph(df, "ws://localhost:8182/gremlin")
 
 
 if __name__ == "__main__":
