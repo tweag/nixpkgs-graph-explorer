@@ -3,14 +3,14 @@ import pandas as pd
 import pathlib
 from pprint import pprint
 from contextlib import closing
-from typing import List, Optional
+from typing import List, Set, Optional
 
 from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.process.graph_traversal import __
 
 
-def extract_from_nix():
+def extract_from_nix() -> pd.DataFrame:
     nixpkgs_graph_nix_file_path = (
         pathlib.Path(__file__).parent.joinpath("nixpkgs-graph.nix").resolve()
     )
@@ -27,7 +27,7 @@ def extract_from_nix():
     return dataframe
 
 
-def process_data(dataframe: pd.DataFrame):
+def process_data(dataframe: pd.DataFrame) -> pd.DataFrame:
     dataframe["path"] = dataframe.groupby(["outputPath"])["path"].transform(
         lambda x: ", ".join(x)
     )
@@ -44,12 +44,12 @@ def process_data(dataframe: pd.DataFrame):
     return dataframe
 
 
-def get_output_names(dataframe: pd.DataFrame):
+def get_output_names(dataframe: pd.DataFrame) -> Set[str]:
     """Returns a set of all possible path names of outputPath of the dataframe."""
     return set(ele["name"] for paths in dataframe["outputPathAll"] for ele in paths)
 
 
-def path_to_name(x: list, output_names: List[str]):
+def path_to_name(x: list, output_names: Set[str]) -> List[str]:
     """Takes in a list of full addresses, extracts the package name from each of the address, and returns a list of package names."""
     names = []
     for p in x:
