@@ -1,3 +1,4 @@
+import os
 import subprocess
 import pandas as pd
 import pathlib
@@ -8,13 +9,13 @@ from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.process.graph_traversal import __
 
-def extract_from_nix():    
+def extract_from_nix():
     nixpkgs_graph_nix_file_path = (
         pathlib.Path(__file__).parent.joinpath("nixpkgs-graph.nix").resolve()
     )
-    print("Downloading data from nix as a dataframe...")    
+    print("Downloading data from nix as a dataframe...")
     result = subprocess.run('NIXPKGS_FLAKE_REF="github:nixos/nixpkgs/master" nix eval --json --file '+ str(nixpkgs_graph_nix_file_path) + ' --extra-experimental-features "nix-command flakes"', shell=True, stdout=subprocess.PIPE)
-    dataframe = pd.read_json(result.stdout.decode(), orient="records")    
+    dataframe = pd.read_json(result.stdout.decode(), orient="records")
     return dataframe
 
 def data_process(dataframe):
@@ -47,7 +48,8 @@ def unique_insert_edge(g, row, target):
 
 
 def gremlin_queries(dataframe):
-    with closing(DriverRemoteConnection('ws://localhost:8182/gremlin', "g")) as remote:
+    gremlin_host = os.getenv("GREMLIN_HOST", "localhost:8182")
+    with closing(DriverRemoteConnection(f"ws://{gremlin_host}/gremlin", "g")) as remote:
         g = traversal().withRemote(remote)
         # Remove nodes and edges
         print("Initiating... (removing nodes and edges)")
@@ -76,7 +78,7 @@ def gremlin_queries(dataframe):
         pprint(g.E().count().toList())
 
         print("Done.")
-        
+
 def main():
     # Extract data from nix as a dataframe
     df = extract_from_nix()
