@@ -1,10 +1,12 @@
 """Initialize Flask app."""
+from typing import List
 from flask import Flask, request, jsonify
 from explorer.queries import query
 from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.driver.client import Client
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
+from enum import Enum, auto
 
 READ_ONLY_TRAVERSAL_SOURCE = "gReadOnly"
 
@@ -22,6 +24,38 @@ gremlin_client = Client(
 gremlin_remote_connection = DriverRemoteConnection(
     "ws://localhost:8182/gremlin", READ_ONLY_TRAVERSAL_SOURCE
 )
+
+
+class CursorDirection(Enum):
+    PREVIOUS = auto()
+    NEXT = auto()
+
+
+@dataclass
+class Cursor:
+    row_id: str
+    direction: CursorDirection = CursorDirection.NEXT
+
+
+@dataclass
+class Package:
+    name: str
+
+
+p = Package("foo")
+asdict(p)
+
+
+@dataclass
+class ListPackageRequest:
+    cursor: Cursor
+    limit: int = 10
+
+
+@dataclass
+class ListPackageResponse:
+    new_cursor: Cursor
+    packages: List[str]
 
 
 @dataclass

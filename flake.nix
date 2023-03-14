@@ -16,14 +16,17 @@
     flake-utils.lib.eachDefaultSystem
       (system:
         let
+          pythonOverlay = self: super: {
+            python = super.python310;
+            python3 = self.python;
+          };
+
           pkgs = import nixpkgs {
             inherit system;
-            overlays = [ inputs.devshell.overlay ];
+            overlays = [ pythonOverlay inputs.devshell.overlay ];
           };
         in
         {
-          packages = { };
-
           devShells.default =
             pkgs.devshell.mkShell {
               motd = "nixpkgs-graph-explorer development shell{reset}\n$(type -p menu &>/dev/null && menu)\n";
@@ -32,6 +35,8 @@
 
               packages = with pkgs;[
                 nodejs-19_x
+               poetry
+               python
               ];
               commands = [];
             };
