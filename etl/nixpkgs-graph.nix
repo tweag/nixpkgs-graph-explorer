@@ -31,9 +31,15 @@ let
           inherit path;
           # can't name it `outPath` because serialization would only output it instead of dict
           # see Nix `toString` docs
-          pname = (builtins.tryEval (if okValue ? pname then okValue.pname else "")).value;
-          version = (builtins.tryEval (if okValue ? version then okValue.version else "")).value;
+          # we don't query pname and version directly because some derivations only have a `name` attribute.
+          # use `builtins.parseDrvName` to get the name on all cases
           name = (builtins.tryEval (if okValue ? name then okValue.name else "")).value;
+          pname = (builtins.tryEval (if okValue ? name && okValue.name != false
+                                     then (builtins.parseDrvName okValue.name).name
+                                     else "")).value;
+          version = (builtins.tryEval (if okValue ? name && okValue.name != false
+                                       then (builtins.parseDrvName okValue.name).version
+                                       else "")).value;
           brokenState = (builtins.tryEval (if okValue ? meta.broken then okValue.meta.broken else "")).value;
           license = (builtins.tryEval (if okValue ? meta.license.fullName then okValue.meta.license.fullName else "")).value;
           outputPath =
