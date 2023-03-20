@@ -7,13 +7,12 @@ from explorer.queries.pagination import Cursor, CursorDirection
 from gremlin_python.process.anonymous_traversal import traversal
 from explorer.graph import insert_unique_vertex, Package
 
+PACKAGE_A = Package("package-a", "a/a/a")
+PACKAGE_B = Package("package-b", "b/b/b")
+PACKAGE_C = Package("package-c", "c/c/c")
+PACKAGE_AA = Package("package-aa", "aa/aa/aa")
 
-DUMMY_PACKAGES = [
-    Package("package-a", "a/a/a"),
-    Package("package-b", "b/b/b"),
-    Package("package-c", "c/c/c"),
-    Package("package-d", "c/c/c"),
-]
+DUMMY_PACKAGES = [PACKAGE_A, PACKAGE_B, PACKAGE_C, PACKAGE_AA]
 
 
 @pytest.fixture
@@ -23,7 +22,7 @@ def graph_connection():
         "g",
         message_serializer=serializer.GraphSONMessageSerializer(),
     )
-    g = traversal().withRemote(conn)
+    g = traversal().with_remote(conn)
     # Insert test dataset
     for p in DUMMY_PACKAGES:
         insert_unique_vertex(p, g)
@@ -34,21 +33,107 @@ def graph_connection():
     conn.close()
 
 
-# FIXME: Add additional test cases
-#
-# - Page size exceeds available data
-# - Forward cursor direction
-# - Previous cursor direction
-# - No cursor
-# - Search with cursor
-# - Search with no cursor
-
-
-# @pytest.mark.db_integration
-def test_packages_query(graph_connection):
-    # Note: This test was just for hacking around
+def test_unit_name_filter_multi_matches(graph_connection):
     cursor = None
-    request = packages.ListPackagesRequest(cursor, None)
+    search_predicate = "package-a"
+    request = packages.ListPackagesRequest(cursor, search_predicate)
     response = packages.list_packages(request, graph_connection)
-    print(response)
-    assert True
+    expected_response = packages.ListPackagesResponse(
+        None,
+        [PACKAGE_A, PACKAGE_AA],
+    )
+    assert response == expected_response
+
+
+def test_unit_name_filter_single_match(graph_connection):
+    cursor = None
+    search_predicate = "package-b"
+    request = packages.ListPackagesRequest(cursor, search_predicate)
+    response = packages.list_packages(request, graph_connection)
+    expected_response = packages.ListPackagesResponse(
+        None,
+        [PACKAGE_B],
+    )
+    assert response == expected_response
+
+
+def test_unit_name_filter_no_match(graph_connection):
+    cursor = None
+    search_predicate = "does-not-exist"
+    request = packages.ListPackagesRequest(cursor, search_predicate)
+    response = packages.list_packages(request, graph_connection)
+    expected_response = packages.ListPackagesResponse(
+        None,
+        [],
+    )
+    assert response == expected_response
+
+
+def test_unit_cursor_direction_previous(graph_connection):
+    cursor = Cursor.from_unique_element(PACKAGE_B, direction=CursorDirection.PREVIOUS)
+    search_predicate = None
+    request = packages.ListPackagesRequest(cursor, search_predicate, limit=2)
+    response = packages.list_packages(request, graph_connection)
+    expected_response = packages.ListPackagesResponse(
+        Cursor.from_unique_element(PACKAGE_A, direction=CursorDirection.PREVIOUS),
+        [PACKAGE_B, PACKAGE_AA],
+    )
+    assert response == expected_response
+
+
+def test_unit_cursor_direction_next(graph_connection):
+    cursor = Cursor.from_unique_element(PACKAGE_B, direction=CursorDirection.NEXT)
+    search_predicate = None
+    request = packages.ListPackagesRequest(cursor, search_predicate, limit=2)
+    response = packages.list_packages(request, graph_connection)
+    expected_response = packages.ListPackagesResponse(
+        None,
+        [PACKAGE_B, PACKAGE_C],
+    )
+    assert response == expected_response
+
+
+def test_unit_page_size_lt_total(graph_connection):
+    cursor = None
+    search_predicate = None
+    request = packages.ListPackagesRequest(cursor, search_predicate, limit=2)
+    response = packages.list_packages(request, graph_connection)
+    expected_response = packages.ListPackagesResponse(
+        Cursor.from_unique_element(PACKAGE_B),
+        [PACKAGE_A, PACKAGE_AA],
+    )
+    assert response == expected_response
+
+
+def test_unit_page_size_eq_total(graph_connection):
+    cursor = None
+    search_predicate = None
+    request = packages.ListPackagesRequest(cursor, search_predicate, limit=4)
+    response = packages.list_packages(request, graph_connection)
+    expected_response = packages.ListPackagesResponse(
+        None,
+        [
+            PACKAGE_A,
+            PACKAGE_AA,
+            PACKAGE_B,
+            PACKAGE_C,
+        ],
+    )
+    assert response == expected_response
+
+
+def test_unit_page_size_gt_total(graph_connection):
+    cursor = None
+    search_predicate = None
+    request = packages.ListPackagesRequest(cursor, search_predicate, limit=5)
+    response = packages.list_packages(request, graph_connection)
+    expected_response = packages.ListPackagesResponse(
+        None,
+        [
+            PACKAGE_A,
+            PACKAGE_AA,
+            PACKAGE_B,
+            PACKAGE_C,
+        ],
+    )
+    assert response == expected_response

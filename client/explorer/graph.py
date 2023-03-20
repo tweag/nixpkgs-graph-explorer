@@ -16,9 +16,9 @@ import marshmallow_dataclass
 
 @dataclass
 class GraphElement(ABC):
-    @property
+    @classmethod
     @abstractmethod
-    def label(self) -> str:
+    def label(cls) -> str:
         pass
 
     @classmethod
@@ -48,8 +48,13 @@ ElementId = NewType("ElementId", str)
 
 
 class UniqueGraphElement(GraphElement):
+    @classmethod
     @abstractmethod
-    def getId(self) -> Tuple[ElementId, str]:
+    def id_property_name(cls) -> str:
+        pass
+
+    @abstractmethod
+    def get_id(self) -> ElementId:
         pass
 
 
@@ -58,18 +63,22 @@ class Package(UniqueGraphElement):
     pname: str
     output_path: str
 
-    @property
-    def label(self) -> str:
+    @classmethod
+    def label(cls) -> str:
         return "package"
 
-    def getId(self) -> Tuple[ElementId, str]:
-        return (ElementId(self.output_path), "output_path")
+    @classmethod
+    def id_property_name(cls) -> str:
+        return "output_path"
+
+    def get_id(self) -> str:
+        return ElementId(self.output_path)
 
 
 def _traversal_insert_vertex(e: GraphElement, g: GraphTraversal) -> GraphTraversal:
     # Extract dataclass properties
     properties = asdict(e)
-    traversal = g.addV(e.label)
+    traversal = g.add_v(e.label())
     for property_name, property_value in properties.items():
         # Note: if `property_value` cannot be converted to a valid Gremlin type by gremlin_python we may
         # end up with runtime errors here. Note really sure how to restrict this though...
@@ -82,7 +91,6 @@ def insert_vertex(e: GraphElement, g: GraphTraversalSource) -> None:
 
 
 def insert_unique_vertex(e: UniqueGraphElement, g: GraphTraversalSource) -> None:
-    element_id, element_id_field = e.getId()
-    g.V().has(e.label, element_id_field, element_id).fold().coalesce(
+    g.V().has(e.label(), e.id_property_name(), e.get_id()).fold().coalesce(
         __.unfold(), _traversal_insert_vertex(e, __.start())
     ).iterate()
