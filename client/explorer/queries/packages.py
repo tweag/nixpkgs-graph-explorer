@@ -1,13 +1,16 @@
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.process.traversal import TextP, T, Order
+import logging
 
 import marshmallow_dataclass
 
 from explorer.queries.pagination import Cursor, CursorDirection
 from explorer.graph import Package
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -31,6 +34,9 @@ ListPackagesResponseSchema = marshmallow_dataclass.class_schema(ListPackagesResp
 def list_packages(
     request: ListPackagesRequest, conn: DriverRemoteConnection
 ) -> ListPackagesResponse:
+    # Since the provided search predicate filters by name, we need to know the name
+    # of the relevant vertex property. There might be smarter ways to extract this rather
+    # than hard-coding it here.
     NAME_PROPERTY = "pname"
 
     # Connect to Gremlin Server and start a new traversal
@@ -38,7 +44,7 @@ def list_packages(
 
     # First filter traversal based on predicate if one exists
     if request.search_predicate:
-        print("Filtering traversal using provided predicate.")
+        logger.debug("Filtering traversal using provided predicate.")
         filtered_traversal = g.V().has(
             NAME_PROPERTY, TextP.startingWith(request.search_predicate)
         )
@@ -54,12 +60,11 @@ def list_packages(
 
     # Then we can filter based on the cursor, if one exists.
     if request.cursor:
-        print("Using cursor")
         if request.cursor.direction == CursorDirection.NEXT:
-            print("cursor direction=next")
+            logger.debug("cursor direction=next")
             cursor_predicate = TextP.gte(request.cursor.row_id)
         else:
-            print("cursor direction=previous")
+            logger.debug("cursor direction=previous")
             cursor_predicate = TextP.lte(request.cursor.row_id)
         page_traversal = (
             ordered_filtered_traversal.has(Package.id_property_name(), cursor_predicate)
@@ -67,7 +72,7 @@ def list_packages(
             .element_map()
         )
     else:
-        print("Querying without cursor.")
+        logger.debug("Querying without cursor.")
         # Note: Explicitly not sorting the results here since ordering steps in Gremlin can sometimes
         # require that the server reads the entire traversal which can be inefficient.
         page_traversal = ordered_filtered_traversal.limit(
