@@ -1,12 +1,21 @@
 """Initialize Flask app."""
-from typing import List
-from flask import Flask, request, jsonify
+from typing import List, TypeVar
+from explorer.queries.packages import (
+    ListPackagesRequest,
+    ListPackagesRequestSchema,
+    ListPackagesResponse,
+    ListPackagesResponseSchema,
+    list_packages,
+)
+from flask import Flask, Request, request, jsonify
 from explorer.queries import query
 from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.driver.client import Client
 from dataclasses import asdict, dataclass
 from enum import Enum, auto
+from gremlin_python.driver import serializer
+from marshmallow import Schema, ValidationError
 
 READ_ONLY_TRAVERSAL_SOURCE = "gReadOnly"
 
@@ -22,40 +31,10 @@ gremlin_client = Client(
 )
 
 gremlin_remote_connection = DriverRemoteConnection(
-    "ws://localhost:8182/gremlin", READ_ONLY_TRAVERSAL_SOURCE
+    "ws://localhost:8182/gremlin",
+    READ_ONLY_TRAVERSAL_SOURCE,
+    message_serializer=serializer.GraphSONMessageSerializer(),
 )
-
-
-class CursorDirection(Enum):
-    PREVIOUS = auto()
-    NEXT = auto()
-
-
-@dataclass
-class Cursor:
-    row_id: str
-    direction: CursorDirection = CursorDirection.NEXT
-
-
-@dataclass
-class Package:
-    name: str
-
-
-p = Package("foo")
-asdict(p)
-
-
-@dataclass
-class ListPackageRequest:
-    cursor: Cursor
-    limit: int = 10
-
-
-@dataclass
-class ListPackageResponse:
-    new_cursor: Cursor
-    packages: List[str]
 
 
 @dataclass
@@ -70,25 +49,30 @@ def attemptParseFromJson(cls, json_dict):
         return None
 
 
-@app.route("/packages", methods=["GET"])
+@app.route("/packages", methods=["POST"])
 def packages():
-    name_field = "pname"
-    g = traversal().withRemote(gremlin_remote_connection)
-    # Query all node properties
-    # FIXME: This loads the entire graph into memory. We should probably be paginating here.
-    query_result = g.V().project(name_field).by(name_field).toList()
-    package_names = []
-    for r in query_result:
-        if name_field in r:
-            p = r[name_field]
-            if p is not None:
-                package_names.append(p)
-    return jsonify({"packages": [{"name": pn} for pn in package_names]})
+    if request.json is None:
+        return (
+            {"error": "Request did not include a JSON payload"},
+            400,
+        )
+    try:
+        packages_request: ListPackagesRequest = ListPackagesRequestSchema().load(request.json)  # type: ignore
+    except ValidationError as e:
+        return (
+            {
+                "error": f"Request body did not have the expected schema. Errors: {e.messages}"
+            },
+            400,
+        )
+    response = list_packages(packages_request, gremlin_remote_connection)
+    return jsonify(ListPackagesResponseSchema().dump(response))
 
 
 @app.route("/gremlin", methods=["POST"])
 def gremlin():
     try:
+        # FIXME: Use a marshmallow Schema here
         payload = attemptParseFromJson(GremlinRequest, request.json)
         if payload is None:
             return (
@@ -104,4 +88,5 @@ def gremlin():
                 return jsonify(result)
     except Exception as e:
         app.logger.exception(e)
+        # FIXME: Use a marshmallow Schema here as well
         return jsonify({"error": str(e)}), 500
