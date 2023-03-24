@@ -1,9 +1,8 @@
-from gremlin_python.structure.graph import Path
-from gremlin_python.process.traversal import T
-
 import uuid
 
 import networkx as nx
+from gremlin_python.process.traversal import T
+from gremlin_python.structure.graph import Path
 
 
 class GremlinResult:
@@ -17,7 +16,8 @@ class GremlinResult:
     query : str
         Gremlin query string
     clean_gremlin: bool
-        If true, Python `T` Enums in Gremlin results will be replaced with sensible strings.
+        If true, Python `T` Enums in Gremlin results will be replaced with sensible
+        strings.
 
     Methods
     -------
@@ -31,7 +31,7 @@ class GremlinResult:
     result = []
     warning = None
 
-    def __init__(self, client, query:str, clean_gremlin=False):
+    def __init__(self, client, query: str, clean_gremlin=False):
         self.client = client
         self.query = query.strip()
         self.clean_gremlin = clean_gremlin
@@ -54,7 +54,13 @@ class GremlinResult:
         Do Gremlin query
         """
         try:
-            self.result = self.client.submit(self.query, request_options={'evaluationTimeout': 5000}).all().result()
+            self.result = (
+                self.client.submit(
+                    self.query, request_options={"evaluationTimeout": 5000}
+                )
+                .all()
+                .result()
+            )
             self.raw = str(self.result)
         except Exception:
             raise ValueError("Could not get result from server or query is invalid")
@@ -71,18 +77,18 @@ class GremlinResult:
                 (repr(T.label), "Label"),
                 (repr(T.value), "Value"),
             ]
-            for (k, v) in  reprT:
+            for k, v in reprT:
                 self.raw = self.raw.replace(k, v)
 
     def to_dict(self):
         """
         Create a result dictionary to be returned to the front-end as JSON
         """
-        r = {"raw":  self.raw}
+        r = {"raw": self.raw}
         if self.warning:
             r["warning"] = self.warning
         if self.cyto_data:
-            r["cyto"] = self.cyto_data
+            r["cyto"] = self.cyto_data  # type: ignore
         return r
 
     def __make_graph(self):
@@ -91,8 +97,11 @@ class GremlinResult:
         """
         try:
             # We only attempt to plot vertex-based queries, not edge-based
-            if not self.query.startswith('g.V'):
-                raise ValueError("Only vertex-based queries (g.V()...) can be plotted. Graph not generated.")
+            if not self.query.startswith("g.V"):
+                raise ValueError(
+                    "Only vertex-based queries (g.V()...) can be plotted. Graph not "
+                    "generated."
+                )
             G = nx.Graph()
             all_paths = True
             for p in self.result:
@@ -107,12 +116,15 @@ class GremlinResult:
                     self.__add_path_to_graph(G, p)
                 self.G = G
             else:
-                raise ValueError("Only Gremlin results consisting of paths can be plotted. Graph not generated.")
+                raise ValueError(
+                    "Only Gremlin results consisting of paths can be plotted. Graph "
+                    "not generated."
+                )
         except Exception as e:
             self.warning = str(e)
 
     @staticmethod
-    def __add_path_to_graph(G:nx.Graph, path:Path)-> nx.Graph:
+    def __add_path_to_graph(G: nx.Graph, path: Path) -> nx.Graph:
         """
         Add Gremlin Path to NetworkX graph
         """
@@ -121,15 +133,15 @@ class GremlinResult:
             if i:
                 p.append(i)
             else:
-                p.append(f'EMPTY-ID-{uuid.uuid4()}')
+                p.append(f"EMPTY-ID-{uuid.uuid4()}")
 
-        nen = [p[i:i+3] for i in range(len(p))[:-2:2]]
+        nen = [p[i : i + 3] for i in range(len(p))[:-2:2]]
         for [node0, edge, node1] in nen:
-            node0 = node0.replace(' ', '_')
-            node1 = node1.replace(' ', '_')
-            if not node0 in G:
+            node0 = node0.replace(" ", "_")
+            node1 = node1.replace(" ", "_")
+            if node0 not in G:
                 G.add_node(node0)
-            if not node1 in G:
+            if node1 not in G:
                 G.add_node(node1)
             G.add_edge(node0, node1, label=edge)
         return G
@@ -140,9 +152,11 @@ class GremlinResult:
         """
         try:
             if self.G:
-                    graph_data = nx.cytoscape_data(self.G)
-                    table_data = [{'id': i, 'neighbours': j} for (i, j)  in nx.to_dict_of_lists(self.G).items()]
-                    self.cyto_data = {"graph-data": graph_data, "table-data": table_data}
+                graph_data = nx.cytoscape_data(self.G)
+                table_data = [
+                    {"id": i, "neighbours": j}
+                    for (i, j) in nx.to_dict_of_lists(self.G).items()
+                ]
+                self.cyto_data = {"graph-data": graph_data, "table-data": table_data}
         except Exception:
             self.warning = "Could not generate Cytoscape data from graph"
-

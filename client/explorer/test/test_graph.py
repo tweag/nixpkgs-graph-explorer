@@ -1,17 +1,11 @@
 from dataclasses import dataclass
-from typing import Generator, Optional
-from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
+
 import pytest
 from gremlin_python.driver import serializer
-import explorer.queries.packages as packages
-
-from explorer.queries.pagination import Cursor, CursorDirection
+from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.process.anonymous_traversal import traversal
-from explorer.graph import (
-    ElementId,
-    GraphElement,
-    UniqueGraphElement,
-)
+
+from explorer.graph import ElementId, GraphElement, UniqueGraphElement
 
 
 @dataclass

@@ -1,12 +1,13 @@
 """Application entry point."""
-from explorer import init_app
+from explorer import app, gremlin_client
 
 
-app, gremlin_client = init_app()
-
-if __name__ == "__main__":
+def run_app():
     try:
         app.run(host="0.0.0.0")
     finally:
         gremlin_client.close()
 
+
+if __name__ == "__main__":
+    run_app()

@@ -1,27 +1,23 @@
 """Initialize Flask app."""
-from typing import List, TypeVar
+from dataclasses import dataclass
+
+from flask import Flask, jsonify, request
+from gremlin_python.driver import serializer
+from gremlin_python.driver.client import Client
+from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
+from marshmallow import ValidationError
+
+from explorer.queries import query
 from explorer.queries.packages import (
     ListPackagesRequest,
     ListPackagesRequestSchema,
-    ListPackagesResponse,
     ListPackagesResponseSchema,
     list_packages,
 )
-from flask import Flask, Request, request, jsonify
-from explorer.queries import query
-from gremlin_python.process.anonymous_traversal import traversal
-from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
-from gremlin_python.driver.client import Client
-from dataclasses import asdict, dataclass
-from enum import Enum, auto
-from gremlin_python.driver import serializer
-from marshmallow import Schema, ValidationError
 
 READ_ONLY_TRAVERSAL_SOURCE = "gReadOnly"
 
 app = Flask(__name__, instance_relative_config=True)
-# the defaults in config.py
-app.config.from_object("config.Default")
 # additional env variables prefixed with `FLASK_`
 app.config.from_prefixed_env()
 
@@ -57,11 +53,14 @@ def packages():
             400,
         )
     try:
-        packages_request: ListPackagesRequest = ListPackagesRequestSchema().load(request.json)  # type: ignore
+        packages_request: ListPackagesRequest = ListPackagesRequestSchema().load(
+            request.json
+        )  # type: ignore
     except ValidationError as e:
         return (
             {
-                "error": f"Request body did not have the expected schema. Errors: {e.messages}"
+                "error": "Request body did not have the expected schema. "
+                + f"Errors: {e.messages}"
             },
             400,
         )

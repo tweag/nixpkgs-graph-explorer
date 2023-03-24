@@ -1,17 +1,16 @@
-from dataclasses import asdict, dataclass
-from typing import Any, ClassVar, Dict, Mapping, Protocol, Tuple, Type
-from typing_extensions import Self
 from abc import ABC, abstractmethod
+from dataclasses import asdict, dataclass
+from typing import Any, Mapping, NewType
+
+import marshmallow_dataclass
 from gremlin_python.process.graph_traversal import (
-    GraphTraversalSource,
     GraphTraversal,
+    GraphTraversalSource,
     __,
 )
 from gremlin_python.process.traversal import T
-from typing import NewType
 from marshmallow import Schema
-
-import marshmallow_dataclass
+from typing_extensions import Self
 
 
 @dataclass
@@ -27,7 +26,8 @@ class GraphElement(ABC):
 
     @classmethod
     def from_element_map(cls, element_map: Mapping[Any, Any], *args, **kwargs) -> Self:
-        # Filter out Gremlin internal ID and label fields prior to attempting deserialization
+        # Filter out Gremlin internal ID and label fields prior to
+        # attempting deserialization
         properties = {
             # Note: Disabled type-checking here since `T` does not play nicely with it
             k: v
@@ -37,9 +37,11 @@ class GraphElement(ABC):
         deserialized_value = cls.schema(*args, **kwargs).load(properties)
         if not isinstance(deserialized_value, cls):
             raise Exception(
-                "Deserialization from this class's schema did not return an instance of this class, "
+                "Deserialization from this class's schema did not return "
+                "an instance of this class, "
                 "but this is required by from_properties(). "
-                "This should never happen unless you have manually override the definition of schema()."
+                "This should never happen unless you have manually override "
+                "the definition of schema()."
             )
         return deserialized_value
 
@@ -80,8 +82,9 @@ def _traversal_insert_vertex(e: GraphElement, g: GraphTraversal) -> GraphTravers
     properties = asdict(e)
     traversal = g.add_v(e.label())
     for property_name, property_value in properties.items():
-        # Note: if `property_value` cannot be converted to a valid Gremlin type by gremlin_python we may
-        # end up with runtime errors here. Note really sure how to restrict this though...
+        # Note: if `property_value` cannot be converted to a valid Gremlin type by
+        # gremlin_python we may end up with runtime errors here. Note really sure how
+        # to restrict this though...
         traversal = traversal.property(property_name, property_value)
     return traversal
 

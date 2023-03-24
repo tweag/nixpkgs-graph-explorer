@@ -1,11 +1,11 @@
-from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 import pytest
 from gremlin_python.driver import serializer
-import explorer.queries.packages as packages
-
-from explorer.queries.pagination import Cursor, CursorDirection
+from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.process.anonymous_traversal import traversal
-from explorer.graph import insert_unique_vertex, Package
+
+import explorer.queries.packages as packages
+from explorer.graph import Package, insert_unique_vertex
+from explorer.queries.pagination import Cursor, CursorDirection
 
 PACKAGE_A = Package("package-a", "a/a/a")
 PACKAGE_B = Package("package-b", "b/b/b")
