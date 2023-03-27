@@ -1,11 +1,10 @@
 import logging
-from dataclasses import dataclass
-from typing import List, Optional
+from typing import Optional
 
-import marshmallow_dataclass
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.process.traversal import Order, TextP
+from pydantic import BaseModel
 
 from explorer.graph import Package
 from explorer.queries.pagination import Cursor, CursorDirection
@@ -13,22 +12,17 @@ from explorer.queries.pagination import Cursor, CursorDirection
 logger = logging.getLogger(__name__)
 
 
-@dataclass
-class ListPackagesRequest:
+# @dataclass
+class ListPackagesRequest(BaseModel):
     cursor: Optional[Cursor] = None
     search_predicate: Optional[str] = None
     limit: int = 10
 
 
-@dataclass
-class ListPackagesResponse:
+# @dataclass
+class ListPackagesResponse(BaseModel):
     new_cursor: Optional[Cursor]
-    packages: List[Package]
-
-
-# marshmallow schemas
-ListPackagesRequestSchema = marshmallow_dataclass.class_schema(ListPackagesRequest)
-ListPackagesResponseSchema = marshmallow_dataclass.class_schema(ListPackagesResponse)
+    packages: list[Package]
 
 
 def list_packages(
@@ -84,12 +78,12 @@ def list_packages(
     packages = [Package.from_element_map(em) for em in page_traversal.to_list()]
 
     if not packages:
-        return ListPackagesResponse(None, [])
+        return ListPackagesResponse(new_cursor=None, packages=[])
 
     # If result set has same length as limit, we have reached the end of the result set
     # and do not need to return a new cursor.
     if len(packages) <= request.limit:
-        return ListPackagesResponse(None, packages)
+        return ListPackagesResponse(new_cursor=None, packages=packages)
 
     # Otherwise, construct the new cursor from the last item in the query result and
     # return all other items.
@@ -101,4 +95,4 @@ def list_packages(
     )
     # Note: Ignoring last item in result set since it is only used for constructing
     # our new cursor
-    return ListPackagesResponse(new_cursor, packages[:-1])
+    return ListPackagesResponse(new_cursor=new_cursor, packages=packages[:-1])

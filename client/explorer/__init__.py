@@ -1,91 +1,100 @@
-"""Initialize Flask app."""
-from dataclasses import dataclass
+"""nixpkgs-graph-explorer FastAPI app."""
+import os
+from contextlib import asynccontextmanager
+from typing import AsyncGenerator, TypedDict, cast
 
-from flask import Flask, jsonify, request
+import dotenv
+from fastapi import FastAPI, Request
 from gremlin_python.driver import serializer
 from gremlin_python.driver.client import Client
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
-from marshmallow import ValidationError
+from pydantic import BaseModel
+from starlette.applications import Starlette
 
-from explorer.queries import query
 from explorer.queries.packages import (
     ListPackagesRequest,
-    ListPackagesRequestSchema,
-    ListPackagesResponseSchema,
+    ListPackagesResponse,
     list_packages,
 )
+from explorer.queries.query import GremlinResult
 
+##############################################################################
+# Configuration
+##############################################################################
+
+# TODO: Make this configurable
 READ_ONLY_TRAVERSAL_SOURCE = "gReadOnly"
 
-app = Flask(__name__, instance_relative_config=True)
-# additional env variables prefixed with `FLASK_`
-app.config.from_prefixed_env()
-
-# Instantiate shared gremlin query client with connection pool-size of 4
-gremlin_client = Client(
-    "ws://localhost:8182/gremlin", READ_ONLY_TRAVERSAL_SOURCE, pool_size=4
-)
-
-gremlin_remote_connection = DriverRemoteConnection(
-    "ws://localhost:8182/gremlin",
-    READ_ONLY_TRAVERSAL_SOURCE,
-    message_serializer=serializer.GraphSONMessageSerializer(),
-)
+# First, load variables from .env file if one exists
+dotenv.load_dotenv(override=True)
+# Then we can read configuration from environment variables
+gremlin_host = os.getenv(key="GREMLIN_HOST", default="localhost")
 
 
-@dataclass
-class GremlinRequest:
+##############################################################################
+# Application state. Used for stuff like database clients which need to be
+# initialized at load time.
+##############################################################################
+
+
+class State(TypedDict):
+    gremlin_client: Client
+    gremlin_remote_connection: DriverRemoteConnection
+
+
+@asynccontextmanager
+async def lifespan(app: Starlette) -> AsyncGenerator[State, None]:
+    # Set-up resources for application
+    # FIXME: The below two Gremlin objects have blocking constructors
+    gremlin_client = Client(
+        f"ws://{gremlin_host}:8182/gremlin",
+        READ_ONLY_TRAVERSAL_SOURCE,
+        pool_size=4,
+        message_serializer=serializer.GraphSONMessageSerializer(),
+    )
+    gremlin_remote_connection = DriverRemoteConnection(
+        f"ws://{gremlin_host}:8182/gremlin",
+        READ_ONLY_TRAVERSAL_SOURCE,
+        message_serializer=serializer.GraphSONMessageSerializer(),
+    )
+    yield {
+        "gremlin_client": gremlin_client,
+        "gremlin_remote_connection": gremlin_remote_connection,
+    }
+    # Tear down resources on application shut-down
+    gremlin_client.close()
+    gremlin_remote_connection.close()
+
+
+def get_state(request: Request) -> State:
+    return cast(State, request.state._state)
+
+
+##############################################################################
+# Application Definition
+##############################################################################
+
+
+# TODO: Move this into the queries.query module
+class GremlinRequest(BaseModel):
     query: str
 
 
-def attemptParseFromJson(cls, json_dict):
-    try:
-        return cls(**json_dict)
-    except TypeError:
-        return None
+app = FastAPI(lifespan=lifespan)
 
 
-@app.route("/packages", methods=["POST"])
-def packages():
-    if request.json is None:
-        return (
-            {"error": "Request did not include a JSON payload"},
-            400,
-        )
-    try:
-        packages_request: ListPackagesRequest = ListPackagesRequestSchema().load(
-            request.json
-        )  # type: ignore
-    except ValidationError as e:
-        return (
-            {
-                "error": "Request body did not have the expected schema. "
-                + f"Errors: {e.messages}"
-            },
-            400,
-        )
-    response = list_packages(packages_request, gremlin_remote_connection)
-    return jsonify(ListPackagesResponseSchema().dump(response))
+@app.post("/packages")
+def packages(
+    list_packages_request: ListPackagesRequest, raw_request: Request
+) -> ListPackagesResponse:
+    remote_connection = get_state(raw_request)["gremlin_remote_connection"]
+    return list_packages(list_packages_request, remote_connection)
 
 
-@app.route("/gremlin", methods=["POST"])
-def gremlin():
-    try:
-        # FIXME: Use a marshmallow Schema here
-        payload = attemptParseFromJson(GremlinRequest, request.json)
-        if payload is None:
-            return (
-                {"error": "Request JSON payload did not have expected schema."},
-                400,
-            )
-        GR = query.GremlinResult(gremlin_client, payload.query, clean_gremlin=True)
-        result = GR.to_dict()
-        match result:
-            case None:
-                raise Exception("Could not get Gremlin result from server.")
-            case _:
-                return jsonify(result)
-    except Exception as e:
-        app.logger.exception(e)
-        # FIXME: Use a marshmallow Schema here as well
-        return jsonify({"error": str(e)}), 500
+@app.post("/gremlin")
+def gremlin(gremlin_request: GremlinRequest, raw_request: Request):
+    client = get_state(raw_request)["gremlin_client"]
+    query_result = GremlinResult(client, gremlin_request.query, clean_gremlin=True)
+    # FIXME: Use a pydantic model in GremlinResult so that we can return that directly
+    # here instead to make the API a bit more strictly types.
+    return query_result.to_dict()

@@ -1,5 +1,6 @@
-from dataclasses import dataclass
 from enum import Enum, auto
+
+from pydantic import BaseModel
 
 from explorer.graph import UniqueGraphElement
 
@@ -9,8 +10,7 @@ class CursorDirection(Enum):
     NEXT = auto()
 
 
-@dataclass
-class Cursor:
+class Cursor(BaseModel):
     row_id: str
     direction: CursorDirection = CursorDirection.NEXT
 

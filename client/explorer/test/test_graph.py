@@ -1,5 +1,3 @@
-from dataclasses import dataclass
-
 import pytest
 from gremlin_python.driver import serializer
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
@@ -8,7 +6,6 @@ from gremlin_python.process.anonymous_traversal import traversal
 from explorer.graph import ElementId, GraphElement, UniqueGraphElement
 
 
-@dataclass
 class DummyGraphElement(GraphElement):
     """
     Dummy graph element for testing purposes
@@ -19,7 +16,6 @@ class DummyGraphElement(GraphElement):
         return "dummy-element"
 
 
-@dataclass
 class DummyUniqueGraphElement(UniqueGraphElement):
     """
     Dummy unique graph element for testing purposes
@@ -79,7 +75,7 @@ def test_unit_insert_unique_vertex_creates_when_one_does_not_exist(
     from explorer.graph import insert_unique_vertex
 
     g = traversal().withRemote(graph_connection)
-    element = DummyUniqueGraphElement("some-unique-value-1")
+    element = DummyUniqueGraphElement(unique_property="some-unique-value-1")
     insert_unique_vertex(element, g)
     assert g.V().count().to_list() == [1]
 
@@ -90,7 +86,7 @@ def test_unit_insert_unique_vertex_does_not_duplicate_vertex(
     from explorer.graph import insert_unique_vertex
 
     g = traversal().withRemote(graph_connection)
-    element = DummyUniqueGraphElement("some-unique-value-1")
+    element = DummyUniqueGraphElement(unique_property="some-unique-value-1")
     insert_unique_vertex(element, g)
     insert_unique_vertex(element, g)
     assert g.V().count().to_list() == [1]

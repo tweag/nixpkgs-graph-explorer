@@ -1,31 +1,24 @@
 from abc import ABC, abstractmethod
-from dataclasses import asdict, dataclass
 from typing import Any, Mapping, NewType
 
-import marshmallow_dataclass
 from gremlin_python.process.graph_traversal import (
     GraphTraversal,
     GraphTraversalSource,
     __,
 )
 from gremlin_python.process.traversal import T
-from marshmallow import Schema
+from pydantic import BaseModel
 from typing_extensions import Self
 
 
-@dataclass
-class GraphElement(ABC):
+class GraphElement(ABC, BaseModel):
     @classmethod
     @abstractmethod
     def label(cls) -> str:
         pass
 
     @classmethod
-    def schema(cls, *args, **kwargs) -> Schema:
-        return marshmallow_dataclass.class_schema(cls)(*args, **kwargs)
-
-    @classmethod
-    def from_element_map(cls, element_map: Mapping[Any, Any], *args, **kwargs) -> Self:
+    def from_element_map(cls, element_map: Mapping[Any, Any]) -> Self:
         # Filter out Gremlin internal ID and label fields prior to
         # attempting deserialization
         properties = {
@@ -34,7 +27,7 @@ class GraphElement(ABC):
             for k, v in element_map.items()
             if k != T.id and k != T.label  # type: ignore
         }
-        deserialized_value = cls.schema(*args, **kwargs).load(properties)
+        deserialized_value: Self = cls.parse_obj(properties)
         if not isinstance(deserialized_value, cls):
             raise Exception(
                 "Deserialization from this class's schema did not return "
@@ -60,7 +53,6 @@ class UniqueGraphElement(GraphElement):
         pass
 
 
-@dataclass
 class Package(UniqueGraphElement):
     pname: str
     output_path: str
@@ -79,7 +71,7 @@ class Package(UniqueGraphElement):
 
 def _traversal_insert_vertex(e: GraphElement, g: GraphTraversal) -> GraphTraversal:
     # Extract dataclass properties
-    properties = asdict(e)
+    properties = e.dict()
     traversal = g.add_v(e.label())
     for property_name, property_value in properties.items():
         # Note: if `property_value` cannot be converted to a valid Gremlin type by

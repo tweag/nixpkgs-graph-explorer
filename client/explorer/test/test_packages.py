@@ -7,10 +7,10 @@ import explorer.queries.packages as packages
 from explorer.graph import Package, insert_unique_vertex
 from explorer.queries.pagination import Cursor, CursorDirection
 
-PACKAGE_A = Package("package-a", "a/a/a")
-PACKAGE_B = Package("package-b", "b/b/b")
-PACKAGE_C = Package("package-c", "c/c/c")
-PACKAGE_AA = Package("package-aa", "aa/aa/aa")
+PACKAGE_A = Package(pname="package-a", output_path="a/a/a")
+PACKAGE_B = Package(pname="package-b", output_path="b/b/b")
+PACKAGE_C = Package(pname="package-c", output_path="c/c/c")
+PACKAGE_AA = Package(pname="package-aa", output_path="aa/aa/aa")
 
 DUMMY_PACKAGES = [PACKAGE_A, PACKAGE_B, PACKAGE_C, PACKAGE_AA]
 
@@ -36,11 +36,13 @@ def graph_connection():
 def test_unit_name_filter_multi_matches(graph_connection):
     cursor = None
     search_predicate = "package-a"
-    request = packages.ListPackagesRequest(cursor, search_predicate)
+    request = packages.ListPackagesRequest(
+        cursor=cursor, search_predicate=search_predicate
+    )
     response = packages.list_packages(request, graph_connection)
     expected_response = packages.ListPackagesResponse(
-        None,
-        [PACKAGE_A, PACKAGE_AA],
+        new_cursor=None,
+        packages=[PACKAGE_A, PACKAGE_AA],
     )
     assert response == expected_response
 
@@ -48,11 +50,13 @@ def test_unit_name_filter_multi_matches(graph_connection):
 def test_unit_name_filter_single_match(graph_connection):
     cursor = None
     search_predicate = "package-b"
-    request = packages.ListPackagesRequest(cursor, search_predicate)
+    request = packages.ListPackagesRequest(
+        cursor=cursor, search_predicate=search_predicate
+    )
     response = packages.list_packages(request, graph_connection)
     expected_response = packages.ListPackagesResponse(
-        None,
-        [PACKAGE_B],
+        new_cursor=None,
+        packages=[PACKAGE_B],
     )
     assert response == expected_response
 
@@ -60,11 +64,13 @@ def test_unit_name_filter_single_match(graph_connection):
 def test_unit_name_filter_no_match(graph_connection):
     cursor = None
     search_predicate = "does-not-exist"
-    request = packages.ListPackagesRequest(cursor, search_predicate)
+    request = packages.ListPackagesRequest(
+        cursor=cursor, search_predicate=search_predicate
+    )
     response = packages.list_packages(request, graph_connection)
     expected_response = packages.ListPackagesResponse(
-        None,
-        [],
+        new_cursor=None,
+        packages=[],
     )
     assert response == expected_response
 
@@ -72,11 +78,15 @@ def test_unit_name_filter_no_match(graph_connection):
 def test_unit_cursor_direction_previous(graph_connection):
     cursor = Cursor.from_unique_element(PACKAGE_B, direction=CursorDirection.PREVIOUS)
     search_predicate = None
-    request = packages.ListPackagesRequest(cursor, search_predicate, limit=2)
+    request = packages.ListPackagesRequest(
+        cursor=cursor, search_predicate=search_predicate, limit=2
+    )
     response = packages.list_packages(request, graph_connection)
     expected_response = packages.ListPackagesResponse(
-        Cursor.from_unique_element(PACKAGE_A, direction=CursorDirection.PREVIOUS),
-        [PACKAGE_B, PACKAGE_AA],
+        new_cursor=Cursor.from_unique_element(
+            PACKAGE_A, direction=CursorDirection.PREVIOUS
+        ),
+        packages=[PACKAGE_B, PACKAGE_AA],
     )
     assert response == expected_response
 
@@ -84,11 +94,13 @@ def test_unit_cursor_direction_previous(graph_connection):
 def test_unit_cursor_direction_next(graph_connection):
     cursor = Cursor.from_unique_element(PACKAGE_B, direction=CursorDirection.NEXT)
     search_predicate = None
-    request = packages.ListPackagesRequest(cursor, search_predicate, limit=2)
+    request = packages.ListPackagesRequest(
+        cursor=cursor, search_predicate=search_predicate, limit=2
+    )
     response = packages.list_packages(request, graph_connection)
     expected_response = packages.ListPackagesResponse(
-        None,
-        [PACKAGE_B, PACKAGE_C],
+        new_cursor=None,
+        packages=[PACKAGE_B, PACKAGE_C],
     )
     assert response == expected_response
 
@@ -96,11 +108,13 @@ def test_unit_cursor_direction_next(graph_connection):
 def test_unit_page_size_lt_total(graph_connection):
     cursor = None
     search_predicate = None
-    request = packages.ListPackagesRequest(cursor, search_predicate, limit=2)
+    request = packages.ListPackagesRequest(
+        cursor=cursor, search_predicate=search_predicate, limit=2
+    )
     response = packages.list_packages(request, graph_connection)
     expected_response = packages.ListPackagesResponse(
-        Cursor.from_unique_element(PACKAGE_B),
-        [PACKAGE_A, PACKAGE_AA],
+        new_cursor=Cursor.from_unique_element(PACKAGE_B),
+        packages=[PACKAGE_A, PACKAGE_AA],
     )
     assert response == expected_response
 
@@ -108,11 +122,13 @@ def test_unit_page_size_lt_total(graph_connection):
 def test_unit_page_size_eq_total(graph_connection):
     cursor = None
     search_predicate = None
-    request = packages.ListPackagesRequest(cursor, search_predicate, limit=4)
+    request = packages.ListPackagesRequest(
+        cursor=cursor, search_predicate=search_predicate, limit=4
+    )
     response = packages.list_packages(request, graph_connection)
     expected_response = packages.ListPackagesResponse(
-        None,
-        [
+        new_cursor=None,
+        packages=[
             PACKAGE_A,
             PACKAGE_AA,
             PACKAGE_B,
@@ -125,11 +141,13 @@ def test_unit_page_size_eq_total(graph_connection):
 def test_unit_page_size_gt_total(graph_connection):
     cursor = None
     search_predicate = None
-    request = packages.ListPackagesRequest(cursor, search_predicate, limit=5)
+    request = packages.ListPackagesRequest(
+        cursor=cursor, search_predicate=search_predicate, limit=5
+    )
     response = packages.list_packages(request, graph_connection)
     expected_response = packages.ListPackagesResponse(
-        None,
-        [
+        new_cursor=None,
+        packages=[
             PACKAGE_A,
             PACKAGE_AA,
             PACKAGE_B,
