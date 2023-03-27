@@ -40,7 +40,7 @@ let
           version = (builtins.tryEval (if okValue ? name && okValue.name != false
                                        then (builtins.parseDrvName okValue.name).version
                                        else "")).value;
-          brokenState = (builtins.tryEval (if okValue ? meta.broken then okValue.meta.broken else "")).value;
+          brokenState = (builtins.tryEval (if okValue ? meta.broken then okValue.meta.broken else false)).value;
           license = (builtins.tryEval (if okValue ? meta.license.fullName then okValue.meta.license.fullName else "")).value;
           outputPath =
             let

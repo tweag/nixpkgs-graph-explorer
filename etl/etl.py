@@ -86,7 +86,7 @@ def unique_insert_node(g, row):
         .property("pname", row["pname"])
         .property("name", row["name"])
         .property("version", row["version"])
-        .property("brokenState", str(row["brokenState"]))
+        .property("brokenState", row["brokenState"])
         .property("license", row["license"]),
     ).iterate()
 
