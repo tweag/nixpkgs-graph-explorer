@@ -20,4 +20,14 @@ class Cursor(BaseModel):
         element: UniqueGraphElement,
         direction: CursorDirection = CursorDirection.NEXT,
     ):
+        """Constructs a Cursor from a UniqueGraphElement using its id
+
+        Args:
+            element (UniqueGraphElement): The unique element
+            direction (CursorDirection, optional): The direction of the cursor.
+                Defaults to CursorDirection.NEXT.
+
+        Returns:
+            Cursor: The cursor
+        """
         return cls(row_id=element.get_id(), direction=direction)

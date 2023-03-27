@@ -28,6 +28,16 @@ class ListPackagesResponse(BaseModel):
 def list_packages(
     request: ListPackagesRequest, conn: DriverRemoteConnection
 ) -> ListPackagesResponse:
+    """Lists packages available in the specified Gremlin Server
+
+    Args:
+        request (ListPackagesRequest): The request parameters
+        conn (DriverRemoteConnection): A Gremlin Driver remote connection
+
+    Returns:
+        ListPackagesResponse: A new cursor (if available) and the
+        list of packages matching the provided request.
+    """
     # Since the provided search predicate filters by name, we need to know the name
     # of the relevant vertex property. There might be smarter ways to extract this
     # rather than hard-coding it here.

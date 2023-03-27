@@ -12,13 +12,33 @@ from typing_extensions import Self
 
 
 class GraphElement(ABC, BaseModel):
+    """Base class for any element in the nixpkgs-graph-explorer graph"""
+
     @classmethod
     @abstractmethod
     def label(cls) -> str:
+        """Getter for the element's label
+
+        Returns:
+            str: the label
+        """
         pass
 
     @classmethod
     def from_element_map(cls, element_map: Mapping[Any, Any]) -> Self:
+        """Constructs a GraphElement from its properties
+
+        Args:
+            element_map (Mapping[Any, Any]): A mapping of the elements properties,
+                for example as returned by a Gremlin elementMap() step.
+
+        Raises:
+            Exception: If the cls's parse_obj method does not return a cls instance
+                as expected.
+
+        Returns:
+            Self: the element
+        """
         # Filter out Gremlin internal ID and label fields prior to
         # attempting deserialization
         properties = {
@@ -46,14 +66,26 @@ class UniqueGraphElement(GraphElement):
     @classmethod
     @abstractmethod
     def id_property_name(cls) -> str:
+        """Getter for the name of the property used as the element's unique identifier
+
+        Returns:
+            str: the property name
+        """
         pass
 
     @abstractmethod
     def get_id(self) -> ElementId:
+        """Getter for the property used as the element's unique identifier
+
+        Returns:
+            ElementId: the unique identifier
+        """
         pass
 
 
 class Package(UniqueGraphElement):
+    """A package from nixpkgs"""
+
     pname: str
     output_path: str
 
@@ -82,10 +114,25 @@ def _traversal_insert_vertex(e: GraphElement, g: GraphTraversal) -> GraphTravers
 
 
 def insert_vertex(e: GraphElement, g: GraphTraversalSource) -> None:
+    """Inserts a vertex element using graph traversal source
+
+    Args:
+        e (GraphElement): the vertex element to insert
+        g (GraphTraversalSource): the graph traversal source to use for the insertion
+    """
     _traversal_insert_vertex(e, g.get_graph_traversal()).iterate()
 
 
 def insert_unique_vertex(e: UniqueGraphElement, g: GraphTraversalSource) -> None:
+    """
+    Inserts a uniquely identifiable vertex if a vertex corresponding to it does not
+    already exist in the graph. If an existing vertex is found, returns without
+    modifying the graph.
+
+    Args:
+        e (UniqueGraphElement): the vertex element to insert
+        g (GraphTraversalSource): the graph traversal source to use for the insertion
+    """
     g.V().has(e.label(), e.id_property_name(), e.get_id()).fold().coalesce(
         __.unfold(), _traversal_insert_vertex(e, __.start())
     ).iterate()

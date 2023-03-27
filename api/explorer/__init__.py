@@ -43,7 +43,15 @@ class State(TypedDict):
 
 
 @asynccontextmanager
-async def lifespan(app: Starlette) -> AsyncGenerator[State, None]:
+async def lifespan(_app: Starlette) -> AsyncGenerator[State, None]:
+    """Context manager for managing Starlett (FastAPI) application state.
+
+    This context manager will ensure all clients are properly closed on
+    application shutdown.
+
+    Yields:
+        Iterator[AsyncGenerator[State, None]]: The initialized application state
+    """
     # Set-up resources for application
     # FIXME: The below two Gremlin objects have blocking constructors
     gremlin_client = Client(
@@ -67,6 +75,17 @@ async def lifespan(app: Starlette) -> AsyncGenerator[State, None]:
 
 
 def get_state(request: Request) -> State:
+    """Helper for getting the FastAPI application state from a Request.
+
+    Assumes that the lifespan has been configured with the lifespan
+    context manager set in this module.
+
+    Args:
+        request (Request): A FastAPI Request
+
+    Returns:
+        State: The application state
+    """
     return cast(State, request.state._state)
 
 
