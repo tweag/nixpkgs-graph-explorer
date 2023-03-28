@@ -46,6 +46,7 @@ export class NixSearch extends LitElement {
         this.loading = false;
       }
     });
+    # trigger a request to get an initial list of packages displayed
     this.worker.postMessage({ type: "search", data: "" });
   }
 
