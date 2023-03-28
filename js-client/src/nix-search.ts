@@ -9,9 +9,18 @@ import "@shoelace-style/shoelace/dist/components/spinner/spinner.js";
 import "@shoelace-style/shoelace/dist/components/alert/alert.js";
 import "@shoelace-style/shoelace/dist/components/icon/icon.js";
 
+// This is the type of the message event send to the web worker
+// We can only send message events, see
+// https://developer.mozilla.org/en-US/docs/Web/API/MessageEvent
+// We add a type to filter between events
 interface Operation {
+  // TODO only search is used
   type: "search" | "graph";
   data: string[];
+}
+
+export interface ClickItemPayload {
+  name: string;
 }
 
 type EventInput = Event & { target: HTMLInputElement };
@@ -40,7 +49,7 @@ export class NixSearch extends LitElement {
     this.worker.postMessage({ type: "search", data: "" });
   }
 
-  updateValue(ev: EventInput) {
+  updateSearchQuery(ev: EventInput) {
     this.loading = true;
     this.worker.postMessage({ type: "search", data: ev.target.value });
   }
@@ -48,8 +57,8 @@ export class NixSearch extends LitElement {
   render() {
     return html`
       <sl-input
-        @input=${this.updateValue}
-        placeholder="Search a package"
+        @input=${this.updateSearchQuery}
+        placeholder="Search by package name..."
         clearable
       >
       </sl-input>
@@ -89,7 +98,9 @@ export class NixSearch extends LitElement {
         bubbles: true,
         composed: true,
       };
-      this.dispatchEvent(new CustomEvent("graph", options));
+      this.dispatchEvent(
+        new CustomEvent<ClickItemPayload>("click-item", options)
+      );
     }
   }
 

@@ -1,18 +1,16 @@
 import { LitElement, css, html } from "lit";
-import { customElement, query } from "lit/decorators.js";
+import { customElement, queryAsync, state } from "lit/decorators.js";
 import "@shoelace-style/shoelace/dist/themes/light.css";
+import type { ClickItemPayload } from "./nix-search";
 import "./nix-search.ts";
 
-import cytoscape from "cytoscape";
 import dagre from "cytoscape-dagre";
+import cytoscape from "cytoscape";
 
-const API_URL = "/api";
+const API_URL = __API_URL__;
+cytoscape.use(dagre);
 
-interface GraphEv {
-  name: string;
-}
-
-async function getGraph(pkgName: string, container: HTMLElement) {
+async function getGraph(pkgName: string) {
   const response = await fetch(`${API_URL}/gremlin`, {
     method: "POST",
     headers: {
@@ -23,10 +21,12 @@ async function getGraph(pkgName: string, container: HTMLElement) {
       query: `g.V().filter{it.get().value('pname').matches('${pkgName}')}.repeat(outE().otherV().simplePath()).until(__.not(outE().simplePath())).path().by('pname').by(label)`,
     }),
   });
-  const r = await response.json();
-  console.log(r);
-  const data = r.cyto["graph-data"];
-  cytoscape.use(dagre);
+  return await response.json();
+}
+
+function renderCyGraph(graphData: any, container: HTMLElement) {
+  console.log(graphData);
+  const data = graphData.cyto["graph-data"];
   cytoscape({
     container,
     layout: { name: "dagre" },
@@ -44,18 +44,28 @@ async function getGraph(pkgName: string, container: HTMLElement) {
 
 @customElement("app-main")
 export class AppMain extends LitElement {
-  @query("#cy", true) _cy!: HTMLElement;
+  @queryAsync("#cy") _cy: Promise<HTMLElement>;
+  @state() _error = false;
   render() {
     return html`
-      <nix-search @graph=${this.updateGraph}> </nix-search>
+      <nix-search @click-item=${this.updateGraph}> </nix-search>
       <div id="cy-container">
-        <div id="cy"></div>
+        ${this._error
+          ? html`<div>Error fetching graph data</div>`
+          : html`<div id="cy"></div>`}
       </div>
     `;
   }
 
-  private updateGraph(ev: CustomEvent<GraphEv>) {
-    getGraph(ev.detail.name, this._cy);
+  private async updateGraph(ev: CustomEvent<ClickItemPayload>) {
+    try {
+      this._error = false; // Remove old errors
+      const cy = await this._cy;
+      const graphData = await getGraph(ev.detail.name);
+      renderCyGraph(graphData, cy);
+    } catch {
+      this._error = true;
+    }
   }
 
   static styles = css`

@@ -1,4 +1,5 @@
 // TODO temporary solution until we get pagination on the API
+// This code is executed in a Web Worker
 import { DBSchema } from "idb";
 import { get, set } from "idb-keyval";
 import { openDB } from "idb/with-async-ittr";

@@ -23,4 +23,7 @@ export default defineConfig({
       external: /^lit/,
     },
   },
+  define: {
+    __API_URL__: process.env.API_URL || JSON.stringify("/api"),
+  },
 });
