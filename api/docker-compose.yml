@@ -1,0 +1,9 @@
+version: "3.9"
+services:
+  web:
+    build: .
+    command: /venv/bin/gunicorn 'explorer:app' --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind '0.0.0.0:5000'
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./.env.dev

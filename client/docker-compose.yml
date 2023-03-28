@@ -1,9 +1,0 @@
-version: "3.9"
-services:
-  web:
-    build: .
-    command: python wsgi.py
-    ports:
-      - "5000:5000"
-    env_file:
-      - ./.env.dev
