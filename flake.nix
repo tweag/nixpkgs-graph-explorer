@@ -3,8 +3,6 @@
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    nixpkgs_old_cypress.url =
-      "github:NixOS/nixpkgs?rev=bf972dc380f36a3bf83db052380e55f0eaa7dcb6";
     flake-utils.url = "github:numtide/flake-utils";
     devshell = {
       url = "github:numtide/devshell";
