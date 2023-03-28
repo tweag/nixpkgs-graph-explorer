@@ -46,7 +46,7 @@ export class NixSearch extends LitElement {
         this.loading = false;
       }
     });
-    # trigger a request to get an initial list of packages displayed
+    // trigger a request to get an initial list of packages displayed
     this.worker.postMessage({ type: "search", data: "" });
   }
 
@@ -82,7 +82,7 @@ export class NixSearch extends LitElement {
         ${this.pkgs.map(
           (pkg) =>
             html`
-              <sl-menu-item @click=${this.updateGraph} value=${pkg}
+              <sl-menu-item @click=${this.clickPackageHandler} value=${pkg}
                 >${pkg}</sl-menu-item
               >
             `
@@ -91,7 +91,7 @@ export class NixSearch extends LitElement {
     `;
   }
 
-  private updateGraph(ev: EventInput) {
+  private clickPackageHandler(ev: EventInput) {
     const name = ev.target.value.trim();
     if (name) {
       const options = {
