@@ -42,4 +42,3 @@ docker-compose up
 nixpkgs-graph-explorer is now running (the API is available on
 `localhost:5000`), however no data is currently loaded to the database. See the
 instructions in [etl](./etl) on how to ingest data.
-
