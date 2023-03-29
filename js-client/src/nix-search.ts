@@ -8,16 +8,9 @@ import "@shoelace-style/shoelace/dist/components/input/input.js";
 import "@shoelace-style/shoelace/dist/components/spinner/spinner.js";
 import "@shoelace-style/shoelace/dist/components/alert/alert.js";
 import "@shoelace-style/shoelace/dist/components/icon/icon.js";
-
-// This is the type of the message event send to the web worker
-// We can only send message events, see
-// https://developer.mozilla.org/en-US/docs/Web/API/MessageEvent
-// We add a type to filter between events
-interface Operation {
-  // TODO only search is used
-  type: "search" | "graph";
-  data: string[];
-}
+import { classMap } from "lit/directives/class-map.js";
+import { getPackages } from "./api";
+import type { Cursor, Pkg } from "./api";
 
 export interface ClickItemPayload {
   name: string;
@@ -25,34 +18,40 @@ export interface ClickItemPayload {
 
 type EventInput = Event & { target: HTMLInputElement };
 
+// TODO Add pagination
 @customElement("nix-search")
 export class NixSearch extends LitElement {
-  worker = new Worker(new URL("./packages", import.meta.url), {
-    type: "module",
-  });
+  @state()
+  pkgs: Pkg[] = [];
 
   @state()
-  pkgs: string[] = [];
+  cursor?: Cursor;
 
   @state()
   loading = true;
 
+  @state()
+  selectedPkg?: string;
+
+  searchInput = "";
+
   constructor() {
     super();
-    this.worker.addEventListener("message", (msg: MessageEvent<Operation>) => {
-      const { type, data } = msg.data;
-      if (type === "search") {
-        this.pkgs = data;
-        this.loading = false;
-      }
-    });
     // trigger a request to get an initial list of packages displayed
-    this.worker.postMessage({ type: "search", data: "" });
+    this.getPackages();
+  }
+
+  async getPackages(search = "", limit = 10) {
+    const { packages, new_cursor } = await getPackages({ search, limit });
+    this.pkgs = packages;
+    this.cursor = new_cursor;
+    this.loading = false;
   }
 
   updateSearchQuery(ev: EventInput) {
     this.loading = true;
-    this.worker.postMessage({ type: "search", data: ev.target.value });
+    this.searchInput = ev.target.value;
+    this.getPackages(this.searchInput);
   }
 
   render() {
@@ -80,10 +79,13 @@ export class NixSearch extends LitElement {
     return html`
       <sl-menu>
         ${this.pkgs.map(
-          (pkg) =>
+          ({ pname }) =>
             html`
-              <sl-menu-item @click=${this.clickPackageHandler} value=${pkg}
-                >${pkg}</sl-menu-item
+              <sl-menu-item
+                @click=${this.clickPackageHandler}
+                value=${pname}
+                class=${classMap({ selected: this.selectedPkg === pname })}
+                >${pname}</sl-menu-item
               >
             `
         )}
@@ -93,6 +95,8 @@ export class NixSearch extends LitElement {
 
   private clickPackageHandler(ev: EventInput) {
     const name = ev.target.value.trim();
+    this.selectedPkg = name;
+
     if (name) {
       const options = {
         detail: { name },
@@ -110,6 +114,9 @@ export class NixSearch extends LitElement {
     }
     sl-input {
       margin-bottom: 1em;
+    }
+    .selected {
+      background-color: var(--sl-color-primary-200);
     }
   `;
 }

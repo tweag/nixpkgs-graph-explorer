@@ -20,8 +20,6 @@
     "@shoelace-style/shoelace": "^2.3.0",
     "cytoscape": "^3.23.0",
     "cytoscape-dagre": "^2.5.0",
-    "idb": "^7.1.1",
-    "idb-keyval": "^6.2.0",
     "lit": "^2.6.1"
   },
   "devDependencies": {

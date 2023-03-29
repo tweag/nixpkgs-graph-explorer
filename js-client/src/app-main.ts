@@ -6,23 +6,9 @@ import "./nix-search.ts";
 
 import dagre from "cytoscape-dagre";
 import cytoscape from "cytoscape";
+import { getGraph } from "./api";
 
-const API_URL = __API_URL__;
 cytoscape.use(dagre);
-
-async function getGraph(pkgName: string) {
-  const response = await fetch(`${API_URL}/gremlin`, {
-    method: "POST",
-    headers: {
-      Accept: "application/json",
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      query: `g.V().filter{it.get().value('pname').matches('${pkgName}')}.repeat(outE().otherV().simplePath()).until(__.not(outE().simplePath())).path().by('pname').by(label)`,
-    }),
-  });
-  return await response.json();
-}
 
 function renderCyGraph(graphData: any, container: HTMLElement) {
   console.log(graphData);
@@ -75,7 +61,7 @@ export class AppMain extends LitElement {
       display: grid;
       gap: 10px;
       padding: 2rem;
-      grid-template-columns: 200px 1fr;
+      grid-template-columns: min(25%, 300px) 1fr;
     }
     #cy-container {
       border: 1px solid var(--sl-panel-border-color);
