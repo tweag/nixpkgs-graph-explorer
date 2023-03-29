@@ -87,7 +87,7 @@ class Package(UniqueGraphElement):
     """A package from nixpkgs"""
 
     pname: str
-    output_path: str
+    outputPath: str
 
     @classmethod
     def label(cls) -> str:
@@ -95,10 +95,10 @@ class Package(UniqueGraphElement):
 
     @classmethod
     def id_property_name(cls) -> str:
-        return "output_path"
+        return "outputPath"
 
     def get_id(self) -> str:
-        return ElementId(self.output_path)
+        return ElementId(self.outputPath)
 
 
 def _traversal_insert_vertex(e: GraphElement, g: GraphTraversal) -> GraphTraversal:
