@@ -6,7 +6,7 @@ from gremlin_python.process.graph_traversal import (
     GraphTraversalSource,
     __,
 )
-from gremlin_python.process.traversal import T
+from gremlin_python.process.traversal import T, Direction
 from pydantic import BaseModel
 from typing_extensions import Self
 
@@ -45,7 +45,7 @@ class GraphElement(ABC, BaseModel):
             # Note: Disabled type-checking here since `T` does not play nicely with it
             k: v
             for k, v in element_map.items()
-            if k != T.id and k != T.label  # type: ignore
+            if k != T.id and k != T.label and isinstance(k, str)  # type: ignore
         }
         deserialized_value: Self = cls.parse_obj(properties)
         if not isinstance(deserialized_value, cls):
@@ -99,6 +99,63 @@ class Package(UniqueGraphElement):
 
     def get_id(self) -> str:
         return ElementId(self.outputPath)
+
+
+class DependsOn(GraphElement):
+    """A directed edge indicating a dependency between packages"""
+
+    @classmethod
+    def label(cls) -> str:
+        return "dependsOn"
+
+
+def insert_unique_directed_edge(
+    edge: GraphElement,
+    from_vertex: UniqueGraphElement,
+    to_vertex: UniqueGraphElement,
+    g: GraphTraversalSource,
+) -> None:
+    """Inserts an edge element using graph traversal source
+
+    The created edge will be directed from `from_vertex` to `to_vertex`,
+       i.e.  `(from_vertex) - [edge] -> (to_vertex)`.
+
+    If either of the vertices do not exist this method will return without modifying
+    the graph. It will also not create an edge if one with the same label already
+    exists between the provided vertices.
+
+    Args:
+        edge (GraphElement): the element to insert as an edge
+        from_vertex (UniqueGraphElement): the vertex at which the edge originates
+        to_vertex (UniqueGraphElement): the vertex at which the edge terminates
+        g (GraphTraversalSource): the graph traversal source to use for the insertion
+    """
+    properties = edge.dict()
+    # Construct an anonymous traversal for inserting an edge with its properties
+    # which we will in the main traversal below
+    insert_edge_traversal = __.add_e(edge.label()).from_("fromV")
+    for property_name, property_value in properties.items():
+        insert_edge_traversal = insert_edge_traversal.property(
+            property_name, property_value
+        )
+    # Main traversal
+    (
+        g.V()
+        # Get the "from" vertex
+        .has(from_vertex.label(), from_vertex.id_property_name(), from_vertex.get_id())
+        .as_("fromV")
+        # Get the "to" vertex
+        .V()
+        .has(to_vertex.label(), to_vertex.id_property_name(), to_vertex.get_id())
+        .coalesce(
+            # This funky traversal is for checking whether an edge already exists
+            # and if so will return it.
+            __.in_e(edge.label()).where(__.out_v().as_("fromV")),
+            # Otherwise, if no edge is found we create one
+            insert_edge_traversal,
+        )
+        .iterate()
+    )
 
 
 def _traversal_insert_vertex(e: GraphElement, g: GraphTraversal) -> GraphTraversal:
