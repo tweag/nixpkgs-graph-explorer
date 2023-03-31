@@ -164,6 +164,7 @@ cython_debug/
 
 node_modules
 __previewjs__
+.vite 
 
 # direnv
 .direnv
