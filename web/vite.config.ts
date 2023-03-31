@@ -15,12 +15,22 @@ export default defineConfig({
     },
   },
   build: {
-    lib: {
-      entry: "src/app-main.ts",
-      formats: ["es"],
-    },
     rollupOptions: {
-      external: /^lit/,
+      output: {
+        manualChunks(id) {
+          if (
+            id.includes("node_modules/lit") ||
+            id.includes("node_modules/@lit")
+          )
+            return "lit";
+          if (id.includes("node_modules/@shoelace-style")) return "shoelance";
+          if (
+            id.includes("node_modules/cytoscape") ||
+            id.includes("node_modules/dagre")
+          )
+            return "cytoscape";
+        },
+      },
     },
   },
   define: {

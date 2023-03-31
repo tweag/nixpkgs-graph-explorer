@@ -35,15 +35,27 @@ services:
       backend:
         aliases:
           - gremlin
-  web:
+  api:
     build: ./api
-    command: /venv/bin/gunicorn 'explorer:app' --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind '0.0.0.0:5000'
+    command:
+      /venv/bin/gunicorn 'explorer:app' --workers 4 --worker-class
+      uvicorn.workers.UvicornWorker --bind '0.0.0.0:5000'
     ports:
       - 5000:5000
     env_file:
       - ./api/.env.prod
     depends_on:
       - gremlin
+    networks:
+      - backend
+  web:
+    build: ./web
+    environment: 
+      - API_URL=api:5000
+    ports:
+      - 9091:80
+    depends_on:
+      - api
     networks:
       - backend
 volumes:
