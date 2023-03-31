@@ -50,6 +50,8 @@ services:
       - backend
   web:
     build: ./web
+    environment: 
+      - API_URL=api:5000
     ports:
       - 9091:80
     depends_on:
