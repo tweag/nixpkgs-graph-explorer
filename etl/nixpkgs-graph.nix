@@ -1,17 +1,21 @@
 # usage:
-# NIXPKGS_FLAKE_REF="github:nixos/nixpkgs/master" nix eval --json --file "./nixpkgs-graph.nix"
+# TARGET_FLAKE_REF="github:nixos/nixpkgs/master" nix eval --json --file "./nixpkgs-graph.nix"
 
 let
-  nixpkgsFlakeRef = builtins.getEnv "NIXPKGS_FLAKE_REF";
-  pkgs = import (builtins.getFlake nixpkgsFlakeRef) {
-    config = {
-      # package 'python-2.7.18.6' is marked as insecure
-      # we need to allow this package otherwise it is refusing to evaluate
-      permittedInsecurePackages = [
-        "python-2.7.18.6"
-      ];
-    };
-  };
+  pkgs = builtins.getFlake "nixpkgs";
+  targetFlakeRef = builtins.getEnv "TARGET_FLAKE_REF";
+  targetFlakePkgs = if (builtins.getFlake targetFlakeRef).outputs ? packages
+                    then
+                      (builtins.getFlake targetFlakeRef).outputs.packages.${builtins.currentSystem}
+                    else
+                      if (builtins.getFlake targetFlakeRef).outputs ? defaultPackage
+                      then
+                        (builtins.getFlake targetFlakeRef).outputs.defaultPackage.${builtins.currentSystem}
+                      else
+                        if (builtins.getFlake targetFlakeRef).outputs ? legacyPackages
+                        then (builtins.getFlake targetFlakeRef).outputs.legacyPackages.${builtins.currentSystem}
+                        else
+                          {};
 in
 
 with pkgs.lib;
@@ -93,5 +97,5 @@ in
 
 (collect
   (x: x ? outputPath)
-  (mapAttrs (recurse "") pkgs)
+  (mapAttrs (recurse "") targetFlakePkgs)
 )
