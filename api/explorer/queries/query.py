@@ -1,6 +1,5 @@
 import enum
 import uuid
-from pprint import pprint
 from typing import Optional
 
 import networkx as nx
@@ -118,7 +117,6 @@ class GremlinResult:
         Create a result dictionary to be returned to the front-end as JSON
         """
         # Need to first parse cyto_data into expected type. This may fail.
-        pprint(self.cyto_data)
         if self.cyto_data is not None:
             parsed_cyto_data = CytoData.parse_obj(self.cyto_data)
         else:
