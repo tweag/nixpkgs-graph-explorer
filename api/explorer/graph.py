@@ -6,7 +6,7 @@ from gremlin_python.process.graph_traversal import (
     GraphTraversalSource,
     __,
 )
-from gremlin_python.process.traversal import T, Direction
+from gremlin_python.process.traversal import T
 from pydantic import BaseModel
 from typing_extensions import Self
 

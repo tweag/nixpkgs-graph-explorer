@@ -116,4 +116,4 @@ def gremlin(gremlin_request: GremlinRequest, raw_request: Request):
     query_result = GremlinResult(client, gremlin_request.query, clean_gremlin=True)
     # FIXME: Use a pydantic model in GremlinResult so that we can return that directly
     # here instead to make the API a bit more strictly types.
-    return query_result.to_dict()
+    return query_result.to_query_result()
