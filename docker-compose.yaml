@@ -49,7 +49,7 @@ services:
     networks:
       - backend
   web:
-    build: ./js-client
+    build: ./web
     ports:
       - 9091:80
     depends_on:
