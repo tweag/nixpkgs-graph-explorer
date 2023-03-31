@@ -16,7 +16,7 @@ from explorer.queries.packages import (
     ListPackagesResponse,
     list_packages,
 )
-from explorer.queries.query import GremlinResult
+from explorer.queries.query import GremlinResult, QueryResult
 
 ##############################################################################
 # Configuration
@@ -111,9 +111,7 @@ def packages(
 
 
 @app.post("/gremlin")
-def gremlin(gremlin_request: GremlinRequest, raw_request: Request):
+def gremlin(gremlin_request: GremlinRequest, raw_request: Request) -> QueryResult:
     client = get_state(raw_request)["gremlin_client"]
     query_result = GremlinResult(client, gremlin_request.query, clean_gremlin=True)
-    # FIXME: Use a pydantic model in GremlinResult so that we can return that directly
-    # here instead to make the API a bit more strictly types.
     return query_result.to_query_result()
