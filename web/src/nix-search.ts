@@ -35,6 +35,8 @@ export class NixSearch extends LitElement {
 
   searchInput = "";
 
+  #timer: ReturnType<typeof setTimeout>;
+
   constructor() {
     super();
     // trigger a request to get an initial list of packages displayed
@@ -51,7 +53,12 @@ export class NixSearch extends LitElement {
   updateSearchQuery(ev: EventInput) {
     this.loading = true;
     this.searchInput = ev.target.value;
-    this.getPackages(this.searchInput);
+
+    // Debounce API requests
+    clearTimeout(this.#timer);
+    this.#timer = setTimeout(() => {
+      this.getPackages(this.searchInput);
+    }, 250);
   }
 
   render() {

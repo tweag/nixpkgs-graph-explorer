@@ -19,6 +19,7 @@ documentation:
   Server
 * `config` Various configuration
 * `docker` Docker image definitions, etc.
+* `web` Web app to interact with the API
 
 ## Running locally
 
