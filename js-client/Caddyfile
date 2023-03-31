@@ -1,0 +1,14 @@
+{
+  admin off
+}
+
+:80 {
+	root * /usr/share/caddy
+	file_server
+
+  handle_path /api/* {
+    reverse_proxy http://api:5000 {
+      header_up Host {upstream_hostport}
+    }
+  }
+}
