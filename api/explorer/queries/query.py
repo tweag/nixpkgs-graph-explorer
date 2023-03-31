@@ -1,8 +1,40 @@
+import enum
 import uuid
+from typing import Optional
 
 import networkx as nx
 from gremlin_python.process.traversal import T
 from gremlin_python.structure.graph import Path
+from pydantic import BaseModel, Field
+
+from explorer.queries.cytoscape import CytoscapeJs
+
+
+class TableEntry(BaseModel):
+    id: str
+    neighbours: list[str]
+
+
+class CytoData(BaseModel):
+    table_data: list[TableEntry] = Field(alias="table-data")
+    graph_data: CytoscapeJs = Field(alias="graph-data")
+
+
+class WarningMessage(enum.Enum):
+    CYTOSCAPE_CONVERSION_FAILED = "Could not generate Cytoscape data from graph"
+    RESULT_IS_NOT_PLOTTABLE = (
+        "Only Gremlin results consisting of paths can be plotted. "
+        "Graph not generated."
+    )
+    NON_VERTEX_QUERY = (
+        "Only vertex-based queries (g.V()...) can be plotted. Graph not generated."
+    )
+
+
+class QueryResult(BaseModel):
+    raw: str
+    warning: Optional[WarningMessage] = None
+    cyto: Optional[CytoData] = None
 
 
 class GremlinResult:
@@ -80,48 +112,40 @@ class GremlinResult:
             for k, v in reprT:
                 self.raw = self.raw.replace(k, v)
 
-    def to_dict(self):
+    def to_query_result(self) -> QueryResult:
         """
         Create a result dictionary to be returned to the front-end as JSON
         """
-        r = {"raw": self.raw}
-        if self.warning:
-            r["warning"] = self.warning
-        if self.cyto_data:
-            r["cyto"] = self.cyto_data  # type: ignore
-        return r
+        # Need to first parse cyto_data into expected type. This may fail.
+        if self.cyto_data is not None:
+            parsed_cyto_data = CytoData.parse_obj(self.cyto_data)
+        else:
+            parsed_cyto_data = None
+        return QueryResult(raw=self.raw, warning=self.warning, cyto=parsed_cyto_data)
 
     def __make_graph(self):
         """
         Attempt to generate a NetworkX graph from the Gremlin result
         """
-        try:
-            # We only attempt to plot vertex-based queries, not edge-based
-            if not self.query.startswith("g.V"):
-                raise ValueError(
-                    "Only vertex-based queries (g.V()...) can be plotted. "
-                    "Graph not generated."
-                )
-            G = nx.DiGraph()
-            all_paths = True
+
+        # We only attempt to plot vertex-based queries, not edge-based
+        if not self.query.startswith("g.V"):
+            self.warning = WarningMessage.NON_VERTEX_QUERY
+        G = nx.DiGraph()
+        all_paths = True
+        for p in self.result:
+            match p:
+                case Path():
+                    pass
+                case _:
+                    all_paths = False
+                    break
+        if all_paths:
             for p in self.result:
-                match p:
-                    case Path():
-                        pass
-                    case _:
-                        all_paths = False
-                        break
-            if all_paths:
-                for p in self.result:
-                    self.__add_path_to_graph(G, p)
-                self.G = G
-            else:
-                raise ValueError(
-                    "Only Gremlin results consisting of paths can be plotted. Graph "
-                    "not generated."
-                )
-        except Exception as e:
-            self.warning = str(e)
+                self.__add_path_to_graph(G, p)
+            self.G = G
+        else:
+            self.warning = WarningMessage.RESULT_IS_NOT_PLOTTABLE
 
     @staticmethod
     def __add_path_to_graph(G: nx.Graph, path: Path) -> nx.Graph:
@@ -159,4 +183,4 @@ class GremlinResult:
                 ]
                 self.cyto_data = {"graph-data": graph_data, "table-data": table_data}
         except Exception:
-            self.warning = "Could not generate Cytoscape data from graph"
+            self.warning = WarningMessage.CYTOSCAPE_CONVERSION_FAILED

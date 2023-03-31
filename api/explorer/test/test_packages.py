@@ -7,10 +7,10 @@ import explorer.queries.packages as packages
 from explorer.graph import Package, insert_unique_vertex
 from explorer.queries.pagination import Cursor, CursorDirection
 
-PACKAGE_A = Package(pname="package-a", output_path="a/a/a")
-PACKAGE_B = Package(pname="package-b", output_path="b/b/b")
-PACKAGE_C = Package(pname="package-c", output_path="c/c/c")
-PACKAGE_AA = Package(pname="package-aa", output_path="aa/aa/aa")
+PACKAGE_A = Package(pname="package-a", outputPath="a/a/a")
+PACKAGE_B = Package(pname="package-b", outputPath="b/b/b")
+PACKAGE_C = Package(pname="package-c", outputPath="c/c/c")
+PACKAGE_AA = Package(pname="package-aa", outputPath="aa/aa/aa")
 
 DUMMY_PACKAGES = [PACKAGE_A, PACKAGE_B, PACKAGE_C, PACKAGE_AA]
 

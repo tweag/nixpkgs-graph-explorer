@@ -163,6 +163,7 @@ cython_debug/
 # NodeJS stuff
 node_modules
 __previewjs__
+.vite 
 web/types
 
 # direnv

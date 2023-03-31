@@ -15,8 +15,8 @@ function renderCyGraph(graphData: any, container: HTMLElement) {
   const data = graphData.cyto["graph-data"];
   cytoscape({
     container,
-    layout: { name: "dagre" },
     ...data,
+    layout: { name: "dagre" },
     style: [
       {
         selector: "node",
