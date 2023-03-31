@@ -1,4 +1,5 @@
 from typing import Any, Mapping, cast
+
 import pytest
 from gremlin_python.driver import serializer
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
