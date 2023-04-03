@@ -1,21 +1,38 @@
 # usage:
-# TARGET_FLAKE_REF="github:nixos/nixpkgs/master" nix eval --json --file "./nixpkgs-graph.nix"
+# NIXPKGS_ALLOW_BROKEN=1 NIXPKGS_ALLOW_INSECURE=1 TARGET_FLAKE_REF="github:nixos/nixpkgs/master" TARGET_FLAKE_SYSTEM="x86_64-linux" nix eval --json --file "./nixpkgs-graph.nix"
 
 let
   pkgs = builtins.getFlake "nixpkgs";
   targetFlakeRef = builtins.getEnv "TARGET_FLAKE_REF";
-  targetFlakePkgs = if (builtins.getFlake targetFlakeRef).outputs ? packages
-                    then
-                      (builtins.getFlake targetFlakeRef).outputs.packages.${builtins.currentSystem}
-                    else
-                      if (builtins.getFlake targetFlakeRef).outputs ? defaultPackage
-                      then
-                        (builtins.getFlake targetFlakeRef).outputs.defaultPackage.${builtins.currentSystem}
-                      else
-                        if (builtins.getFlake targetFlakeRef).outputs ? legacyPackages
-                        then (builtins.getFlake targetFlakeRef).outputs.legacyPackages.${builtins.currentSystem}
-                        else
-                          {};
+  # We specify the system of the target flake here to avoid ambiguity
+  # An output will produce a different result on every system
+  targetFlakeSys = builtins.getEnv "TARGET_FLAKE_SYSTEM";
+  targetFlakePkgs =
+    if (builtins.getFlake targetFlakeRef).outputs ? packages
+    then
+      if (builtins.getFlake targetFlakeRef).outputs.packages ? ${targetFlakeSys}
+      then
+        (builtins.getFlake targetFlakeRef).outputs.packages.${targetFlakeSys}
+      else
+        { }
+    else
+      if (builtins.getFlake targetFlakeRef).outputs ? defaultPackage
+      then
+        if (builtins.getFlake targetFlakeRef).outputs.defaultPackage ? ${targetFlakeSys}
+        then
+          (builtins.getFlake targetFlakeRef).outputs.defaultPackage.${targetFlakeSys}
+        else
+          { }
+      else
+        if (builtins.getFlake targetFlakeRef).outputs ? legacyPackages
+        then
+          if (builtins.getFlake targetFlakeRef).outputs.legacyPackages ? ${targetFlakeSys}
+          then
+            (builtins.getFlake targetFlakeRef).outputs.legacyPackages.${targetFlakeSys}
+          else
+            { }
+        else
+          { };
 in
 
 with pkgs.lib;
