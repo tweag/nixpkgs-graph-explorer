@@ -6,12 +6,12 @@ let
   targetFlakeRef = builtins.getEnv "TARGET_FLAKE_REF";
   # We specify the system of the target here to avoid ambiguity
   # The outputs of a flake will produce different results on every system
-  targetSys = builtins.getEnv "TARGET_SYSTEM";
+  targetSystem = builtins.getEnv "TARGET_SYSTEM";
   targetFlakePkgs =
     let
       flake = builtins.getFlake targetFlakeRef;
     in
-      flake.outputs.packages.${targetSys} or flake.outputs.defaultPackage.${targetSys} or flake.outputs.legacyPackages.${targetSys} or { };
+      flake.outputs.packages.${targetSystem} or flake.outputs.defaultPackage.${targetSystem} or flake.outputs.legacyPackages.${targetSystem} or { };
 in
 
 with pkgs.lib;
