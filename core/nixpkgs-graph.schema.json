@@ -1,0 +1,128 @@
+{
+  "title": "NixGraph",
+  "type": "object",
+  "properties": {
+    "packages": {
+      "title": "Packages",
+      "type": "array",
+      "items": {
+        "$ref": "#/definitions/Package"
+      }
+    }
+  },
+  "required": [
+    "packages"
+  ],
+  "definitions": {
+    "NixpkgsMetadata": {
+      "title": "NixpkgsMetadata",
+      "description": "Package metadata defined by nixpkgs specifically.",
+      "type": "object",
+      "properties": {
+        "pname": {
+          "title": "Pname",
+          "description": "The pname attribute of the Nix derivation",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "description": "The package's version",
+          "type": "string"
+        },
+        "broken": {
+          "title": "Broken",
+          "description": "Flag indicating whether the package is broken",
+          "type": "boolean"
+        },
+        "license": {
+          "title": "License",
+          "description": "The package's license",
+          "type": "string"
+        }
+      },
+      "required": [
+        "version",
+        "broken",
+        "license"
+      ]
+    },
+    "BuildInputType": {
+      "title": "BuildInputType",
+      "description": "The type of build input. In Nix there are three different types.",
+      "enum": [
+        "build_input",
+        "propagated_build_input",
+        "native_build_input"
+      ]
+    },
+    "BuildInput": {
+      "title": "BuildInput",
+      "description": "A build input to a Nix derivation",
+      "type": "object",
+      "properties": {
+        "build_input_type": {
+          "description": "The type of build input.",
+          "allOf": [
+            {
+              "$ref": "#/definitions/BuildInputType"
+            }
+          ]
+        },
+        "package": {
+          "title": "Package",
+          "default": "The input package",
+          "allOf": [
+            {
+              "$ref": "#/definitions/Package"
+            }
+          ]
+        }
+      },
+      "required": [
+        "build_input_type"
+      ]
+    },
+    "Package": {
+      "title": "Package",
+      "description": "A Nix package",
+      "type": "object",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "description": "The name of the package",
+          "type": "string"
+        },
+        "output_paths": {
+          "title": "Output Paths",
+          "description": "A mapping of output path names to corresponding store paths",
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          }
+        },
+        "nixpkgs_metadata": {
+          "title": "Nixpkgs Metadata",
+          "description": "Optional metadata specific to packages from nixpkgs",
+          "allOf": [
+            {
+              "$ref": "#/definitions/NixpkgsMetadata"
+            }
+          ]
+        },
+        "build_inputs": {
+          "title": "Build Inputs",
+          "description": "The package's build inputs",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/BuildInput"
+          }
+        }
+      },
+      "required": [
+        "name",
+        "output_paths",
+        "build_inputs"
+      ]
+    }
+  }
+}
