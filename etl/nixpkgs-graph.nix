@@ -1,38 +1,17 @@
 # usage:
-# NIXPKGS_ALLOW_BROKEN=1 NIXPKGS_ALLOW_INSECURE=1 TARGET_FLAKE_REF="github:nixos/nixpkgs/master" TARGET_FLAKE_SYSTEM="x86_64-linux" nix eval --json --file "./nixpkgs-graph.nix"
+# NIXPKGS_ALLOW_BROKEN=1 NIXPKGS_ALLOW_INSECURE=1 TARGET_FLAKE_REF="github:nixos/nixpkgs/master" TARGET_SYSTEM="x86_64-linux" nix eval --json --file "./nixpkgs-graph.nix"
 
 let
   pkgs = builtins.getFlake "nixpkgs";
   targetFlakeRef = builtins.getEnv "TARGET_FLAKE_REF";
-  # We specify the system of the target flake here to avoid ambiguity
-  # An output will produce a different result on every system
-  targetFlakeSys = builtins.getEnv "TARGET_FLAKE_SYSTEM";
+  # We specify the system of the target here to avoid ambiguity
+  # The outputs of a flake will produce different results on every system
+  targetSys = builtins.getEnv "TARGET_SYSTEM";
   targetFlakePkgs =
-    if (builtins.getFlake targetFlakeRef).outputs ? packages
-    then
-      if (builtins.getFlake targetFlakeRef).outputs.packages ? ${targetFlakeSys}
-      then
-        (builtins.getFlake targetFlakeRef).outputs.packages.${targetFlakeSys}
-      else
-        { }
-    else
-      if (builtins.getFlake targetFlakeRef).outputs ? defaultPackage
-      then
-        if (builtins.getFlake targetFlakeRef).outputs.defaultPackage ? ${targetFlakeSys}
-        then
-          (builtins.getFlake targetFlakeRef).outputs.defaultPackage.${targetFlakeSys}
-        else
-          { }
-      else
-        if (builtins.getFlake targetFlakeRef).outputs ? legacyPackages
-        then
-          if (builtins.getFlake targetFlakeRef).outputs.legacyPackages ? ${targetFlakeSys}
-          then
-            (builtins.getFlake targetFlakeRef).outputs.legacyPackages.${targetFlakeSys}
-          else
-            { }
-        else
-          { };
+    let
+      flake = builtins.getFlake targetFlakeRef;
+    in
+      flake.outputs.packages.${targetSys} or flake.outputs.defaultPackage.${targetSys} or flake.outputs.legacyPackages.${targetSys} or { };
 in
 
 with pkgs.lib;
@@ -76,7 +55,7 @@ let
                   pEvalResult = builtins.tryEval (toString (if okValue ? outputs then okValue.outputs else ""));
                 in
                 if pEvalResult.success then splitString " " pEvalResult.value
-                else [];
+                else [ ];
             in
             map
               (p:
