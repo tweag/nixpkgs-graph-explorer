@@ -34,7 +34,7 @@ def cli(out: str, stdout: bool, pretty: bool):
     else:
         click.echo(f"Writing schema to {out}")
         with open(out, "w") as f:
-            print(model.NixGraph.schema_json(indent=indent), file=f)
+            print(schema_json, file=f)
         click.echo("Done.")
 
 
