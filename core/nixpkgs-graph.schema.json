@@ -84,7 +84,7 @@
     },
     "Package": {
       "title": "Package",
-      "description": "A Nix package",
+      "description": "A Nix package, which is an evaluated (not realized) derivation.",
       "type": "object",
       "properties": {
         "name": {
