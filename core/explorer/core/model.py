@@ -42,7 +42,7 @@ class BuildInput(BaseModel):
 
 
 class Package(BaseModel):
-    """A Nix package"""
+    """A Nix package, which is an evaluated (not realized) derivation."""
 
     name: str = Field(description="The name of the package")
     output_paths: dict[OutputPathName, str] = Field(

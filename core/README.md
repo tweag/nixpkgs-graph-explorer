@@ -2,8 +2,7 @@
 
 Core data model used for extracting Nix dependencies and related utilities.
 
-To generate a JSON schema you can run the following while in the repositories
-Nix shell:
+To generate a JSON schema you can run the following while in the repository Nix shell:
 
 ```bash
 # Install dependencies
