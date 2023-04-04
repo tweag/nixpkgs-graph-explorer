@@ -2,7 +2,7 @@
 # NIXPKGS_ALLOW_BROKEN=1 NIXPKGS_ALLOW_INSECURE=1 TARGET_FLAKE_REF="github:nixos/nixpkgs/master" TARGET_SYSTEM="x86_64-linux" nix eval --json --file "./nixpkgs-graph.nix"
 
 let
-  pkgs = builtins.getFlake "nixpkgs";
+  nixpkgs = builtins.getFlake "nixpkgs";
   targetFlakeRef = builtins.getEnv "TARGET_FLAKE_REF";
   # We specify the system of the target here to avoid ambiguity
   # The outputs of a flake will produce different results on every system
@@ -14,7 +14,7 @@ let
       flake.outputs.packages.${targetSystem} or flake.outputs.defaultPackage.${targetSystem} or flake.outputs.legacyPackages.${targetSystem} or { };
 in
 
-with pkgs.lib;
+with nixpkgs.lib;
 
 let
   recurse =
