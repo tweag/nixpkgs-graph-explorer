@@ -5,7 +5,7 @@ from gremlin_python.driver import serializer
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.process.anonymous_traversal import traversal
 
-from explorer.graph import ElementId, GraphElement, UniqueGraphElement
+from explorer.api.graph import ElementId, GraphElement, UniqueGraphElement
 
 
 class DummyGraphElement(GraphElement):

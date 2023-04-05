@@ -3,13 +3,13 @@ from gremlin_python.driver import serializer
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.process.anonymous_traversal import traversal
 
-from explorer.graph import (
+from explorer.api.graph import (
     DependsOn,
     Package,
     insert_unique_directed_edge,
     insert_unique_vertex,
 )
-from explorer.queries.cytoscape import (
+from explorer.api.queries.cytoscape import (
     CytoscapeJs,
     EdgeData,
     EdgeDefinition,
