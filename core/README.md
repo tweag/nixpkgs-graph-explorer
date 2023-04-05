@@ -14,3 +14,16 @@ poetry run python -m explorer.core --help
 # Generate the schema
 poetry run python -m explorer.core
 ```
+
+To extract the data from Nixpkgs you can run the following while in the repository Nix shell:
+
+```bash
+# Install dependencies
+poetry install
+
+# View help menu
+poetry run python -m extract_data.cli --help
+
+# Extract the Nix data for nixpkgs on x86_64-linux distributions
+poetry run python -m extract_data.cli
+```

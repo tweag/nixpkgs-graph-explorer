@@ -9,7 +9,7 @@ license = "MIT"
 readme = "README.md"
 packages = [
 	 {include = "explorer"},
-	 {include = "cli"}
+	 {include = "extract_data"}
 	 ]
 
 [tool.poetry.dependencies]
