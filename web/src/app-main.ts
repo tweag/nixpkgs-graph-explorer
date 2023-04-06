@@ -9,7 +9,6 @@ import SlDrawer from "@shoelace-style/shoelace/dist/components/drawer/drawer.js"
 
 import type { ClickItemPayload } from "./nix-search";
 import "./nix-search.ts";
-import "./logos/graph-logo";
 
 import dagre from "cytoscape-dagre";
 import cytoscape from "cytoscape";

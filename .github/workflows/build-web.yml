@@ -1,0 +1,25 @@
+name: CI Frontend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "web/**"
+  pull_request:
+    paths:
+      - "web/**"
+
+jobs:
+  build:
+    name: Frontend Prod build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: cachix/install-nix-action@v19
+
+      - run: nix develop --command check-prettier
+
+      - name: Prod build (docker)
+        run: docker build -t nixpkgs-graph-explorer_web web
