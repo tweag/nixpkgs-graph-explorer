@@ -24,9 +24,9 @@ lint-python
 Tests expect Gremlin Server and Postgres to be available. You can launch these with the Docker Compose file in the project's root directory:
 
 ```bash
-# Launches the docker-compose stack
+# Launches the required docker-compose stack
 cd ..
-docker-compose up -d
+docker-compose --profile db up
 ```
 
 then
@@ -38,7 +38,7 @@ poetry run pytest
 
 To launch the app with hot reloading for fast iteration, you can use:
 ```bash
-poetry run uvicorn explorer:app --reload
+poetry run uvicorn explorer.api:app --reload
 ```
 
 ## Running using Docker
