@@ -4,7 +4,6 @@ import pytest
 from gremlin_python.driver import serializer
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.process.anonymous_traversal import traversal
-
 from explorer.api.graph import ElementId, GraphElement, UniqueGraphElement
 
 
@@ -76,7 +75,7 @@ def graph_connection():
 
 
 def test_unit_insert_vertex(graph_connection: DriverRemoteConnection):
-    from explorer.graph import insert_vertex
+    from explorer.api.graph import insert_vertex
 
     g = traversal().withRemote(graph_connection)
     element = DummyGraphElement()
@@ -85,7 +84,7 @@ def test_unit_insert_vertex(graph_connection: DriverRemoteConnection):
 
 
 def test_unit_insert_vertex_allows_duplicates(graph_connection: DriverRemoteConnection):
-    from explorer.graph import insert_vertex
+    from explorer.api.graph import insert_vertex
 
     g = traversal().withRemote(graph_connection)
     element = DummyGraphElement()
@@ -97,7 +96,7 @@ def test_unit_insert_vertex_allows_duplicates(graph_connection: DriverRemoteConn
 def test_unit_insert_unique_vertex_creates_when_one_does_not_exist(
     graph_connection: DriverRemoteConnection,
 ):
-    from explorer.graph import insert_unique_vertex
+    from explorer.api.graph import insert_unique_vertex
 
     g = traversal().withRemote(graph_connection)
     element = DummyUniqueGraphElement(unique_property="some-unique-value-1")
@@ -108,7 +107,7 @@ def test_unit_insert_unique_vertex_creates_when_one_does_not_exist(
 def test_unit_insert_unique_vertex_does_not_duplicate_vertex(
     graph_connection: DriverRemoteConnection,
 ):
-    from explorer.graph import insert_unique_vertex
+    from explorer.api.graph import insert_unique_vertex
 
     g = traversal().withRemote(graph_connection)
     element = DummyUniqueGraphElement(unique_property="some-unique-value-1")
@@ -120,7 +119,7 @@ def test_unit_insert_unique_vertex_does_not_duplicate_vertex(
 def test_unit_insert_unique_directed_edge_both_vertices_exist(
     graph_connection: DriverRemoteConnection,
 ):
-    from explorer.graph import insert_unique_directed_edge, insert_unique_vertex
+    from explorer.api.graph import insert_unique_directed_edge, insert_unique_vertex
 
     # Pre-populate the graph with vertices
     g = traversal().withRemote(graph_connection)
@@ -139,7 +138,7 @@ def test_unit_insert_unique_directed_edge_both_vertices_exist(
 def test_unit_insert_unique_directed_edge_does_nothing_if_from_vertex_not_found(
     graph_connection: DriverRemoteConnection,
 ):
-    from explorer.graph import insert_unique_directed_edge, insert_unique_vertex
+    from explorer.api.graph import insert_unique_directed_edge, insert_unique_vertex
 
     # Pre-populate the graph with a single vertex. The other one is "missing".
     g = traversal().withRemote(graph_connection)
@@ -157,7 +156,7 @@ def test_unit_insert_unique_directed_edge_does_nothing_if_from_vertex_not_found(
 def test_unit_insert_unique_directed_edge_does_nothing_if_to_vertex_not_found(
     graph_connection: DriverRemoteConnection,
 ):
-    from explorer.graph import insert_unique_directed_edge, insert_unique_vertex
+    from explorer.api.graph import insert_unique_directed_edge, insert_unique_vertex
 
     # Pre-populate the graph with a single vertex. The other one is "missing".
     g = traversal().withRemote(graph_connection)
@@ -175,7 +174,7 @@ def test_unit_insert_unique_directed_edge_does_nothing_if_to_vertex_not_found(
 def test_unit_insert_unique_directed_edge_does_not_create_duplicates(
     graph_connection: DriverRemoteConnection,
 ):
-    from explorer.graph import insert_unique_directed_edge, insert_unique_vertex
+    from explorer.api.graph import insert_unique_directed_edge, insert_unique_vertex
 
     # Pre-populate the graph with vertices
     g = traversal().withRemote(graph_connection)
@@ -199,7 +198,7 @@ def test_unit_insert_unique_directed_edge_does_not_create_duplicates(
 def test_unit_insert_unique_directed_edge_created_edge_properties(
     graph_connection: DriverRemoteConnection,
 ):
-    from explorer.graph import insert_unique_directed_edge, insert_unique_vertex
+    from explorer.api.graph import insert_unique_directed_edge, insert_unique_vertex
 
     # Pre-populate the graph with vertices
     g = traversal().withRemote(graph_connection)

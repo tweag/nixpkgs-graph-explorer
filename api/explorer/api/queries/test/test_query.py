@@ -54,7 +54,7 @@ def graph_connection():
 
 
 def test_gremlin_query_non_path_end_step(graph_connection: DriverRemoteConnection):
-    from explorer.queries.query import GremlinResult, QueryResult, WarningMessage
+    from explorer.api.queries.query import GremlinResult, QueryResult, WarningMessage
 
     # Execute a query
     query = "g.V().count()"
@@ -66,7 +66,7 @@ def test_gremlin_query_non_path_end_step(graph_connection: DriverRemoteConnectio
 
 
 def test_gremlin_query_path_step(graph_connection: DriverRemoteConnection):
-    from explorer.queries.query import GremlinResult, TableEntry
+    from explorer.api.queries.query import GremlinResult, TableEntry
 
     # Execute a query which returns a path with required 'pname' and 'label' properties
     query = f"""
