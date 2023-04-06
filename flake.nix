@@ -39,8 +39,6 @@
 
             poetry
             python
-            black
-            isort
 
             nixpkgs-fmt
           ];
@@ -84,9 +82,9 @@
                 help = "Format Python code";
                 command = ''
                   echo 'Formatting code with black...'
-                  black .
+                  poetry run black .
                   echo 'Formatting imports with isort...'
-                  isort .
+                  poetry run isort .
                 '';
                 category = "Python";
               }
@@ -94,8 +92,8 @@
                 name = "check-python";
                 help = "Check Python formatting";
                 command = ''
-                  black --check .
-                  isort --check-only .
+                  poetry run black --check .
+                  poetry run isort --check-only .
                 '';
                 category = "Python";
               }
