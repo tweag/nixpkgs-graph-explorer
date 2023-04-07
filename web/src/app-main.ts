@@ -100,15 +100,34 @@ export class AppMain extends LitElement {
         </a>
       </footer>
 
-      <sl-drawer label="About Nixpkgs Graph Explorer" id="drawer-info">
-        A
-        <a href="https://tweag.io">Tweag</a>'s project.
-        <div>Lorem ipsum dolor sit amet, consectetur adipiscing elit.</div>
+      <sl-drawer label="About Nixpkgs Graph Explorer" id="drawer-info" style="display: flex; flex-direction: column;">
+        <p>
+          <code>nixpkgs-graph-explorer</code> is a project started at <a href="https://tweag.io">Tweag</a>.
+          It aims at making <code>nixpkgs</code> more visual and discoverable.
+        </p>
+        <p>
+          Thanks to <code>nixpkgs-graph-explorer</code>, one can
+          <ul>
+            <li>search for a package and find its dependencies</li>
+            <li>analyze relationships between packages</li>
+          </ul>
+        </p>
+        <h3>How to use?</h3>
+        <p>
+          <ul>
+            <li>Go to the left panel and search for a package.</li>
+            <li>A list of results will be displayed.</li>
+            <li>Click on the result you're interested in.</li>
+            <li>Explore!</li>
+        </p>
         <sl-button
           slot="footer"
           variant="primary"
           @click=${async () => (await this._drawer).hide()}
-          >Close</sl-button
+          style="align-self: flex-end;"
+        >
+          Close
+        </sl-button
         >
       </sl-drawer>
     `;
