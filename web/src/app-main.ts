@@ -57,9 +57,11 @@ export class AppMain extends LitElement {
 
       <nix-search @click-item=${this.updateGraph}> </nix-search>
       <div id="cy-container">
-        ${this._error
-          ? html`<div>Error fetching graph data</div>`
-          : html`<div id="cy"></div>`}
+        ${
+          this._error
+            ? html`<div>Error fetching graph data</div>`
+            : html`<div id="cy"></div>`
+        }
       </div>
       <footer>
         <div>
