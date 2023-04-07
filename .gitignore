@@ -163,8 +163,10 @@ cython_debug/
 # NodeJS stuff
 node_modules
 __previewjs__
-.vite 
+.vite
 web/types
+web/dist
+web/public/assets/*
 
 # direnv
 .direnv
