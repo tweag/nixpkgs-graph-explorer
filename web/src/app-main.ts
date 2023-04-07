@@ -102,7 +102,7 @@ export class AppMain extends LitElement {
         </a>
       </footer>
 
-      <sl-drawer label="About Nixpkgs Graph Explorer" id="drawer-info" style="display: flex; flex-direction: column;">
+      <sl-drawer label="About Nixpkgs Graph Explorer" id="drawer-info">
         <p>
           <code>nixpkgs-graph-explorer</code> is a project started at <a href="https://tweag.io">Tweag</a>.
           It aims at making <code>nixpkgs</code> more visual and discoverable.
@@ -121,12 +121,12 @@ export class AppMain extends LitElement {
             <li>A list of results will be displayed.</li>
             <li>Click on the result you're interested in.</li>
             <li>Explore!</li>
+          </ul>
         </p>
         <sl-button
           slot="footer"
           variant="primary"
           @click=${async () => (await this._drawer).hide()}
-          style="align-self: flex-end;"
         >
           Close
         </sl-button
@@ -204,6 +204,8 @@ export class AppMain extends LitElement {
     }
     sl-drawer {
       --size: 50vw;
+      display: flex;
+      flex-direction: column;
       font-family: Raleway, HelveticaNeue, "Helvetica Neue", Helvetica, Arial,
         sans-serif;
     }
