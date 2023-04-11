@@ -1,12 +1,12 @@
 # Nixpkgs graph explorer API
 
-* This is the REST API for the `nixpkgs-graph-explorer` project, written using [FastAPI](https://fastapi.tiangolo.com/).
-* The project includes a `Dockerfile` and two docker-compose files, `docker-compose.yml` and `docker-compose.prod.yml` for development and production deploys, respectively.
-* The application can read environment variables from a `.env` file in the current working directory, if one is provided. In this regard, two basic environment variable files are included in this repository: `.env.dev` and `.env.prod`. These are used by `docker-compose.yml` and `docker-compose.prod.yml` respectively.
+The REST API for the `nixpkgs-graph-explorer` project, written using
+[FastAPI](https://fastapi.tiangolo.com/).
 
 ## Development
 
-To install the application you can run the following from the Nix shell defined in the project's [flake.nix](../flake.nix):
+To install the application you can run the following from the Nix shell defined
+in the project's [flake.nix](../flake.nix):
 
 ```bash
 poetry install
@@ -21,7 +21,8 @@ format-python
 lint-python
 ```
 
-Tests expect Gremlin Server and Postgres to be available. You can launch these with the Docker Compose file in the project's root directory:
+Tests expect Gremlin Server and Postgres to be available. You can launch these
+with the Docker Compose file in the project's root directory:
 
 ```bash
 # Launches the required docker-compose stack
@@ -41,19 +42,13 @@ To launch the app with hot reloading for fast iteration, you can use:
 poetry run uvicorn explorer.api:app --reload
 ```
 
-## Running using Docker
+## Ingesting data
 
-The following is an explanation of how to set up various development and production builds:
+This `nixpkgs-graph-explorer` API comes with a command line utility called
+`explorer-ingest-graph` for ingesting a Nix graph JSON file (as specified in the
+[core package](../core/nixpkgs-graph.schema.json)). See the command's help menu
+for additional details on available options.
 
-
-### Setting up a development environment with Docker
-
-1. Ensure that `docker` and `docker-compose` are installed.
-2. Optionally update environment variables in `.env.dev`
-3. `docker-compose up` will build and run the `flask` development server
-
-### Setting up a production environment with Docker
-
-1. Ensure that `docker` and `docker-compose` are installed.
-2. Update environment variables in `.env.prod`
-3. `docker-compose -f docker-compose.prod.yml up` will build and run a production server using `gunicorn`
+```bash
+poetry run explorer-ingest-graph --help
+```
