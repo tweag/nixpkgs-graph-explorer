@@ -20,6 +20,23 @@ class IngestionError(Exception):
 
 
 def core_to_graph_model(pkg: model.Package) -> list[graph.Package]:
+    """
+    Attempts to convert a `core` Package to a `graph` Package using its output path
+    and other metadata.
+
+    This is a 1 to many operation since the input package may have multiple output
+    paths.
+
+    Args:
+        pkg (model.Package): The input core package
+
+    Raises:
+        IngestionError: If the input package could not be parsed into a graph Package,
+            for example due to missing required fields.
+
+    Returns:
+        list[graph.Package]
+    """
     if pkg.nixpkgs_metadata is None:
         raise IngestionError(
             "The provided package did not have its nixpkgs_metadata attribute set, but"
@@ -39,6 +56,18 @@ def core_to_graph_model(pkg: model.Package) -> list[graph.Package]:
 
 
 def safe_parse_package(model_pkg: model.Package) -> list[graph.Package]:
+    """Safely parses a `model` Package to a `graph` Package.
+
+    In cases where exceptions are raised, they will be logged and an empty list
+    will be returned.
+
+    Args:
+        model_pkg (model.Package): The input core package
+
+    Returns:
+        list[graph.Package]: All graph packages which could be parsed from the
+            input core package.
+    """
     try:
         pkgs = core_to_graph_model(model_pkg)
     except IngestionError as e:
@@ -89,6 +118,7 @@ A = TypeVar("A")
 
 
 def flatten(lls: Iterable[Iterable[A]]) -> list[A]:
+    """Flattens nested iterables into a list"""
     return [x for sublist in lls for x in sublist]
 
 
@@ -97,6 +127,22 @@ def traverse(
     root_fn: Callable[[graph.Package], None],
     do_fn: Callable[[graph.Package, graph.Package, graph.Edge], None],
 ):
+    """Traverse a Nix graph
+
+    Performs a breadth-first traversal of a nix graph, executing the provided
+    functions on each level of the graph.
+
+    Args:
+        nix_graph (model.NixGraph): The NixGraph to traverse
+        root_fn (Callable[[graph.Package], None]): A function to call only on the root
+            level of the nix graph. This can be useful for things like initialization
+            steps.
+        do_fn (Callable[[graph.Package, graph.Package, graph.Edge], None]): A function
+            to call on every level of the graph, including the root level. This
+            function is expected to take three arguments which correspond to the
+            current level, the next level, and the edge describing the relationship
+            between the current level and the next level.
+    """
     for model_pkg in nix_graph.packages:
         # Apply the user provided function to the first layer
         pkgs = safe_parse_package(model_pkg)
@@ -112,9 +158,22 @@ def traverse(
 
 
 def ingest_nix_graph(nix_graph: model.NixGraph, g: GraphTraversalSource) -> None:
+    """Writes the entire provided Nix graph to the provided Gremlin traversal source
+
+    Args:
+        nix_graph (model.NixGraph): The Nix graph to ingest
+        g (GraphTraversalSource): The graph traversal source to use for ingesting
+            the Nix graph
+    """
+
+    # Note: As an optimization we split logic for writing the graph into two
+    # functions. The first one ensures that every root node of the graph exists
     def write_root_node_to_graph(root_package: graph.Package) -> None:
         graph.insert_unique_vertex(root_package, g)
 
+    # Then, this second function handles writing the next level of the graph as well
+    # as the edge connecting the levels, assuming that the current level already exists
+    # in the Gremlin graph.
     def write_layer_to_graph(
         current_package: graph.Package,
         upstream_package: graph.Package,
