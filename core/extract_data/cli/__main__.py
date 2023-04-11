@@ -1,6 +1,7 @@
-import click
-import subprocess
 import pathlib
+import subprocess
+
+import click
 
 
 @click.command()
@@ -22,7 +23,7 @@ import pathlib
 @click.option(
     "--stdout",
     default=False,
-    help="Write outputs to stdout instead of to a file",
+    help="Write outputs to stdout instead of a file",
     is_flag=True,
 )
 def extract_data(target_flake_ref: str, target_system: str, out: str, stdout: bool):
@@ -42,7 +43,7 @@ def extract_data(target_flake_ref: str, target_system: str, out: str, stdout: bo
         stdout=subprocess.PIPE,
     ).stdout.decode()
     if stdout:
-        print(result)
+        click.echo(result, err=True)
     else:
         click.echo(f"Writing data to {out}")
         with open(out, "w") as f:
