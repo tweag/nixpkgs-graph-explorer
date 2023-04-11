@@ -70,9 +70,11 @@ export class NixSearch extends LitElement {
       >
       </sl-input>
       ${this.loading
-        ? html`<sl-spinner
-            style="font-size: 50px; --track-width: 10px;"
-          ></sl-spinner>`
+        ? html`<div class="spinner-holder">
+            <sl-spinner
+              style="font-size: 50px; --track-width: 10px;"
+            ></sl-spinner>
+          </div>`
         : this.renderTable()}
     `;
   }
@@ -124,6 +126,11 @@ export class NixSearch extends LitElement {
     }
     .selected {
       background-color: var(--sl-color-primary-200);
+    }
+    .spinner-holder {
+      margin-top: 3em;
+      display: grid;
+      place-items: center;
     }
   `;
 }

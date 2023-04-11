@@ -9,7 +9,8 @@
   ],
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build"
+    "build": "tsc && vite build",
+    "format": "prettier --write ."
   },
   "dependencies": {
     "@shoelace-style/shoelace": "^2.3.0",

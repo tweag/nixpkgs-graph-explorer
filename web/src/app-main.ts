@@ -55,7 +55,7 @@ export class AppMain extends LitElement {
         </a>
       </header>
 
-      <nix-search @click-item=${this.updateGraph}> </nix-search>
+      <nix-search @click-item=${this.updateGraph}></nix-search>
       <div id="cy-container">
         ${
           this._error
