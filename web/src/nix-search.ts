@@ -129,8 +129,8 @@ export class NixSearch extends LitElement {
     }
     .spinner-holder {
       margin-top: 3em;
-      width: 100%;
-      text-align: center;
+      display: grid;
+      place-items: center;
     }
   `;
 }
