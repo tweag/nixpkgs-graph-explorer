@@ -166,7 +166,7 @@ def test_unit_traverse_visits_all_nodes():
     def visit_root_node(p: graph.Package):
         visited_root_pkgs.append(p.outputPath)
 
-    def visit_layer(p: graph.Package, up: graph.Package):
+    def visit_layer(p: graph.Package, up: graph.Package, _e: graph.Edge):
         visited_pkgs.append(p.outputPath)
         visited_pkgs.append(up.outputPath)
 

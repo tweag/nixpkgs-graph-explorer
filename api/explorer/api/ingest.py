@@ -47,10 +47,23 @@ def safe_parse_package(model_pkg: model.Package) -> list[graph.Package]:
     return pkgs
 
 
+def _edge_from_build_input_type(build_input_type: model.BuildInputType) -> graph.Edge:
+    if build_input_type == model.BuildInputType.BUILD_INPUT.value:
+        return graph.HasBuildInput()
+    elif build_input_type == model.BuildInputType.PROPAGATED_BUILD_INPUT.value:
+        return graph.HasPropagatedBuildInput()
+    elif build_input_type == model.BuildInputType.NATIVE_BUILD_INPUT.value:
+        return graph.HasNativeBuiltInput()
+    else:
+        raise IngestionError(
+            f"The provided BuildInputType does not correspond to a known edge type: {build_input_type}"
+        )
+
+
 # TODO: Add retry logic
 def _do_next_graph_level(
     model_pkg: model.Package,
-    do_fn: Callable[[graph.Package, graph.Package], None],
+    do_fn: Callable[[graph.Package, graph.Package, graph.Edge], None],
 ) -> list[model.Package]:
     # Map package from core model in that used in the graph. This will expand the
     # input node into N nodes based on the number of the node's output paths.
@@ -59,6 +72,7 @@ def _do_next_graph_level(
     # them.
     for pkg in pkgs:
         for build_input in model_pkg.build_inputs:
+            edge = _edge_from_build_input_type(build_input.build_input_type)
             try:
                 # Since build_inputs is defined using the core model, we need to parse
                 # it into the graph model similar to what we do above for model_pkg.
@@ -67,7 +81,7 @@ def _do_next_graph_level(
                 logger.exception(e)
                 build_input_pkgs = []
             for bi_pkg in build_input_pkgs:
-                do_fn(pkg, bi_pkg)
+                do_fn(pkg, bi_pkg, edge)
     return [bi.package for bi in model_pkg.build_inputs]
 
 
@@ -81,7 +95,7 @@ def flatten(lls: Iterable[Iterable[A]]) -> list[A]:
 def traverse(
     nix_graph: model.NixGraph,
     root_fn: Callable[[graph.Package], None],
-    do_fn: Callable[[graph.Package, graph.Package], None],
+    do_fn: Callable[[graph.Package, graph.Package, graph.Edge], None],
 ):
     for model_pkg in nix_graph.packages:
         # Apply the user provided function to the first layer
@@ -102,11 +116,13 @@ def ingest_nix_graph(nix_graph: model.NixGraph, g: GraphTraversalSource) -> None
         graph.insert_unique_vertex(root_package, g)
 
     def write_layer_to_graph(
-        current_package: graph.Package, upstream_package: graph.Package
+        current_package: graph.Package,
+        upstream_package: graph.Package,
+        edge: graph.Edge,
     ) -> None:
         graph.insert_unique_vertex(upstream_package, g)
         graph.insert_unique_directed_edge(
-            graph.DependsOn(),
+            edge,
             from_vertex=current_package,
             to_vertex=upstream_package,
             g=g,

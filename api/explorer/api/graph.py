@@ -101,12 +101,34 @@ class Package(UniqueGraphElement):
         return ElementId(self.outputPath)
 
 
-class DependsOn(GraphElement):
-    """A directed edge indicating a dependency between packages"""
+class Edge(GraphElement):
+    """Base class for edge elements"""
+
+    pass
+
+
+class HasBuildInput(Edge):
+    """A directed edge indicating a Nix buildInput dependency between packages"""
 
     @classmethod
     def label(cls) -> str:
-        return "dependsOn"
+        return "hasBuildInput"
+
+
+class HasPropagatedBuildInput(Edge):
+    """A directed edge indicating a Nix propagatedBuildInput dependency between packages"""
+
+    @classmethod
+    def label(cls) -> str:
+        return "hasPropagatedBuildInput"
+
+
+class HasNativeBuiltInput(Edge):
+    """A directed edge indicating a Nix nativeBuildInput dependency between packages"""
+
+    @classmethod
+    def label(cls) -> str:
+        return "hasNativeBuildInput"
 
 
 def insert_unique_directed_edge(
