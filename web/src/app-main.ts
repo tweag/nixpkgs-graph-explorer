@@ -8,41 +8,16 @@ import "@shoelace-style/shoelace/dist/components/drawer/drawer.js";
 import SlDrawer from "@shoelace-style/shoelace/dist/components/drawer/drawer.js";
 
 import type { ClickItemPayload } from "./nix-search";
-import "./nix-search.ts";
-
-import dagre from "cytoscape-dagre";
-import cytoscape from "cytoscape";
-
-import { getGraph } from "./api";
+import "./nix-search";
+import "./graph-viewer";
 
 import tweagLogo from "./assets/tweag-logo.svg";
 import graphLogo from "./assets/line-chart.svg";
 
-cytoscape.use(dagre);
-
-function renderCyGraph(graphData: any, container: HTMLElement) {
-  console.log(graphData);
-  const data = graphData.cyto["graph-data"];
-  cytoscape({
-    container,
-    ...data,
-    layout: { name: "dagre" },
-    style: [
-      {
-        selector: "node",
-        style: {
-          label: "data(id)",
-        },
-      },
-    ],
-  });
-}
-
 @customElement("app-main")
 export class AppMain extends LitElement {
-  @queryAsync("#cy") _cy: Promise<HTMLElement>;
   @queryAsync("#drawer-info") _drawer: Promise<SlDrawer>;
-  @state() _error = false;
+  @state() _pkgName?: string;
 
   render() {
     const year = new Date().getFullYear();
@@ -55,14 +30,14 @@ export class AppMain extends LitElement {
         </a>
       </header>
 
-      <nix-search @click-item=${this.updateGraph}></nix-search>
-      <div id="cy-container">
-        ${
-          this._error
-            ? html`<div>Error fetching graph data</div>`
-            : html`<div id="cy"></div>`
-        }
-      </div>
+      <nix-search
+        @click-item=${(ev: CustomEvent<ClickItemPayload>) =>
+          (this._pkgName = ev.detail.name)}
+      >
+      </nix-search>
+
+      <graph-viewer .pkgName=${this._pkgName}> </graph-viewer>
+
       <footer>
         <div>
           © ${year}
@@ -135,17 +110,6 @@ export class AppMain extends LitElement {
     `;
   }
 
-  private async updateGraph(ev: CustomEvent<ClickItemPayload>) {
-    try {
-      this._error = false; // Remove old errors
-      const cy = await this._cy;
-      const graphData = await getGraph(ev.detail.name);
-      renderCyGraph(graphData, cy);
-    } catch {
-      this._error = true;
-    }
-  }
-
   static styles = css`
     :host {
       width: 100svw;
@@ -155,14 +119,6 @@ export class AppMain extends LitElement {
       padding: 1rem;
       grid-template-columns: min(25%, 300px) 1fr;
       grid-template-rows: auto 1fr;
-    }
-    #cy-container {
-      border: 1px solid var(--sl-panel-border-color);
-    }
-    #cy {
-      width: 100%;
-      height: 100%;
-      left: 10px;
     }
 
     header,
