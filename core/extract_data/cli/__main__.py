@@ -43,12 +43,12 @@ def extract_data(target_flake_ref: str, target_system: str, out: str, stdout: bo
         stdout=subprocess.PIPE,
     ).stdout.decode()
     if stdout:
-        click.echo(result, err=True)
+        print(result)
     else:
-        click.echo(f"Writing data to {out}")
+        click.echo(f"Writing data to {out}", err=True)
         with open(out, "w") as f:
             f.write(result)
-        click.echo(f"Done.")
+        click.echo(f"Done.", err=True)
 
 
 if __name__ == "__main__":
