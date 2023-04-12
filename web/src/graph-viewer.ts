@@ -103,7 +103,7 @@ export class GraphViewer extends LitElement {
     return html`
       <sl-tab-group>
         <sl-tab slot="nav" panel="${TABS.graph}">Graph</sl-tab>
-        <sl-tab slot="nav" panel="${TABS.raw}">Raw data</sl-tab>
+        <sl-tab slot="nav" panel="${TABS.raw}">Text</sl-tab>
       </sl-tab-group>
 
       ${choose<TabType, TemplateResult>(this._currentTab, [
