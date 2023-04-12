@@ -9,12 +9,8 @@ import "@shoelace-style/shoelace/dist/components/spinner/spinner.js";
 import "@shoelace-style/shoelace/dist/components/alert/alert.js";
 import "@shoelace-style/shoelace/dist/components/icon/icon.js";
 import { classMap } from "lit/directives/class-map.js";
-import { getPackages } from "./api";
-import type { Cursor, Pkg } from "./api";
-
-export interface ClickItemPayload {
-  name: string;
-}
+import { getGraph, getPackages } from "./api";
+import type { Cursor, Pkg, QueryResultPayload } from "./api";
 
 type EventInput = Event & { target: HTMLInputElement };
 
@@ -102,18 +98,26 @@ export class NixSearch extends LitElement {
     `;
   }
 
-  private clickPackageHandler(ev: EventInput) {
+  private async clickPackageHandler(ev: EventInput) {
     const name = ev.target.value.trim();
     this.selectedPkg = name;
 
     if (name) {
+      let data: any;
+      let error: boolean;
+      try {
+        data = await getGraph(name);
+      } catch {
+        error = true;
+      }
+
       const options = {
-        detail: { name },
+        detail: { data, error },
         bubbles: true,
         composed: true,
       };
       this.dispatchEvent(
-        new CustomEvent<ClickItemPayload>("click-item", options)
+        new CustomEvent<QueryResultPayload>("query-result", options)
       );
     }
   }

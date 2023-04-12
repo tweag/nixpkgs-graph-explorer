@@ -6,10 +6,16 @@ import "@shoelace-style/shoelace/dist/components/icon/icon.js";
 import "@shoelace-style/shoelace/dist/components/divider/divider.js";
 import "@shoelace-style/shoelace/dist/components/drawer/drawer.js";
 import SlDrawer from "@shoelace-style/shoelace/dist/components/drawer/drawer.js";
+import "@shoelace-style/shoelace/dist/components/split-panel/split-panel.js";
+import "@shoelace-style/shoelace/dist/components/tab-group/tab-group.js";
+import "@shoelace-style/shoelace/dist/components/tab-panel/tab-panel.js";
+import "@shoelace-style/shoelace/dist/components/tab/tab.js";
 
-import type { ClickItemPayload } from "./nix-search";
+import type { QueryResultPayload } from "./api";
+
 import "./nix-search";
 import "./graph-viewer";
+import "./code-editor";
 
 import tweagLogo from "./assets/tweag-logo.svg";
 import graphLogo from "./assets/line-chart.svg";
@@ -17,7 +23,11 @@ import graphLogo from "./assets/line-chart.svg";
 @customElement("app-main")
 export class AppMain extends LitElement {
   @queryAsync("#drawer-info") _drawer: Promise<SlDrawer>;
-  @state() _pkgName?: string;
+  @state() _queryResult?: QueryResultPayload;
+
+  private setQueryResult(ev: CustomEvent<QueryResultPayload>) {
+    this._queryResult = ev.detail;
+  }
 
   render() {
     const year = new Date().getFullYear();
@@ -30,13 +40,20 @@ export class AppMain extends LitElement {
         </a>
       </header>
 
-      <nix-search
-        @click-item=${(ev: CustomEvent<ClickItemPayload>) =>
-          (this._pkgName = ev.detail.name)}
-      >
-      </nix-search>
+      <sl-tab-group>
+        <sl-tab slot="nav" panel="search">Search</sl-tab>
+        <sl-tab slot="nav" panel="query">Query</sl-tab>
 
-      <graph-viewer .pkgName=${this._pkgName}> </graph-viewer>
+        <sl-tab-panel name="search">
+          <nix-search @query-result=${this.setQueryResult}> </nix-search>
+        </sl-tab-panel>
+        <sl-tab-panel name="query">
+          <code-editor @query-result=${this.setQueryResult}> </code-editor>
+        </sl-tab-panel>
+      </sl-tab-group>
+
+      <graph-viewer slot="end" .queryResult=${this._queryResult}>
+      </graph-viewer>
 
       <footer>
         <div>
@@ -78,34 +95,15 @@ export class AppMain extends LitElement {
       </footer>
 
       <sl-drawer label="About Nixpkgs Graph Explorer" id="drawer-info">
-        <p>
-          <code>nixpkgs-graph-explorer</code> is a project started at <a href="https://tweag.io">Tweag</a>.
-          It aims at making <code>nixpkgs</code> more visual and discoverable.
-        </p>
-        <p>
-          Thanks to <code>nixpkgs-graph-explorer</code>, one can
-          <ul>
-            <li>search for a package and find its dependencies</li>
-            <li>analyze relationships between packages</li>
-          </ul>
-        </p>
-        <h3>How to use?</h3>
-        <p>
-          <ul>
-            <li>Go to the left panel and search for a package.</li>
-            <li>A list of results will be displayed.</li>
-            <li>Click on the result you're interested in.</li>
-            <li>Explore!</li>
-          </ul>
-        </p>
+        ${aboutText}
+
         <sl-button
           slot="footer"
           variant="primary"
           @click=${async () => (await this._drawer).hide()}
         >
           Close
-        </sl-button
-        >
+        </sl-button>
       </sl-drawer>
     `;
   }
@@ -118,7 +116,7 @@ export class AppMain extends LitElement {
       gap: 10px;
       padding: 1rem;
       grid-template-columns: min(25%, 300px) 1fr;
-      grid-template-rows: auto 1fr;
+      grid-template-rows: auto minmax(0, 1fr);
     }
 
     header,
@@ -181,3 +179,31 @@ declare global {
     "app-main": AppMain;
   }
 }
+
+const aboutText = html`
+  <p>
+    <code>nixpkgs-graph-explorer</code> is a project started at
+    <a href="https://tweag.io">Tweag</a>. It aims at making
+    <code>nixpkgs</code> more visual and discoverable.
+  </p>
+  <p>
+    Thanks to <code>nixpkgs-graph-explorer</code>, one can
+    <span>
+      <ul>
+        <li>search for a package and find its dependencies</li>
+        <li>analyze relationships between packages</li>
+      </ul>
+    </span>
+  </p>
+  <h3>How to use?</h3>
+  <p>
+    <span>
+      <ul>
+        <li>Go to the left panel and search for a package.</li>
+        <li>A list of results will be displayed.</li>
+        <li>Click on the result you're interested in.</li>
+        <li>Explore!</li>
+      </ul>
+    </span>
+  </p>
+`;

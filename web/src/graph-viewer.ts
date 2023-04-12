@@ -3,13 +3,12 @@ import type { TemplateResult } from "lit";
 import { choose } from "lit/directives/choose.js";
 import { customElement, property, queryAsync, state } from "lit/decorators.js";
 import "@shoelace-style/shoelace/dist/components/tab-group/tab-group.js";
-import "@shoelace-style/shoelace/dist/components/tab-panel/tab-panel.js";
 import "@shoelace-style/shoelace/dist/components/tab/tab.js";
 
 import dagre from "cytoscape-dagre";
 import cytoscape from "cytoscape";
 
-import { getGraph } from "./api";
+import { QueryResultPayload } from "./api";
 
 cytoscape.use(dagre);
 
@@ -42,7 +41,7 @@ type TabEvData = { name: TabType };
 @customElement("graph-viewer")
 export class GraphViewer extends LitElement {
   @property() rawQuery?: string;
-  @property() pkgName?: string;
+  @property() queryResult?: QueryResultPayload;
 
   @state() _currentTab: TabType = "graph";
   @state() _error = false;
@@ -78,11 +77,6 @@ export class GraphViewer extends LitElement {
       font-family: Raleway, HelveticaNeue, "Helvetica Neue", Helvetica, Arial,
         sans-serif;
       font-size: 2rem;
-    }
-
-    sl-tab-panel {
-      height: 100%;
-      grid-area: body;
     }
 
     #raw-data {
@@ -135,13 +129,20 @@ export class GraphViewer extends LitElement {
       renderCyGraph(this.#graphData, cy);
     }
 
-    if (this.pkgName != null && changedProperties.has("pkgName")) {
+    if (this.queryResult != null && changedProperties.has("queryResult")) {
+      // Server error
+      if (this.queryResult.error === true) {
+        this._error = true;
+        return;
+      }
+
       try {
         this._error = false; // Remove old errors
+        this.#graphData = this.queryResult.data;
         const cy = await this._cy;
-        this.#graphData = await getGraph(this.pkgName);
         renderCyGraph(this.#graphData, cy);
       } catch {
+        // Server response is OK, but we can't render it
         this._error = true;
       }
     }
