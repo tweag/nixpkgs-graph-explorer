@@ -70,6 +70,7 @@ dummy_pkg_a = model.Package(
 
 dummy_nix_graph = model.NixGraph(packages=[dummy_pkg_a])
 
+
 #######################################################################################
 # Fixture(s)
 #######################################################################################
@@ -94,6 +95,7 @@ def graph_connection():
 
 
 def test_unit_core_to_graph_model():
+    """Unit test for mapping core packages to graph packages"""
     from explorer.api.ingest import core_to_graph_model
 
     pkg = model.Package(
@@ -116,6 +118,7 @@ def test_unit_core_to_graph_model():
 
 
 def test_unit_core_to_graph_model_no_output_path():
+    """Unit test for mapping core packages with no output path to graph packages"""
     from explorer.api.ingest import core_to_graph_model
 
     pkg = model.Package(
@@ -130,6 +133,7 @@ def test_unit_core_to_graph_model_no_output_path():
 
 
 def test_unit_core_to_graph_model_no_metadata_raises():
+    """Check that attempting to parse a package without nixpkgs_metadata fails"""
     from explorer.api.ingest import core_to_graph_model, IngestionError
 
     pkg = model.Package(
@@ -143,6 +147,7 @@ def test_unit_core_to_graph_model_no_metadata_raises():
 
 
 def test_unit_core_to_graph_model_no_pname_raises():
+    """Check that attempting to parse a package without a pname fails"""
     from explorer.api.ingest import core_to_graph_model, IngestionError
 
     pkg = model.Package(
@@ -158,6 +163,7 @@ def test_unit_core_to_graph_model_no_pname_raises():
 
 
 def test_unit_traverse_visits_all_nodes():
+    """Check traverse visits all nodes in the input graph"""
     from explorer.api.ingest import traverse
 
     visited_root_pkgs: list[str] = []
@@ -173,15 +179,16 @@ def test_unit_traverse_visits_all_nodes():
     traverse(dummy_nix_graph, visit_root_node, visit_layer)
 
     assert set(visited_root_pkgs) == set(dummy_pkg_a.output_paths.values())
-    assert set(visited_pkgs) == set().union(
-        set(dummy_pkg_a.output_paths.values()),
-        set(dummy_pkg_b.output_paths.values()),
-        set(dummy_pkg_c.output_paths.values()),
-        set(dummy_pkg_d.output_paths.values()),
+    assert set(visited_pkgs) == (
+        set(dummy_pkg_a.output_paths.values())
+        | set(dummy_pkg_b.output_paths.values())
+        | set(dummy_pkg_c.output_paths.values())
+        | set(dummy_pkg_d.output_paths.values())
     )
 
 
 def test_unit_ingest_nix_graph(graph_connection: DriverRemoteConnection):
+    """Check that all expected nodes and edges are created when ingesting a nix graph"""
     from explorer.api.ingest import ingest_nix_graph
 
     g = traversal().with_remote(graph_connection)
