@@ -25,7 +25,7 @@ services:
       dockerfile: sqlg.Dockerfile
     restart: always
     volumes:
-      - ./config/sqlg.properties:/config/sqlg.properties
+      - ./config/sqlg.properties:/secrets/sqlg.properties
     ports:
       - 8182:8182
     depends_on:
