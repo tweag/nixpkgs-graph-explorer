@@ -116,7 +116,10 @@ class HasBuildInput(Edge):
 
 
 class HasPropagatedBuildInput(Edge):
-    """A directed edge indicating a Nix propagatedBuildInput dependency between packages"""
+    """
+    A directed edge indicating a Nix propagatedBuildInput dependency between
+    packages
+    """
 
     @classmethod
     def label(cls) -> str:

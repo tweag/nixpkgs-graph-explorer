@@ -1,6 +1,3 @@
-from collections import defaultdict
-from typing import Any, Callable, Mapping, cast
-
 import pytest
 from explorer.core import model
 from gremlin_python.driver import serializer

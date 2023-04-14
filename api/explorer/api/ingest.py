@@ -17,7 +17,9 @@ logger = logging.getLogger(__name__)
 class IngestionError(Exception):
     """Exception for errors related to ingesting data"""
 
-    pass
+    def __init__(self, *args: object, core_pkg: model.Package | None = None) -> None:
+        self.core_pkg = core_pkg
+        super().__init__(*args)
 
 
 def core_to_graph_model(pkg: model.Package) -> list[graph.Package]:
@@ -40,15 +42,21 @@ def core_to_graph_model(pkg: model.Package) -> list[graph.Package]:
     """
     if pkg.nixpkgs_metadata is None:
         raise IngestionError(
-            "The provided package did not have its nixpkgs_metadata attribute set, but"
-            " this is required for converting it to the schema used by the"
-            f" nixpkgs-graph-explorer graph. Package: {pkg}"
+            (
+                "The provided package did not have its nixpkgs_metadata attribute set,"
+                " but this is required for converting it to the schema used by the"
+                f" nixpkgs-graph-explorer graph. Package: {pkg}"
+            ),
+            core_pkg=pkg,
         )
     if pkg.nixpkgs_metadata.pname is None:
         raise IngestionError(
-            "The provided package did not have its nixpkgs_metadata.pname attribute"
-            " set, but this is required for converting it to the schema used by the"
-            f" nixpkgs-graph-explorer graph. Package: {pkg}"
+            (
+                "The provided package did not have its nixpkgs_metadata.pname attribute"
+                " set, but this is required for converting it to the schema used by the"
+                f" nixpkgs-graph-explorer graph. Package: {pkg}"
+            ),
+            core_pkg=pkg,
         )
     return [
         graph.Package(pname=pkg.nixpkgs_metadata.pname, outputPath=op)
@@ -86,7 +94,8 @@ def _edge_from_build_input_type(build_input_type: model.BuildInputType) -> graph
         return graph.HasNativeBuiltInput()
     else:
         raise IngestionError(
-            f"The provided BuildInputType does not correspond to a known edge type: {build_input_type}"
+            "The provided BuildInputType does not correspond to a known edge type:"
+            f" {build_input_type}"
         )
 
 
@@ -209,14 +218,18 @@ def ingest_nix_graph(nix_graph: model.NixGraph, g: GraphTraversalSource) -> None
 @click.option(
     "--gremlin-source",
     default="g",
-    help="The name of the traversal source to use when communicating with Gremlin Server. This value is expected to already be configured in the remote Gremlin Server.",
+    help=(
+        "The name of the traversal source to use when communicating with Gremlin"
+        " Server. This value is expected to already be configured in the remote Gremlin"
+        " Server."
+    ),
 )
 def main(graph_json: str, gremlin_server: str, gremlin_source: str):
     click.echo(f"Attempting to read Nix graph from {graph_json}...")
     nix_graph = model.NixGraph.parse_file(graph_json)
     click.echo("Done.")
 
-    click.echo(f"Configuring connection to Gremlin Server...")
+    click.echo("Configuring connection to Gremlin Server...")
     with closing(
         DriverRemoteConnection(
             gremlin_server,
