@@ -2,7 +2,7 @@ from enum import Enum, auto
 
 from pydantic import BaseModel
 
-from explorer.graph import UniqueGraphElement
+from explorer.api.graph import UniqueGraphElement
 
 
 class CursorDirection(Enum):

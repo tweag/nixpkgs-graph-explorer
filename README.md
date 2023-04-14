@@ -28,18 +28,28 @@ in [docker-compose.yaml](docker-compose.yaml). This will create a Postgres
 database, a Gremlin Server which proxies the Postgres database, and the latest
 version of the `nixpkgs-graph-explorer` API.
 
+We currently divide the services in `docker-compose.yaml` into several profiles:
+
+| profile  | services                              |
+|----------|---------------------------------------|
+| `db`       | Gremlin Server, Postgres              |
+| `backend`  | Gremlin Server, Postgres, API         |
+| `frontend` | Web UI                                |
+| `all`      | Gremlin Server, Postgres, API, Web UI |
+
+
 First, you'll need to build the images:
 
 ```
-docker-compose build
+docker-compose --profile all build
 ```
 
 Then, launch the stack:
 
 ```
-docker-compose up
+docker-compose --profile all up
 ```
 
-nixpkgs-graph-explorer is now running (the API is available on
-`localhost:5000`), however no data is currently loaded to the database. See the
-instructions in [etl](./etl) on how to ingest data.
+nixpkgs-graph-explorer is now running. The API is available on `localhost:5000`
+and the front-end at `localhost:9091`, However, no data is currently loaded to
+the database. See the instructions in [api](./api) on how to ingest data.

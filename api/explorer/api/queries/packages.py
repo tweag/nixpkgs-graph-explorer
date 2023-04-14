@@ -6,8 +6,8 @@ from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.process.traversal import Order, TextP
 from pydantic import BaseModel
 
-from explorer.graph import Package
-from explorer.queries.pagination import Cursor, CursorDirection
+from explorer.api.graph import Package
+from explorer.api.queries.pagination import Cursor, CursorDirection
 
 logger = logging.getLogger(__name__)
 

@@ -3,13 +3,14 @@ from gremlin_python.driver import serializer
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.process.anonymous_traversal import traversal
 
-from explorer.graph import (
-    DependsOn,
+from explorer.api.graph import (
+    HasBuildInput,
+    HasPropagatedBuildInput,
     Package,
     insert_unique_directed_edge,
     insert_unique_vertex,
 )
-from explorer.queries.cytoscape import (
+from explorer.api.queries.cytoscape import (
     CytoscapeJs,
     EdgeData,
     EdgeDefinition,
@@ -26,9 +27,9 @@ PACKAGE_AA = Package(pname="package-aa", outputPath="aa/aa/aa")
 DUMMY_PACKAGES = [PACKAGE_A, PACKAGE_B, PACKAGE_C, PACKAGE_AA]
 
 EDGES = [
-    (DependsOn(), PACKAGE_A, PACKAGE_B),
-    (DependsOn(), PACKAGE_B, PACKAGE_C),
-    (DependsOn(), PACKAGE_B, PACKAGE_AA),
+    (HasBuildInput(), PACKAGE_A, PACKAGE_B),
+    (HasBuildInput(), PACKAGE_B, PACKAGE_C),
+    (HasPropagatedBuildInput(), PACKAGE_B, PACKAGE_AA),
 ]
 
 
@@ -54,7 +55,7 @@ def graph_connection():
 
 
 def test_gremlin_query_non_path_end_step(graph_connection: DriverRemoteConnection):
-    from explorer.queries.query import GremlinResult, QueryResult, WarningMessage
+    from explorer.api.queries.query import GremlinResult, QueryResult, WarningMessage
 
     # Execute a query
     query = "g.V().count()"
@@ -66,7 +67,7 @@ def test_gremlin_query_non_path_end_step(graph_connection: DriverRemoteConnectio
 
 
 def test_gremlin_query_path_step(graph_connection: DriverRemoteConnection):
-    from explorer.queries.query import GremlinResult, TableEntry
+    from explorer.api.queries.query import GremlinResult, TableEntry
 
     # Execute a query which returns a path with required 'pname' and 'label' properties
     query = f"""
@@ -87,20 +88,20 @@ def test_gremlin_query_path_step(graph_connection: DriverRemoteConnection):
     result = GremlinResult(graph_connection._client, query).to_query_result()
     expected_table_data = [
         TableEntry(id=PACKAGE_A.pname, neighbours=[PACKAGE_B.pname]),
-        TableEntry(id=PACKAGE_B.pname, neighbours=[PACKAGE_C.pname, PACKAGE_AA.pname]),
-        TableEntry(id=PACKAGE_C.pname, neighbours=[]),
+        TableEntry(id=PACKAGE_B.pname, neighbours=[PACKAGE_AA.pname, PACKAGE_C.pname]),
         TableEntry(id=PACKAGE_AA.pname, neighbours=[]),
+        TableEntry(id=PACKAGE_C.pname, neighbours=[]),
     ]
     expected_edges = [
         EdgeDefinition(data=EdgeData(source=PACKAGE_A.pname, target=PACKAGE_B.pname)),
-        EdgeDefinition(data=EdgeData(source=PACKAGE_B.pname, target=PACKAGE_C.pname)),
         EdgeDefinition(data=EdgeData(source=PACKAGE_B.pname, target=PACKAGE_AA.pname)),
+        EdgeDefinition(data=EdgeData(source=PACKAGE_B.pname, target=PACKAGE_C.pname)),
     ]
     expected_nodes = [
         NodeDefinition(data=NodeData(id=PACKAGE_A.pname)),
         NodeDefinition(data=NodeData(id=PACKAGE_B.pname)),
-        NodeDefinition(data=NodeData(id=PACKAGE_C.pname)),
         NodeDefinition(data=NodeData(id=PACKAGE_AA.pname)),
+        NodeDefinition(data=NodeData(id=PACKAGE_C.pname)),
     ]
     expected_graph_data = CytoscapeJs(
         elements=ElementsDefinition(nodes=expected_nodes, edges=expected_edges)
