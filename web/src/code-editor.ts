@@ -42,7 +42,8 @@ export class CodeEditor extends LitElement {
       doc: `g.V().filter{
   it.get()
     .value('pname')
-    .matches('pspg')
+    // Edit the package name
+    .matches('nickel')
 }.repeat(
    outE()
   .otherV()
