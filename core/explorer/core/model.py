@@ -40,6 +40,9 @@ class BuildInput(BaseModel):
     build_input_type: BuildInputType = Field(description="The type of build input.")
     package: "Package" = Field("The input package")
 
+    class Config:
+        use_enum_values = True
+
 
 class Package(BaseModel):
     """A Nix package, which is an evaluated (not realized) derivation."""
@@ -52,6 +55,9 @@ class Package(BaseModel):
         default=None, description="Optional metadata specific to packages from nixpkgs"
     )
     build_inputs: list[BuildInput] = Field(description="The package's build inputs")
+
+    class Config:
+        use_enum_values = True
 
 
 class NixGraph(BaseModel):

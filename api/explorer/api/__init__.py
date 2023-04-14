@@ -11,12 +11,12 @@ from gremlin_python.driver.driver_remote_connection import DriverRemoteConnectio
 from pydantic import BaseModel
 from starlette.applications import Starlette
 
-from explorer.queries.packages import (
+from explorer.api.queries.packages import (
     ListPackagesRequest,
     ListPackagesResponse,
     list_packages,
 )
-from explorer.queries.query import GremlinResult, QueryResult
+from explorer.api.queries.query import GremlinResult, QueryResult
 
 ##############################################################################
 # Configuration

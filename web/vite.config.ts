@@ -24,6 +24,7 @@ export default defineConfig({
           )
             return "lit";
           if (id.includes("node_modules/@shoelace-style")) return "shoelance";
+          if (id.includes("node_modules/@codemirror")) return "codemirror";
           if (
             id.includes("node_modules/cytoscape") ||
             id.includes("node_modules/dagre")

@@ -3,6 +3,7 @@ services:
   postgres:
     image: postgres:14.5-bullseye
     restart: always
+    profiles: ["db", "backend", "all"]
     environment:
       # Note: The values here and those in config/sqlg.properties must match
       - POSTGRES_USER=postgres
@@ -24,6 +25,7 @@ services:
       context: ./docker/sqlg
       dockerfile: sqlg.Dockerfile
     restart: always
+    profiles: ["db", "backend", "all"]
     volumes:
       - ./config/sqlg.properties:/secrets/sqlg.properties
     ports:
@@ -36,10 +38,12 @@ services:
         aliases:
           - gremlin
   api:
-    build: ./api
-    command:
-      /venv/bin/gunicorn 'explorer:app' --workers 4 --worker-class
+    build:
+      context: .
+      dockerfile: ./api/Dockerfile
+    command: /venv/bin/gunicorn 'explorer.api:app' --workers 4 --worker-class
       uvicorn.workers.UvicornWorker --bind '0.0.0.0:5000'
+    profiles: ["backend", "all"]
     ports:
       - 5000:5000
     env_file:
@@ -50,8 +54,9 @@ services:
       - backend
   web:
     build: ./web
-    environment: 
+    environment:
       - API_URL=api:5000
+    profiles: ["frontend", "all"]
     ports:
       - 9091:80
     depends_on:

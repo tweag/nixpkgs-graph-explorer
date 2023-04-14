@@ -7,7 +7,7 @@ from gremlin_python.process.traversal import T
 from gremlin_python.structure.graph import Path
 from pydantic import BaseModel, Field
 
-from explorer.queries.cytoscape import CytoscapeJs
+from explorer.api.queries.cytoscape import CytoscapeJs
 
 
 class TableEntry(BaseModel):
