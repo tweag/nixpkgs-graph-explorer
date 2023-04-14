@@ -16,7 +16,7 @@ export interface PackagesResponse {
 }
 
 export interface QueryResultPayload {
-  data: string;
+  data: any;
   error?: boolean;
 }
 

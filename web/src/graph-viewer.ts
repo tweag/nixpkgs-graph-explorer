@@ -12,7 +12,9 @@ import { QueryResultPayload } from "./api";
 
 cytoscape.use(dagre);
 
-function renderCyGraph(graphData: any, container: HTMLElement) {
+function renderCyGraph(result: QueryResultPayload, container: HTMLElement) {
+  const graphData = result?.data;
+  if (graphData == null) return;
   const data = graphData.cyto["graph-data"];
   cytoscape({
     container,
@@ -40,16 +42,12 @@ type TabEvData = { name: TabType };
 
 @customElement("graph-viewer")
 export class GraphViewer extends LitElement {
-  @property() rawQuery?: string;
   @property() queryResult?: QueryResultPayload;
 
-  @state() _currentTab: TabType = "graph";
-  @state() _error = false;
+  @state() _currentTab: TabType = TABS.graph;
+  @state() _errorMsg?: string;
 
   @queryAsync("#cy") _cy: Promise<HTMLElement>;
-
-  // Data from the API
-  #graphData?: any;
 
   static styles = css`
     :host {
@@ -73,6 +71,7 @@ export class GraphViewer extends LitElement {
     #error {
       display: grid;
       place-items: center;
+      grid-row: 1 / -1;
       height: 100%;
       font-family: Raleway, HelveticaNeue, "Helvetica Neue", Helvetica, Arial,
         sans-serif;
@@ -94,10 +93,25 @@ export class GraphViewer extends LitElement {
   }
 
   render() {
+    if (this.queryResult == null) return null;
+
+    if (this._errorMsg != null)
+      return html`<div id="error">${this._errorMsg}</div>`;
+
     return html`
       <sl-tab-group>
-        <sl-tab slot="nav" panel="${TABS.graph}">Graph</sl-tab>
-        <sl-tab slot="nav" panel="${TABS.raw}">Text</sl-tab>
+        <sl-tab
+          slot="nav"
+          panel="${TABS.graph}"
+          ?active=${this._currentTab === TABS.graph}
+          >Graph</sl-tab
+        >
+        <sl-tab
+          slot="nav"
+          panel="${TABS.raw}"
+          ?active=${this._currentTab === TABS.raw}
+          >Text</sl-tab
+        >
       </sl-tab-group>
 
       ${choose<TabType, TemplateResult>(this._currentTab, [
@@ -105,15 +119,13 @@ export class GraphViewer extends LitElement {
           TABS.graph,
           () => html`
             <div id="cy-container">
-              ${this._error
-                ? html`<div id="error">Error fetching graph data :(</div>`
-                : html`<div id="cy"></div>`}
+              <div id="cy"></div>
             </div>
           `,
         ],
         [
           TABS.raw,
-          () => html` <div id="raw-data">${this.#graphData.raw}</div> `,
+          () => html`<div id="raw-data">${this.queryResult.data.raw}</div>`,
         ],
       ])}
     `;
@@ -121,32 +133,43 @@ export class GraphViewer extends LitElement {
 
   async updated(changedProperties: Map<string, any>) {
     if (
-      this._error === false &&
+      this._errorMsg != null &&
       changedProperties.has("_currentTab") &&
       this._currentTab === TABS.graph
     ) {
       const cy = await this._cy;
-      renderCyGraph(this.#graphData, cy);
+      renderCyGraph(this.queryResult, cy);
     }
 
     if (this.queryResult != null && changedProperties.has("queryResult")) {
       // Server error
       if (this.queryResult.error === true) {
-        this._error = true;
+        this._errorMsg = "Error fetching graph data :(";
+        return;
+      }
+      // Empty results
+      if (emptyQueryResult(this.queryResult.data)) {
+        this._errorMsg = "No results :(";
         return;
       }
 
       try {
-        this._error = false; // Remove old errors
-        this.#graphData = this.queryResult.data;
+        this._errorMsg = null; // Remove old errors
         const cy = await this._cy;
-        renderCyGraph(this.#graphData, cy);
+        if (this._currentTab === TABS.graph)
+          renderCyGraph(this.queryResult, cy);
       } catch {
-        // Server response is OK, but we can't render it
-        this._error = true;
+        this._errorMsg = "Error";
       }
     }
   }
+}
+
+function emptyQueryResult(data: any) {
+  if (data?.raw == null) return true;
+  if (data.raw.lenght === 0) return true;
+  if (data.raw === "[]") return true;
+  return false;
 }
 
 declare global {
