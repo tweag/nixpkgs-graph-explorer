@@ -1,6 +1,6 @@
 host: localhost
 port: 8182
-graphs: { graph: /config/sqlg.properties }
+graphs: { graph: /secrets/sqlg.properties }
 scriptEngines:
   {
     gremlin-groovy:
