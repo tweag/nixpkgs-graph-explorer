@@ -74,6 +74,8 @@ dummy_nix_graph = model.NixGraph(packages=[dummy_pkg_a])
 def graph_connection():
     conn = DriverRemoteConnection(
         "ws://localhost:8182/gremlin",
+        # name of the graph
+        # FIXME use a graph purely dedicated to tests
         "g",
         message_serializer=serializer.GraphSONMessageSerializer(),
     )
@@ -199,4 +201,5 @@ def test_unit_ingest_nix_graph(graph_connection: DriverRemoteConnection):
     assert n_edges == [3]
 
 
-# TODO: Might want to add a test for cyclical dependencies if that is even possible?
+# TODO: Might want to add a test for cyclical dependencies if possible
+#   (perhaps using networkx?)
