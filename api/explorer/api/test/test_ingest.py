@@ -1,14 +1,13 @@
 from collections import defaultdict
 from typing import Any, Callable, Mapping, cast
+
+import pytest
+from explorer.core import model
 from gremlin_python.driver import serializer
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.process.anonymous_traversal import traversal
 
-import pytest
-
 from explorer.api import graph
-from explorer.core import model
-
 
 #######################################################################################
 # Mock Data
@@ -134,7 +133,7 @@ def test_unit_core_to_graph_model_no_output_path():
 
 def test_unit_core_to_graph_model_no_metadata_raises():
     """Check that attempting to parse a package without nixpkgs_metadata fails"""
-    from explorer.api.ingest import core_to_graph_model, IngestionError
+    from explorer.api.ingest import IngestionError, core_to_graph_model
 
     pkg = model.Package(
         name="foo",
@@ -148,7 +147,7 @@ def test_unit_core_to_graph_model_no_metadata_raises():
 
 def test_unit_core_to_graph_model_no_pname_raises():
     """Check that attempting to parse a package without a pname fails"""
-    from explorer.api.ingest import core_to_graph_model, IngestionError
+    from explorer.api.ingest import IngestionError, core_to_graph_model
 
     pkg = model.Package(
         name="foo",

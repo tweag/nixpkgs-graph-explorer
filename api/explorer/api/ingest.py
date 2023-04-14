@@ -1,13 +1,14 @@
-from contextlib import closing
 import logging
+from contextlib import closing
 from typing import Callable, Iterable, TypeVar
+
 import click
+from explorer.core import model
+from gremlin_python.driver import serializer
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.process.anonymous_traversal import traversal
-from gremlin_python.driver import serializer
 from gremlin_python.process.graph_traversal import GraphTraversalSource
 
-from explorer.core import model
 from explorer.api import graph
 
 logger = logging.getLogger(__name__)
@@ -21,8 +22,8 @@ class IngestionError(Exception):
 
 def core_to_graph_model(pkg: model.Package) -> list[graph.Package]:
     """
-    Attempts to convert a `core` Package to a `graph` Package using its output path
-    and other metadata.
+    Attempts to convert core NixGraph package data to the API Package data using its
+    output path
 
     This is a 1 to many operation since the input package may have multiple output
     paths.
@@ -31,7 +32,7 @@ def core_to_graph_model(pkg: model.Package) -> list[graph.Package]:
         pkg (model.Package): The input core package
 
     Raises:
-        IngestionError: If the input package could not be parsed into a graph Package,
+        IngestionError: If the input package could not be parsed into an API Package,
             for example due to missing required fields.
 
     Returns:
@@ -56,7 +57,7 @@ def core_to_graph_model(pkg: model.Package) -> list[graph.Package]:
 
 
 def safe_parse_package(model_pkg: model.Package) -> list[graph.Package]:
-    """Safely parses a `model` Package to a `graph` Package.
+    """Safely parses a core NixGraph package into an API Package.
 
     In cases where exceptions are raised, they will be logged and an empty list
     will be returned.
@@ -211,7 +212,6 @@ def ingest_nix_graph(nix_graph: model.NixGraph, g: GraphTraversalSource) -> None
     help="The name of the traversal source to use when communicating with Gremlin Server. This value is expected to already be configured in the remote Gremlin Server.",
 )
 def main(graph_json: str, gremlin_server: str, gremlin_source: str):
-
     click.echo(f"Attempting to read Nix graph from {graph_json}...")
     nix_graph = model.NixGraph.parse_file(graph_json)
     click.echo("Done.")
