@@ -29,6 +29,7 @@ READ_ONLY_TRAVERSAL_SOURCE = "gReadOnly"
 dotenv.load_dotenv(override=True)
 # Then we can read configuration from environment variables
 gremlin_host = os.getenv(key="GREMLIN_HOST", default="localhost")
+gremlin_port = os.getenv(key="GREMLIN_PORT", default="8182")
 
 
 ##############################################################################
@@ -54,14 +55,15 @@ async def lifespan(_app: Starlette) -> AsyncGenerator[State, None]:
     """
     # Set-up resources for application
     # FIXME: The below two Gremlin objects have blocking constructors
+    gremlin_url = f"ws://{gremlin_host}:{gremlin_port}/gremlin"
     gremlin_client = Client(
-        f"ws://{gremlin_host}:8182/gremlin",
+        gremlin_url,
         READ_ONLY_TRAVERSAL_SOURCE,
         pool_size=4,
         message_serializer=serializer.GraphSONMessageSerializer(),
     )
     gremlin_remote_connection = DriverRemoteConnection(
-        f"ws://{gremlin_host}:8182/gremlin",
+        gremlin_url,
         READ_ONLY_TRAVERSAL_SOURCE,
         message_serializer=serializer.GraphSONMessageSerializer(),
     )
