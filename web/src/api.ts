@@ -15,6 +15,11 @@ export interface PackagesResponse {
   packages: Pkg[];
 }
 
+export interface QueryResultPayload {
+  data: string;
+  error?: boolean;
+}
+
 export async function getPackages({
   search = "",
   limit = 10,
@@ -35,7 +40,7 @@ export async function getPackages({
   return queryResult;
 }
 
-export async function getGraph(pkgName: string) {
+export async function rawQuery(query: string) {
   const response = await fetch(`${API_URL}/gremlin`, {
     method: "POST",
     headers: {
@@ -43,8 +48,14 @@ export async function getGraph(pkgName: string) {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      query: `g.V().filter{it.get().value('pname').matches('${pkgName}')}.repeat(outE().otherV().simplePath()).times(2).path().by('pname').by(label)`,
+      query,
     }),
   });
   return await response.json();
+}
+
+export async function getGraph(pkgName: string) {
+  return await rawQuery(
+    `g.V().filter{it.get().value('pname').matches('${pkgName}')}.repeat(outE().otherV().simplePath()).times(2).path().by('pname').by(label)`
+  );
 }
