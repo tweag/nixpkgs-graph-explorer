@@ -4,12 +4,11 @@ from typing import Callable, Iterable, TypeVar
 
 import click
 from explorer.core import model
-from gremlin_python.driver import serializer
-from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.process.graph_traversal import GraphTraversalSource
 
 from explorer.api import graph
+from explorer.api.gremlin import default_remote_connection
 
 logger = logging.getLogger(__name__)
 
@@ -231,11 +230,7 @@ def main(graph_json: str, gremlin_server: str, gremlin_source: str):
 
     click.echo("Configuring connection to Gremlin Server...")
     with closing(
-        DriverRemoteConnection(
-            gremlin_server,
-            gremlin_source,
-            message_serializer=serializer.GraphSONMessageSerializer(),
-        )
+        default_remote_connection(gremlin_server, traversal_source=gremlin_source)
     ) as remote:
         g = traversal().with_remote(remote)
         click.echo("Done.")
