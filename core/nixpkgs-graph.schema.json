@@ -91,7 +91,7 @@
         },
         "package": {
           "title": "Package",
-          "default": "The input package",
+          "description": "The input package",
           "allOf": [
             {
               "$ref": "#/definitions/Package"
@@ -100,7 +100,8 @@
         }
       },
       "required": [
-        "build_input_type"
+        "build_input_type",
+        "package"
       ]
     },
     "Package": {
