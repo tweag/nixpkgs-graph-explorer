@@ -14,6 +14,39 @@
     "packages"
   ],
   "definitions": {
+    "OutputPathName": {
+      "title": "OutputPathName",
+      "description": "The name of an outputPath.\n\nIn Nix, output paths can have different names which get included in the store path",
+      "enum": [
+        "out",
+        "lib",
+        "dev"
+      ]
+    },
+    "OutputPath": {
+      "title": "OutputPath",
+      "description": "A Nix outputPath",
+      "type": "object",
+      "properties": {
+        "name": {
+          "description": "The output path's name",
+          "allOf": [
+            {
+              "$ref": "#/definitions/OutputPathName"
+            }
+          ]
+        },
+        "path": {
+          "title": "Path",
+          "description": "The output path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "path"
+      ]
+    },
     "NixpkgsMetadata": {
       "title": "NixpkgsMetadata",
       "description": "Package metadata defined by nixpkgs specifically.",
@@ -94,10 +127,10 @@
         },
         "output_paths": {
           "title": "Output Paths",
-          "description": "A mapping of output path names to corresponding store paths",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
+          "description": "A list of the package's output paths",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OutputPath"
           }
         },
         "nixpkgs_metadata": {

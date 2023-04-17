@@ -26,6 +26,13 @@ class OutputPathName(Enum):
     DEV = "dev"
 
 
+class OutputPath(BaseModel):
+    """A Nix outputPath"""
+
+    name: OutputPathName = Field(description="The output path's name")
+    path: str = Field(description="The output path")
+
+
 class BuildInputType(Enum):
     """The type of build input. In Nix there are three different types."""
 
@@ -48,8 +55,8 @@ class Package(BaseModel):
     """A Nix package, which is an evaluated (not realized) derivation."""
 
     name: str = Field(description="The name of the package")
-    output_paths: dict[OutputPathName, str] = Field(
-        description="A mapping of output path names to corresponding store paths"
+    output_paths: list[OutputPath] = Field(
+        description="A list of the package's output paths"
     )
     nixpkgs_metadata: NixpkgsMetadata | None = Field(
         default=None, description="Optional metadata specific to packages from nixpkgs"
