@@ -1,10 +1,9 @@
 import pytest
-from gremlin_python.driver import serializer
-from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.process.anonymous_traversal import traversal
 
 import explorer.api.queries.packages as packages
 from explorer.api.graph import Package, insert_unique_vertex
+from explorer.api.gremlin import default_remote_connection
 from explorer.api.queries.pagination import Cursor, CursorDirection
 
 PACKAGE_A = Package(pname="package-a", outputPath="a/a/a")
@@ -17,10 +16,9 @@ DUMMY_PACKAGES = [PACKAGE_A, PACKAGE_B, PACKAGE_C, PACKAGE_AA]
 
 @pytest.fixture
 def graph_connection():
-    conn = DriverRemoteConnection(
-        "ws://localhost:8182/gremlin",
-        "g",
-        message_serializer=serializer.GraphSONMessageSerializer(),
+    # FIXME: use a traversal_source purely dedicated to tests
+    conn = default_remote_connection(
+        "ws://localhost:8182/gremlin", traversal_source="g"
     )
     g = traversal().with_remote(conn)
     # Insert test dataset

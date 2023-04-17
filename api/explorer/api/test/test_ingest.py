@@ -1,10 +1,10 @@
 import pytest
 from explorer.core import model
-from gremlin_python.driver import serializer
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.process.anonymous_traversal import traversal
 
 from explorer.api import graph
+from explorer.api.gremlin import default_remote_connection
 
 #######################################################################################
 # Mock Data
@@ -72,12 +72,9 @@ dummy_nix_graph = model.NixGraph(packages=[dummy_pkg_a])
 #######################################################################################
 @pytest.fixture
 def graph_connection():
-    conn = DriverRemoteConnection(
-        "ws://localhost:8182/gremlin",
-        # name of the graph
-        # FIXME use a graph purely dedicated to tests
-        "g",
-        message_serializer=serializer.GraphSONMessageSerializer(),
+    # FIXME: use a traversal_source purely dedicated to tests
+    conn = default_remote_connection(
+        "ws://localhost:8182/gremlin", traversal_source="g"
     )
     g = traversal().with_remote(conn)
     yield conn

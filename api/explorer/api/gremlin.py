@@ -2,7 +2,7 @@
 
 
 from ssl import SSLContext
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable
 
 import backoff
 from gremlin_python.driver import serializer

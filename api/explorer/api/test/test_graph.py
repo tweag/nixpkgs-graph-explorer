@@ -1,11 +1,11 @@
 from typing import Any, Mapping, cast
 
 import pytest
-from gremlin_python.driver import serializer
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.process.anonymous_traversal import traversal
 
 from explorer.api.graph import ElementId, GraphElement, UniqueGraphElement
+from explorer.api.gremlin import default_remote_connection
 
 
 class DummyGraphElement(GraphElement):
@@ -62,10 +62,9 @@ class DummyEdgeNoProps(GraphElement):
 
 @pytest.fixture
 def graph_connection():
-    conn = DriverRemoteConnection(
-        "ws://localhost:8182/gremlin",
-        "g",
-        message_serializer=serializer.GraphSONMessageSerializer(),
+    # FIXME: use a traversal_source purely dedicated to tests
+    conn = default_remote_connection(
+        "ws://localhost:8182/gremlin", traversal_source="g"
     )
     g = traversal().with_remote(conn)
     yield conn
