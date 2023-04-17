@@ -14,27 +14,15 @@
     "packages"
   ],
   "definitions": {
-    "OutputPathName": {
-      "title": "OutputPathName",
-      "description": "The name of an outputPath.\n\nIn Nix, output paths can have different names which get included in the store path",
-      "enum": [
-        "out",
-        "lib",
-        "dev"
-      ]
-    },
     "OutputPath": {
       "title": "OutputPath",
       "description": "A Nix outputPath",
       "type": "object",
       "properties": {
         "name": {
-          "description": "The output path's name",
-          "allOf": [
-            {
-              "$ref": "#/definitions/OutputPathName"
-            }
-          ]
+          "title": "Name",
+          "description": "The output path's name (doc, dev, etc.)",
+          "type": "string"
         },
         "path": {
           "title": "Path",

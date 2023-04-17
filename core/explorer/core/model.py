@@ -14,22 +14,10 @@ class NixpkgsMetadata(BaseModel):
     license: str = Field(description="The package's license")
 
 
-class OutputPathName(Enum):
-    """
-    The name of an outputPath.
-
-    In Nix, output paths can have different names which get included in the store path
-    """
-
-    OUT = "out"
-    LIB = "lib"
-    DEV = "dev"
-
-
 class OutputPath(BaseModel):
     """A Nix outputPath"""
 
-    name: OutputPathName = Field(description="The output path's name")
+    name: str = Field(description="The output path's name (doc, dev, etc.)")
     path: str = Field(description="The output path")
 
 

@@ -12,7 +12,7 @@ from explorer.api import graph
 
 dummy_pkg_d = model.Package(
     name="D",
-    output_paths=[model.OutputPath(name=model.OutputPathName.OUT, path="/D")],
+    output_paths=[model.OutputPath(name="out", path="/D")],
     nixpkgs_metadata=model.NixpkgsMetadata(
         pname="D", version="1.0", broken=False, license="MIT"
     ),
@@ -22,7 +22,7 @@ dummy_pkg_d = model.Package(
 
 dummy_pkg_c = model.Package(
     name="C",
-    output_paths=[model.OutputPath(name=model.OutputPathName.OUT, path="/C")],
+    output_paths=[model.OutputPath(name="out", path="/C")],
     nixpkgs_metadata=model.NixpkgsMetadata(
         pname="C",
         version="1.0",
@@ -34,7 +34,7 @@ dummy_pkg_c = model.Package(
 
 dummy_pkg_b = model.Package(
     name="B",
-    output_paths=[model.OutputPath(name=model.OutputPathName.OUT, path="/B")],
+    output_paths=[model.OutputPath(name="out", path="/B")],
     nixpkgs_metadata=model.NixpkgsMetadata(
         pname="B", version="1.0", broken=False, license="MIT"
     ),
@@ -48,7 +48,7 @@ dummy_pkg_b = model.Package(
 
 dummy_pkg_a = model.Package(
     name="A",
-    output_paths=[model.OutputPath(name=model.OutputPathName.OUT, path="/A")],
+    output_paths=[model.OutputPath(name="out", path="/A")],
     nixpkgs_metadata=model.NixpkgsMetadata(
         pname="A", version="1.0", broken=False, license="MIT"
     ),
@@ -99,8 +99,8 @@ def test_unit_core_to_graph_model():
     pkg = model.Package(
         name="foo",
         output_paths=[
-            model.OutputPath(name=model.OutputPathName.DEV, path="/foo/dev"),
-            model.OutputPath(name=model.OutputPathName.LIB, path="/foo/lib"),
+            model.OutputPath(name="dev", path="/foo/dev"),
+            model.OutputPath(name="lib", path="/foo/lib"),
         ],
         nixpkgs_metadata=model.NixpkgsMetadata(
             pname="foo", version="1.0", broken=False, license="MIT"
@@ -110,7 +110,7 @@ def test_unit_core_to_graph_model():
     converted_pkgs = core_to_graph_model(pkg)
 
     expected_pkg_dev = graph.Package(pname="foo", outputPath="/foo/dev")
-    expected_pkg_lib = graph.Package(pname="foo", outputPath="/foo/dev")
+    expected_pkg_lib = graph.Package(pname="foo", outputPath="/foo/lib")
     assert expected_pkg_dev in converted_pkgs
     assert expected_pkg_lib in converted_pkgs
 
