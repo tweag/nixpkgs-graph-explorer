@@ -24,6 +24,11 @@ jobs:
 
       - uses: cachix/install-nix-action@v19
 
+      - name: Install dependencies
+        run: |
+          nix develop --command bash -c 'cd core && poetry install'
+          nix develop --command bash -c 'cd api && poetry install'
+
       - name: Check formatting
         run: |
           nix develop --command bash -c 'cd core && check-python'
