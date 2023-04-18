@@ -40,7 +40,7 @@ jobs:
           nix develop --command bash -c 'cd api && lint-python'
 
       - name: Launch test DBs
-        run: docker-compose --profile db up --build --wait
+        run: docker compose --profile db up --build --wait
 
       - name: Test
         run: |
@@ -49,4 +49,4 @@ jobs:
 
       - name: Build API image
         run: |
-          docker-compose --profile backend build
+          docker compose --profile backend build
