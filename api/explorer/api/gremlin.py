@@ -108,17 +108,19 @@ class WebSocketTransport(AbstractBaseTransport):
             headers (dict | None, optional): Extra HTTP headers to include in
                 requests. Defaults to None.
         """
-        if self._client is None:
-            self._client = client.connect(
-                uri=url,
-                additional_headers=headers,
-                open_timeout=self.open_timeout,
-                close_timeout=self.close_timeout,
-                ssl_context=self.ssl_context,
-                logger=self.connection_logger,
-            )
-            self._last_connect_url = url
-            self._last_connect_headers = headers
+        if self._client is not None:
+            self.close()
+
+        self._client = client.connect(
+            uri=url,
+            additional_headers=headers,
+            open_timeout=self.open_timeout,
+            close_timeout=self.close_timeout,
+            ssl_context=self.ssl_context,
+            logger=self.connection_logger,
+        )
+        self._last_connect_url = url
+        self._last_connect_headers = headers
 
     @property
     def with_reconnect(self) -> Callable[[Callable[..., Any]], Callable[..., Any]]:
@@ -137,11 +139,13 @@ class WebSocketTransport(AbstractBaseTransport):
                 "that connect() has been called at least once before calling this "
                 " method."
             )
+        url = self._last_connect_url
+        headers = self._last_connect_headers
         return backoff.on_exception(
             backoff.expo,
             ConnectionClosedError,
-            max_tries=self.max_retries,
-            on_backoff=self.connect(self._last_connect_url, self._last_connect_headers),
+            max_tries=self.max_retries + 1,
+            on_backoff=(lambda _: self.connect(url, headers)),
         )
 
     def write(self, message: bytes) -> None:
