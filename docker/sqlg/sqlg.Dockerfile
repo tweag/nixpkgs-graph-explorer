@@ -19,7 +19,7 @@ RUN mv "apache-tinkerpop-gremlin-server-${TINKERPOP_VERSION}" gremlin-server
 FROM eclipse-temurin:11-jre-alpine
 
 # Runtime deps
-RUN apk update && apk add bash perl jq
+RUN apk update && apk add bash perl jq curl
 
 # Create user
 RUN addgroup -S gremlin && adduser -S gremlin -G gremlin

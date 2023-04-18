@@ -33,7 +33,7 @@ services:
     profiles: ["db", "backend", "all"]
     volumes:
       - ./config/sqlg.properties:/secrets/sqlg.properties
-      - ./docker/sqlg/check-status.sh:/check-status.sh
+      - ./scripts/check-status.sh:/check-status.sh
     ports:
       - 8182:8182
     depends_on:
