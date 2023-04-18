@@ -24,10 +24,16 @@ services:
     build:
       context: ./docker/sqlg
       dockerfile: sqlg.Dockerfile
+    healthcheck:
+      test: /check-status.sh
+      interval: 5s
+      timeout: 5s
+      retries: 5
     restart: always
     profiles: ["db", "backend", "all"]
     volumes:
       - ./config/sqlg.properties:/secrets/sqlg.properties
+      - ./docker/sqlg/check-status.sh:/check-status.sh
     ports:
       - 8182:8182
     depends_on:
@@ -49,7 +55,8 @@ services:
     env_file:
       - ./api/.env.prod
     depends_on:
-      - gremlin
+      gremlin:
+        condition: service_healthy
     networks:
       - backend
   web:
