@@ -59,8 +59,8 @@ def core_to_graph_model(pkg: model.Package) -> list[graph.Package]:
             core_pkg=pkg,
         )
     return [
-        graph.Package(pname=pkg.nixpkgs_metadata.pname, outputPath=op)
-        for op in pkg.output_paths.values()
+        graph.Package(pname=pkg.nixpkgs_metadata.pname, outputPath=op.path)
+        for op in pkg.output_paths
     ]
 
 

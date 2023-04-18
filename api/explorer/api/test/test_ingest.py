@@ -12,7 +12,7 @@ from explorer.api import graph
 
 dummy_pkg_d = model.Package(
     name="D",
-    output_paths={model.OutputPathName.OUT: "/D"},
+    output_paths=[model.OutputPath(name="out", path="/D")],
     nixpkgs_metadata=model.NixpkgsMetadata(
         pname="D", version="1.0", broken=False, license="MIT"
     ),
@@ -22,7 +22,7 @@ dummy_pkg_d = model.Package(
 
 dummy_pkg_c = model.Package(
     name="C",
-    output_paths={model.OutputPathName.OUT: "/C"},
+    output_paths=[model.OutputPath(name="out", path="/C")],
     nixpkgs_metadata=model.NixpkgsMetadata(
         pname="C",
         version="1.0",
@@ -34,7 +34,7 @@ dummy_pkg_c = model.Package(
 
 dummy_pkg_b = model.Package(
     name="B",
-    output_paths={model.OutputPathName.OUT: "/B"},
+    output_paths=[model.OutputPath(name="out", path="/B")],
     nixpkgs_metadata=model.NixpkgsMetadata(
         pname="B", version="1.0", broken=False, license="MIT"
     ),
@@ -48,7 +48,7 @@ dummy_pkg_b = model.Package(
 
 dummy_pkg_a = model.Package(
     name="A",
-    output_paths={model.OutputPathName.OUT: "/A"},
+    output_paths=[model.OutputPath(name="out", path="/A")],
     nixpkgs_metadata=model.NixpkgsMetadata(
         pname="A", version="1.0", broken=False, license="MIT"
     ),
@@ -98,10 +98,10 @@ def test_unit_core_to_graph_model():
 
     pkg = model.Package(
         name="foo",
-        output_paths={
-            model.OutputPathName.DEV: "/foo/dev",
-            model.OutputPathName.LIB: "/foo/lib",
-        },
+        output_paths=[
+            model.OutputPath(name="dev", path="/foo/dev"),
+            model.OutputPath(name="lib", path="/foo/lib"),
+        ],
         nixpkgs_metadata=model.NixpkgsMetadata(
             pname="foo", version="1.0", broken=False, license="MIT"
         ),
@@ -110,7 +110,7 @@ def test_unit_core_to_graph_model():
     converted_pkgs = core_to_graph_model(pkg)
 
     expected_pkg_dev = graph.Package(pname="foo", outputPath="/foo/dev")
-    expected_pkg_lib = graph.Package(pname="foo", outputPath="/foo/dev")
+    expected_pkg_lib = graph.Package(pname="foo", outputPath="/foo/lib")
     assert expected_pkg_dev in converted_pkgs
     assert expected_pkg_lib in converted_pkgs
 
@@ -121,7 +121,7 @@ def test_unit_core_to_graph_model_no_output_path():
 
     pkg = model.Package(
         name="foo",
-        output_paths={},
+        output_paths=[],
         nixpkgs_metadata=model.NixpkgsMetadata(
             pname="foo", version="1.0", broken=False, license="MIT"
         ),
@@ -136,7 +136,7 @@ def test_unit_core_to_graph_model_no_metadata_raises():
 
     pkg = model.Package(
         name="foo",
-        output_paths={},
+        output_paths=[],
         nixpkgs_metadata=None,
         build_inputs=[],
     )
@@ -150,7 +150,7 @@ def test_unit_core_to_graph_model_no_pname_raises():
 
     pkg = model.Package(
         name="foo",
-        output_paths={},
+        output_paths=[],
         nixpkgs_metadata=model.NixpkgsMetadata(
             pname=None, version="1.0", broken=False, license="MIT"
         ),
@@ -176,13 +176,18 @@ def test_unit_traverse_visits_all_nodes():
 
     traverse(dummy_nix_graph, visit_root_node, visit_layer)
 
-    assert set(visited_root_pkgs) == set(dummy_pkg_a.output_paths.values())
-    assert set(visited_pkgs) == (
-        set(dummy_pkg_a.output_paths.values())
-        | set(dummy_pkg_b.output_paths.values())
-        | set(dummy_pkg_c.output_paths.values())
-        | set(dummy_pkg_d.output_paths.values())
+    expected_root_pkgs = set(map(lambda x: x.path, dummy_pkg_a.output_paths))
+    expected_pkgs = set(
+        map(
+            lambda x: x.path,
+            dummy_pkg_a.output_paths
+            + dummy_pkg_b.output_paths
+            + dummy_pkg_c.output_paths
+            + dummy_pkg_d.output_paths,
+        )
     )
+    assert set(visited_root_pkgs) == expected_root_pkgs
+    assert set(visited_pkgs) == expected_pkgs
 
 
 def test_unit_ingest_nix_graph(graph_connection: DriverRemoteConnection):
