@@ -32,4 +32,4 @@ RUN poetry build && /venv/bin/pip install dist/*.whl
 # Build and install api itself
 WORKDIR /code/build/api
 COPY ./api .
-RUN poetry build && /venv/bin/pip install dist/*.whl
+RUN poetry build && /venv/bin/pip install dist/*.whl 
