@@ -17,7 +17,7 @@ class NixpkgsMetadata(BaseModel):
 class OutputPath(BaseModel):
     """A Nix outputPath"""
 
-    name: str = Field(description="The output path's name (doc, dev, etc.)")
+    name: str = Field(description="The output path's name (out, doc, dev, ...)")
     path: str = Field(description="The output path")
 
 
