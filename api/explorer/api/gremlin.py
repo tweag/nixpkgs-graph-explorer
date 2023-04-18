@@ -101,13 +101,20 @@ class WebSocketTransport(AbstractBaseTransport):
 
     @backoff.on_exception(backoff.expo, OSError, max_tries=3)
     def connect(self, url: str, headers: dict | None = None) -> None:
-        """Initializes the websocket client if one does not already exist.
+        """Initializes the websocket client, closing the current client if one exists
 
         Args:
             url (str): The url of the websocket server.
             headers (dict | None, optional): Extra HTTP headers to include in
                 requests. Defaults to None.
         """
+
+        # Note: this approach of allowing connect() calls even if a client already
+        # exists is a bit nonstandard but follows the apparent semantics of
+        # gremlinpython's transport API.
+        #
+        # See this discussion on GitHub for more details:
+        # https://github.com/tweag/nixpkgs-graph-explorer/pull/74#discussion_r1170033067
         if self._client is not None:
             self.close()
 
