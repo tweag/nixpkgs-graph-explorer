@@ -27,17 +27,3 @@ poetry run python -m extract_data.cli --help
 # Extract the Nix data for nixpkgs on x86_64-linux distributions
 poetry run python -m extract_data.cli
 ```
-
-To extract the data from a small flake, for example, `github:edolstra/dwarffs` you can run the following while in the repository Nix shell:
-
-
-```bash
-# Install dependencies
-poetry install
-
-# View help menu
-poetry run python -m extract_data.core --help
-
-# Extract the Nix data for github:edolstra/dwarffs on x86_64-linux distributions
-poetry run python -m extract_data.core --target-flake-ref="github:edolstra/dwarffs"
-```
