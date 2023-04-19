@@ -36,40 +36,35 @@ let
           name = (builtins.tryEval (if okValue ? name then okValue.name else "")).value;
           output_paths =
             let
-              outPaths =
+              outputs =
                 let
-                  outputs =
-                    let
-                      pEvalResult = builtins.tryEval (toString (if okValue ? outputs then okValue.outputs else ""));
-                    in
-                    if pEvalResult.success then splitString " " pEvalResult.value
-                    else [ ];
+                  pEvalResult = builtins.tryEval (toString (if okValue ? outputs
+                                                            then okValue.outputs else ""));
                 in
-                map
-                  (p:
-                    {
-                      name = p;
-                      value = (builtins.tryEval (if okValue ? ${p} then toString okValue.${p} else "")).value;
-                    }
-                  )
-                  (outputs);
+                if pEvalResult.success then splitString " " pEvalResult.value
+                else [ ];
             in
-            builtins.listToAttrs outPaths;
-
+            map
+              (p:
+                { name = p;
+                  path = (builtins.tryEval (if okValue ? ${p}
+                                            then toString okValue.${p} else "")).value; }
+              )
+              (outputs);
           nixpkgs_metadata =
             {
               pname = (builtins.tryEval (if okValue ? name && okValue.name != false
-              then (builtins.parseDrvName okValue.name).name
-              else "")).value;
+                                         then (builtins.parseDrvName okValue.name).name
+                                         else "")).value;
               version = (builtins.tryEval (if okValue ? name && okValue.name != false
-              then (builtins.parseDrvName okValue.name).version
-              else "")).value;
+                                           then (builtins.parseDrvName okValue.name).version
+                                           else "")).value;
               broken = (builtins.tryEval (if okValue ? meta.broken
-              then okValue.meta.broken
-              else false)).value;
+                                          then okValue.meta.broken
+                                          else false)).value;
               license = (builtins.tryEval (if okValue ? meta.license.fullName
-              then okValue.meta.license.fullName
-              else "")).value;
+                                           then okValue.meta.license.fullName
+                                           else "")).value;
             };
 
           build_inputs = builtins.concatLists
