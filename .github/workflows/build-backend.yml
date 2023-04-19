@@ -1,0 +1,52 @@
+name: CI Frontend
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "core/**"
+      - "api/**"
+      - "!**/*.md"
+
+  pull_request:
+    paths:
+      - "core/**"
+      - "api/**"
+      - "!**/*.md"
+
+jobs:
+  build:
+    name: Back-end Prod build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: cachix/install-nix-action@v19
+
+      - name: Install dependencies
+        run: |
+          nix develop --command bash -c 'cd core && poetry install'
+          nix develop --command bash -c 'cd api && poetry install'
+
+      - name: Check formatting
+        run: |
+          nix develop --command bash -c 'cd core && check-python'
+          nix develop --command bash -c 'cd api && check-python'
+
+      - name: Lint
+        run: |
+          nix develop --command bash -c 'cd core && lint-python'
+          nix develop --command bash -c 'cd api && lint-python'
+
+      - name: Launch test DBs
+        run: docker compose --profile db up --build --wait
+
+      - name: Test
+        run: |
+          nix develop --command bash -c 'cd core && poetry run pytest -rP -vv --disable-warnings'
+          nix develop --command bash -c 'cd api && poetry run pytest -rP -vv --disable-warnings'
+
+      - name: Build API image
+        run: |
+          docker compose --profile backend build
