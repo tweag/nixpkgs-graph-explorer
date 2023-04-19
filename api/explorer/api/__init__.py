@@ -11,6 +11,7 @@ from gremlin_python.driver.driver_remote_connection import DriverRemoteConnectio
 from pydantic import BaseModel
 from starlette.applications import Starlette
 
+from explorer.api.gremlin import WebSocketTransport, default_remote_connection
 from explorer.api.queries.packages import (
     ListPackagesRequest,
     ListPackagesResponse,
@@ -61,11 +62,11 @@ async def lifespan(_app: Starlette) -> AsyncGenerator[State, None]:
         READ_ONLY_TRAVERSAL_SOURCE,
         pool_size=4,
         message_serializer=serializer.GraphSONMessageSerializer(),
+        transport_factory=WebSocketTransport,
     )
-    gremlin_remote_connection = DriverRemoteConnection(
+    gremlin_remote_connection = default_remote_connection(
         gremlin_url,
         READ_ONLY_TRAVERSAL_SOURCE,
-        message_serializer=serializer.GraphSONMessageSerializer(),
     )
     yield {
         "gremlin_client": gremlin_client,

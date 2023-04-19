@@ -27,6 +27,8 @@ fastapi = "^0.95.0"
 uvicorn = {extras = ["standard"], version = "^0.21.1"}
 
 nixpkgs-graph-core = { version = "^0.1.0" }
+websockets = "^11.0.1"
+backoff = "^2.2.1"
 
 [tool.isort]
 profile = "black"
