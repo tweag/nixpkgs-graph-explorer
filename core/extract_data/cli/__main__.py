@@ -48,7 +48,7 @@ def extract_data(target_flake_ref: str, target_system: str, out: str, stdout: bo
         click.echo(f"Writing data to {out}", err=True)
         with open(out, "w") as f:
             f.write(result)
-        click.echo(f"Done.", err=True)
+        click.echo("Done.", err=True)
 
 
 if __name__ == "__main__":

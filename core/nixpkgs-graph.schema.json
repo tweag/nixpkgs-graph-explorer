@@ -14,6 +14,27 @@
     "packages"
   ],
   "definitions": {
+    "OutputPath": {
+      "title": "OutputPath",
+      "description": "A Nix outputPath",
+      "type": "object",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "description": "The output path's name (doc, dev, etc.)",
+          "type": "string"
+        },
+        "path": {
+          "title": "Path",
+          "description": "The output path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "path"
+      ]
+    },
     "NixpkgsMetadata": {
       "title": "NixpkgsMetadata",
       "description": "Package metadata defined by nixpkgs specifically.",
@@ -70,7 +91,7 @@
         },
         "package": {
           "title": "Package",
-          "default": "The input package",
+          "description": "The input package",
           "allOf": [
             {
               "$ref": "#/definitions/Package"
@@ -79,7 +100,8 @@
         }
       },
       "required": [
-        "build_input_type"
+        "build_input_type",
+        "package"
       ]
     },
     "Package": {
@@ -94,10 +116,10 @@
         },
         "output_paths": {
           "title": "Output Paths",
-          "description": "A mapping of output path names to corresponding store paths",
-          "type": "object",
-          "additionalProperties": {
-            "type": "string"
+          "description": "A list of the package's output paths",
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/OutputPath"
           }
         },
         "nixpkgs_metadata": {
