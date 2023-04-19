@@ -8,7 +8,7 @@ import "@shoelace-style/shoelace/dist/components/tab/tab.js";
 import dagre from "cytoscape-dagre";
 import cytoscape from "cytoscape";
 
-import { QueryResultPayload } from "./api";
+import { DataPayload, QueryResultPayload } from "./api";
 
 cytoscape.use(dagre);
 
@@ -165,9 +165,9 @@ export class GraphViewer extends LitElement {
   }
 }
 
-function emptyQueryResult(data: any) {
+function emptyQueryResult(data: DataPayload) {
   if (data?.raw == null) return true;
-  if (data.raw.lenght === 0) return true;
+  if (data.raw.length === 0) return true;
   if (data.raw === "[]") return true;
   return false;
 }

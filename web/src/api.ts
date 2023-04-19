@@ -15,8 +15,17 @@ export interface PackagesResponse {
   packages: Pkg[];
 }
 
+export interface DataPayload {
+  raw: string;
+  cyto: {
+    // There is https://www.npmjs.com/package/@types/cytoscape
+    // but there is no types for "graph-data"
+    "graph-data": any;
+    "table-data": { id: string; neighbours: string[] };
+  };
+}
 export interface QueryResultPayload {
-  data: any;
+  data?: DataPayload;
   error?: boolean;
 }
 
