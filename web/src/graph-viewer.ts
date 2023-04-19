@@ -45,7 +45,10 @@ export class GraphViewer extends LitElement {
   @property() queryResult?: QueryResultPayload;
 
   @state() _currentTab: TabType = TABS.graph;
-  @state() _errorMsg?: string;
+
+  // Current error friendly message. The absence of a value (null/undefined)
+  // represents the lack of a current error
+  @state() _errorMsg?: TemplateResult | string;
 
   @queryAsync("#cy") _cy: Promise<HTMLElement>;
 
@@ -144,12 +147,13 @@ export class GraphViewer extends LitElement {
     if (this.queryResult != null && changedProperties.has("queryResult")) {
       // Server error
       if (this.queryResult.error === true) {
-        this._errorMsg = "Error fetching graph data :(";
+        this._errorMsg = html`Error fetching graph data :(<br />
+          Please check your query and try again later`;
         return;
       }
       // Empty results
       if (emptyQueryResult(this.queryResult.data)) {
-        this._errorMsg = "No results :(";
+        this._errorMsg = html`No results :(<br />Please change your query`;
         return;
       }
 
@@ -159,7 +163,8 @@ export class GraphViewer extends LitElement {
         if (this._currentTab === TABS.graph)
           renderCyGraph(this.queryResult, cy);
       } catch {
-        this._errorMsg = "Error";
+        this._errorMsg = html`Something went wrong :(<br />
+          Please try again later, if the error persists contact us on GitHub`;
       }
     }
   }
