@@ -18,9 +18,8 @@ with nixpkgs.lib;
 
 let
   recurse =
-    parentPath: name: value:
+    name: value:
     let
-      path = (if parentPath == "" then "" else parentPath + ".") + name;
       valueEvalResult = builtins.tryEval value;
     in
     if valueEvalResult.success then
@@ -28,7 +27,7 @@ let
       in
       if isDerivation okValue then
         {
-          inherit path;
+          # inherit path;
           # can't name it `outPath` because serialization would only output it instead of dict
           # see Nix `toString` docs
           # we don't query pname and version directly because some derivations only have a `name` attribute.
@@ -84,7 +83,7 @@ let
                     if pEvalResult.success && (toString pEvalResult.value) != "" then
                       {
                         build_input_type = "build_input";
-                        package = recurse "" "" pEvalResult.value;
+                        package = recurse "" pEvalResult.value;
                       }
                     else null
                   )
@@ -99,27 +98,24 @@ let
                     if pEvalResult.success && (toString pEvalResult.value) != "" then
                       {
                         build_input_type = "propagated_build_input";
-                        package = recurse "" "" pEvalResult.value;
+                        package = recurse "" pEvalResult.value;
                       }
                     else null
                   )
                   (okValue.propagatedBuildInputs or [ ])))
             ];
-
         }
       else
-
-        if isAttrs okValue && (okValue.recurseForDerivations or false) then
-          mapAttrs (recurse path) okValue
-        else null
+        null
     else null;
 
 in
 
 {
   packages =
-    (collect
-      (x: x ? output_paths)
-      (mapAttrs (recurse "") targetFlakePkgs)
+    builtins.attrValues
+    (filterAttrs
+      (n: v: v != null)
+      (mapAttrs (recurse) targetFlakePkgs)
     );
 }
