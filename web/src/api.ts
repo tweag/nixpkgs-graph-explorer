@@ -32,7 +32,7 @@ export interface QueryResultPayload {
 export async function getPackages({
   search = "",
   limit = 10,
-  cursor = null,
+  cursor = null as Cursor,
 }): Promise<PackagesResponse> {
   const response = await fetch(`${API_URL}/packages`, {
     method: "POST",
