@@ -20,6 +20,7 @@ let
   recurse =
     name: value:
     let
+      # path = (if parentPath == "" then "" else parentPath + ".") + name;
       valueEvalResult = builtins.tryEval value;
     in
     if valueEvalResult.success then
@@ -66,39 +67,28 @@ let
                                            then okValue.meta.license.fullName
                                            else "")).value;
             };
-
-          build_inputs = builtins.concatLists
-            [
-              (remove null
-                (map
-                  (p:
-                    let
-                      pEvalResult = builtins.tryEval (p);
-                    in
-                    if pEvalResult.success && (toString pEvalResult.value) != "" then
-                      {
-                        build_input_type = "build_input";
-                        package = recurse "" pEvalResult.value;
-                      }
-                    else null
-                  )
-                  (okValue.buildInputs or [ ])))
-
-              (remove null
-                (map
-                  (p:
-                    let
-                      pEvalResult = builtins.tryEval (p);
-                    in
-                    if pEvalResult.success && (toString pEvalResult.value) != "" then
-                      {
-                        build_input_type = "propagated_build_input";
-                        package = recurse "" pEvalResult.value;
-                      }
-                    else null
-                  )
-                  (okValue.propagatedBuildInputs or [ ])))
-            ];
+          drvPath = (builtins.tryEval (if okValue ? drvPath then okValue.drvPath else "")).value;
+          buildInputs =
+            map
+              (p:
+                let
+                  pEvalResult = builtins.tryEval (if p ? drvPath then p.drvPath else null);
+                in
+                if pEvalResult.success then pEvalResult.value
+                else null
+              )
+              (okValue.buildInputs or [ ]);
+          propagatedBuildInputs =
+            map
+              (p:
+                let
+                  pEvalResult = builtins.tryEval (toString p);
+                in
+                if pEvalResult.success then pEvalResult.value
+                else null
+              )
+              (okValue.propagatedBuildInputs or [ ]);
+          build_inputs = [ ];
         }
       else
         null
