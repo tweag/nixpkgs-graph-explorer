@@ -8,9 +8,8 @@ authors = [
 license = "MIT"
 readme = "README.md"
 packages = [
-         {include = "explorer"},
-         {include = "extract_data"}
-	 ]
+  { include = "explorer" },
+]
 
 [tool.poetry.dependencies]
 python = "^3.10"
