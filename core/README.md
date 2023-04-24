@@ -22,8 +22,8 @@ To extract the data from Nixpkgs you can run the following while in the reposito
 poetry install
 
 # View help menu
-poetry run python -m extract_data.cli --help
+poetry run python -m explorer.extract --help
 
 # Extract the Nix data for nixpkgs on x86_64-linux distributions
-poetry run python -m extract_data.cli
+poetry run python -m explorer.extract
 ```
