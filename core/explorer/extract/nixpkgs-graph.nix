@@ -52,20 +52,20 @@ let
         inherit name;
         parsedName = (builtins.parseDrvName name);
         nixpkgs_metadata =
-            {
-              pname = (builtins.tryEval (if okValue ? pname
-                                         then okValue.pname
-                                         else false)).value or null;
-              version = (builtins.tryEval (if okValue ? version
-                                           then okValue.version
-                                           else "")).value;
-              broken = (builtins.tryEval (if okValue ? meta.broken
-                                          then okValue.meta.broken
-                                          else false)).value;
-              license = (builtins.tryEval (if okValue ? meta.license.fullName
-                                           then okValue.meta.license.fullName
-                                           else "")).value;
-            };
+          {
+            pname = (builtins.tryEval (if okValue ? pname
+            then okValue.pname
+            else false)).value or null;
+            version = (builtins.tryEval (if okValue ? version
+            then okValue.version
+            else "")).value;
+            broken = (builtins.tryEval (if okValue ? meta.broken
+            then okValue.meta.broken
+            else false)).value;
+            license = (builtins.tryEval (if okValue ? meta.license.fullName
+            then okValue.meta.license.fullName
+            else "")).value;
+          };
 
         # path to use to get to the derivation in the flake packages
         # e.g. "foo.bar" means you can get this derivation using "flake#foo.bar"
@@ -82,7 +82,6 @@ let
           in map (name: { inherit name; path = safeNixpkgsOutPathEval okValue.${name}; }) output_paths;
         buildInputs = map (recurse attributesPath null) (okValue.buildInputs or [ ]);
         propagatedBuildInputs = map (recurse attributesPath null) (okValue.propagatedBuildInputs or [ ]);
-
       }
   ;
 in
@@ -93,26 +92,29 @@ in
       (drv: {
         inherit (drv) name parsedName attributesPath derivationPath outputPath output_paths nixpkgs_metadata;
         build_inputs = builtins.concatLists
-          [(nixpkgs.lib.remove null
-            (map (buildInputDrv:
-              if buildInputDrv ? outputPath && buildInputDrv.outputPath != null
-              then
-                {
-                  build_input_type = "build_input";
-                  package_output_path = buildInputDrv.outputPath;
-                }
-              else null)
-              (drv.buildInputs or [])))
-           (nixpkgs.lib.remove null
-             (map (buildInputDrv:
-               if buildInputDrv ? outputPath && buildInputDrv.outputPath != null
-               then
-                 {
-                   build_input_type = "propagated_build_input";
-                   package_output_path = buildInputDrv.outputPath;
-                 }
-               else null)
-               (drv.propagatedBuildInputs or [])))
+          [
+            (nixpkgs.lib.remove null
+              (map
+                (buildInputDrv:
+                  if buildInputDrv ? outputPath && buildInputDrv.outputPath != null
+                  then
+                    {
+                      build_input_type = "build_input";
+                      package_output_path = buildInputDrv.outputPath;
+                    }
+                  else null)
+                (drv.buildInputs or [ ])))
+            (nixpkgs.lib.remove null
+              (map
+                (buildInputDrv:
+                  if buildInputDrv ? outputPath && buildInputDrv.outputPath != null
+                  then
+                    {
+                      build_input_type = "propagated_build_input";
+                      package_output_path = buildInputDrv.outputPath;
+                    }
+                  else null)
+                (drv.propagatedBuildInputs or [ ])))
           ];
       }
       )
@@ -120,4 +122,4 @@ in
         (x: (x.derivationPath or null) != null)
         (builtins.mapAttrs (recurse "") targetFlakePkgs)
       );
-  }
+}
