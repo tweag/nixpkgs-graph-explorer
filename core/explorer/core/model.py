@@ -32,8 +32,8 @@ class BuildInputType(Enum):
 class BuildInput(BaseModel):
     """A build input to a Nix derivation"""
 
-    build_input_type: BuildInputType = Field(description="The type of build input.")
-    package: "Package" = Field(description="The input package")
+    build_input_type: BuildInputType = Field(description="The type of build input")
+    output_path: str = Field(description="The output path of the input derivation")
 
     class Config:
         use_enum_values = True
@@ -57,8 +57,3 @@ class Package(BaseModel):
 
 class NixGraph(BaseModel):
     packages: list[Package]
-
-
-# Note: We need this due to the circular dependency between BuildInput
-# and Package
-BuildInput.update_forward_refs()
