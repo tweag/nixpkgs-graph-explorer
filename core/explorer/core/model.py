@@ -33,7 +33,7 @@ class BuildInput(BaseModel):
     """A build input to a Nix derivation"""
 
     build_input_type: BuildInputType = Field(description="The type of build input.")
-    package: "Package" = Field(description="The input package")
+    package_output_path: str = Field(description="The output path of the input package")
 
     class Config:
         use_enum_values = True
