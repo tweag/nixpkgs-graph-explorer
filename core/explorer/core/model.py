@@ -57,8 +57,3 @@ class Package(BaseModel):
 
 class NixGraph(BaseModel):
     packages: list[Package]
-
-
-# Note: We need this due to the circular dependency between BuildInput
-# and Package
-BuildInput.update_forward_refs()
