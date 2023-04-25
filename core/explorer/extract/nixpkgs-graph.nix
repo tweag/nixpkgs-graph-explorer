@@ -100,7 +100,7 @@ in
                   then
                     {
                       build_input_type = "build_input";
-                      package_output_path = buildInputDrv.outputPath;
+                      output_path = buildInputDrv.outputPath;
                     }
                   else null)
                 (drv.buildInputs or [ ])))
@@ -111,7 +111,7 @@ in
                   then
                     {
                       build_input_type = "propagated_build_input";
-                      package_output_path = buildInputDrv.outputPath;
+                      output_path = buildInputDrv.outputPath;
                     }
                   else null)
                 (drv.propagatedBuildInputs or [ ])))
