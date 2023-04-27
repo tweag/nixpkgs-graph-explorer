@@ -41,7 +41,7 @@ dummy_pkg_b = model.Package(
     build_inputs=[
         model.BuildInput(
             build_input_type=model.BuildInputType.BUILD_INPUT,
-            package=dummy_pkg_c,
+            output_path="/C",
         )
     ],
 )
@@ -55,16 +55,18 @@ dummy_pkg_a = model.Package(
     build_inputs=[
         model.BuildInput(
             build_input_type=model.BuildInputType.BUILD_INPUT,
-            package=dummy_pkg_b,
+            output_path="/B",
         ),
         model.BuildInput(
             build_input_type=model.BuildInputType.BUILD_INPUT,
-            package=dummy_pkg_d,
+            output_path="/D",
         ),
     ],
 )
 
-dummy_nix_graph = model.NixGraph(packages=[dummy_pkg_a])
+dummy_nix_graph = model.NixGraph(
+    packages=[dummy_pkg_a, dummy_pkg_b, dummy_pkg_c, dummy_pkg_d]
+)
 
 
 #######################################################################################

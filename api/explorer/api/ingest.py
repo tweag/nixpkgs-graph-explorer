@@ -101,6 +101,7 @@ def _edge_from_build_input_type(build_input_type: model.BuildInputType) -> graph
 # TODO: Add retry logic
 def _do_next_graph_level(
     model_pkg: model.Package,
+    model_nix_graph: model.NixGraph,
     do_fn: Callable[[graph.Package, graph.Package, graph.Edge], None],
 ) -> list[model.Package]:
     # Map package from core model in that used in the graph. This will expand the
@@ -111,16 +112,30 @@ def _do_next_graph_level(
     for pkg in pkgs:
         for build_input in model_pkg.build_inputs:
             edge = _edge_from_build_input_type(build_input.build_input_type)
-            try:
-                # Since build_inputs is defined using the core model, we need to parse
-                # it into the graph model similar to what we do above for model_pkg.
-                build_input_pkgs = safe_parse_package(build_input.package)
-            except IngestionError as e:
-                logger.exception(e)
-                build_input_pkgs = []
-            for bi_pkg in build_input_pkgs:
-                do_fn(pkg, bi_pkg, edge)
-    return [bi.package for bi in model_pkg.build_inputs]
+            packages = search_package_by_path(model_nix_graph, build_input.output_path)
+            for p in packages:
+                try:
+                    # Since build_inputs is defined using the core model, we need to parse
+                    # it into the graph model similar to what we do above for model_pkg.
+                    build_input_pkgs = safe_parse_package(p)
+                except IngestionError as e:
+                    logger.exception(e)
+                    build_input_pkgs = []
+                for bi_pkg in build_input_pkgs:
+                    do_fn(pkg, bi_pkg, edge)
+    # build_input_model_pkgs = []
+    # for bi in model_pkg.build_inputs:
+    #     build_input_model_pkgs.extend(
+    #         search_package_by_path(model_nix_graph, bi.output_path)
+    #     )
+    # return build_input_model_pkgs
+    # return [bi.package for bi in model_pkg.build_inputs]
+    return flatten(
+        [
+            search_package_by_path(model_nix_graph, bi.output_path)
+            for bi in model_pkg.build_inputs
+        ]
+    )
 
 
 A = TypeVar("A")
@@ -129,6 +144,20 @@ A = TypeVar("A")
 def flatten(lls: Iterable[Iterable[A]]) -> list[A]:
     """Flattens nested iterables into a list"""
     return [x for sublist in lls for x in sublist]
+
+
+def search_package_by_path(
+    nix_graph: model.NixGraph, search_path: str
+) -> list[model.Package]:
+    """
+    Returns a list of Package objects where at least one of the path in the output_paths
+    field matches the search_string.
+    """
+    filtered_package = filter(
+        lambda package: search_path in [p.path for p in package.output_paths],
+        nix_graph.packages,
+    )
+    return list(filtered_package)
 
 
 def traverse(
@@ -154,15 +183,16 @@ def traverse(
     """
     for model_pkg in nix_graph.packages:
         # Apply the user provided function to the first layer
+        # TODELETE: note: pkgs is now one node with one path.
         pkgs = safe_parse_package(model_pkg)
         for pkg in pkgs:
             root_fn(pkg)
-        next_pkgs = _do_next_graph_level(model_pkg, do_fn)
+        next_pkgs = _do_next_graph_level(model_pkg, nix_graph, do_fn)
         # Iterate over each remaining layer until no more remain
         while next_pkgs:
             # TODO: Exception handling
             next_pkgs = flatten(
-                map(lambda p: _do_next_graph_level(p, do_fn), next_pkgs)
+                map(lambda p: _do_next_graph_level(p, nix_graph, do_fn), next_pkgs)
             )
 
 
