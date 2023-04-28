@@ -29,11 +29,17 @@ export interface QueryResultPayload {
   error?: boolean;
 }
 
+interface IGetPackagesArgs {
+  search: string;
+  limit: number;
+  cursor?: Cursor;
+}
+
 export async function getPackages({
   search = "",
   limit = 10,
-  cursor = null,
-}): Promise<PackagesResponse> {
+  cursor,
+}: IGetPackagesArgs): Promise<PackagesResponse> {
   const response = await fetch(`${API_URL}/packages`, {
     method: "POST",
     headers: {
