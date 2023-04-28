@@ -15,7 +15,7 @@ import { assign, createMachine, interpret } from "xstate";
 
 type EventInput = Event & { target: HTMLInputElement };
 
-interface Context {
+type Context = {
   pkgs: Pkg[];
   selectedPkg?: string;
   input: string;
@@ -23,7 +23,7 @@ interface Context {
   limit: number;
   cursors: Cursor[];
   cursor_position: number;
-}
+};
 
 type InputEvent = { type: "INPUT"; input: string };
 
