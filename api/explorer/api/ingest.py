@@ -123,13 +123,6 @@ def _do_next_graph_level(
                     build_input_pkgs = []
                 for bi_pkg in build_input_pkgs:
                     do_fn(pkg, bi_pkg, edge)
-    # build_input_model_pkgs = []
-    # for bi in model_pkg.build_inputs:
-    #     build_input_model_pkgs.extend(
-    #         search_package_by_path(model_nix_graph, bi.output_path)
-    #     )
-    # return build_input_model_pkgs
-    # return [bi.package for bi in model_pkg.build_inputs]
     return flatten(
         [
             search_package_by_path(model_nix_graph, bi.output_path)
@@ -160,6 +153,23 @@ def search_package_by_path(
     return list(filtered_package)
 
 
+def get_root_nix_graph(nix_graph: model.NixGraph) -> model.NixGraph:
+    """
+    Returns a NixGraph object containing only root packages.
+    """
+    build_input_pkgs_paths = set(
+        [bi.output_path for y in nix_graph.packages for bi in y.build_inputs]
+    )
+    root_packages = []
+    for pkg in nix_graph.packages:
+        for p in pkg.output_paths:
+            if p.path in build_input_pkgs_paths:
+                break
+        else:
+            root_packages.append(pkg)
+    return model.NixGraph(packages=root_packages)
+
+
 def traverse(
     nix_graph: model.NixGraph,
     root_fn: Callable[[graph.Package], None],
@@ -181,9 +191,9 @@ def traverse(
             current level, the next level, and the edge describing the relationship
             between the current level and the next level.
     """
-    for model_pkg in nix_graph.packages:
+    root_nix_graph = get_root_nix_graph(nix_graph)
+    for model_pkg in root_nix_graph.packages:
         # Apply the user provided function to the first layer
-        # TODELETE: note: pkgs is now one node with one path.
         pkgs = safe_parse_package(model_pkg)
         for pkg in pkgs:
             root_fn(pkg)
