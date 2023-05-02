@@ -115,8 +115,9 @@ def _do_next_graph_level(
             packages = search_package_by_path(model_nix_graph, build_input.output_path)
             for p in packages:
                 try:
-                    # Since build_inputs is defined using the core model, we need to parse
-                    # it into the graph model similar to what we do above for model_pkg.
+                    # Since build_inputs is defined using the core model, we need to
+                    # parse it into the graph model similar to what we do above for
+                    # model_pkg.
                     build_input_pkgs = safe_parse_package(p)
                 except IngestionError as e:
                     logger.exception(e)
