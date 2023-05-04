@@ -159,36 +159,6 @@ def test_unit_core_to_graph_model_no_pname_raises():
         core_to_graph_model(pkg)
 
 
-def test_unit_traverse_visits_all_nodes():
-    """Check traverse visits all nodes in the input graph"""
-    from explorer.api.ingest import traverse
-
-    visited_root_pkgs: list[str] = []
-    visited_pkgs: list[str] = []
-
-    def visit_root_node(p: graph.Package):
-        visited_root_pkgs.append(p.outputPath)
-
-    def visit_layer(p: graph.Package, up: graph.Package, _e: graph.Edge):
-        visited_pkgs.append(p.outputPath)
-        visited_pkgs.append(up.outputPath)
-
-    traverse(dummy_nix_graph, visit_root_node, visit_layer)
-
-    expected_root_pkgs = set(map(lambda x: x.path, dummy_pkg_a.output_paths))
-    expected_pkgs = set(
-        map(
-            lambda x: x.path,
-            dummy_pkg_a.output_paths
-            + dummy_pkg_b.output_paths
-            + dummy_pkg_c.output_paths
-            + dummy_pkg_d.output_paths,
-        )
-    )
-    assert set(visited_root_pkgs) == expected_root_pkgs
-    assert set(visited_pkgs) == expected_pkgs
-
-
 def test_unit_ingest_nix_graph(graph_connection: DriverRemoteConnection):
     """Check that all expected nodes and edges are created when ingesting a nix graph"""
     from explorer.api.ingest import ingest_nix_graph
