@@ -1,6 +1,5 @@
 import logging
 from contextlib import closing
-from typing import Callable, Iterable, TypeVar
 
 import click
 from explorer.core import model
@@ -98,48 +97,6 @@ def _edge_from_build_input_type(build_input_type: model.BuildInputType) -> graph
         )
 
 
-# TODO: Add retry logic
-def _do_next_graph_level(
-    model_pkg: model.Package,
-    model_nix_graph: model.NixGraph,
-    do_fn: Callable[[graph.Package, graph.Package, graph.Edge], None],
-) -> list[model.Package]:
-    # Map package from core model in that used in the graph. This will expand the
-    # input node into N nodes based on the number of the node's output paths.
-    pkgs = safe_parse_package(model_pkg)
-    # Create all dependency nodes and draw an edge between the input package nodes and
-    # them.
-    for pkg in pkgs:
-        for build_input in model_pkg.build_inputs:
-            edge = _edge_from_build_input_type(build_input.build_input_type)
-            packages = search_package_by_path(model_nix_graph, build_input.output_path)
-            for p in packages:
-                try:
-                    # Since build_inputs is defined using the core model, we need to
-                    # parse it into the graph model similar to what we do above for
-                    # model_pkg.
-                    build_input_pkgs = safe_parse_package(p)
-                except IngestionError as e:
-                    logger.exception(e)
-                    build_input_pkgs = []
-                for bi_pkg in build_input_pkgs:
-                    do_fn(pkg, bi_pkg, edge)
-    return flatten(
-        [
-            search_package_by_path(model_nix_graph, bi.output_path)
-            for bi in model_pkg.build_inputs
-        ]
-    )
-
-
-A = TypeVar("A")
-
-
-def flatten(lls: Iterable[Iterable[A]]) -> list[A]:
-    """Flattens nested iterables into a list"""
-    return [x for sublist in lls for x in sublist]
-
-
 def search_package_by_path(
     nix_graph: model.NixGraph, search_path: str
 ) -> list[model.Package]:
@@ -154,59 +111,6 @@ def search_package_by_path(
     return list(filtered_package)
 
 
-def get_root_nix_graph(nix_graph: model.NixGraph) -> model.NixGraph:
-    """
-    Returns a NixGraph object containing only root packages.
-    """
-    build_input_pkgs_paths = set(
-        [bi.output_path for y in nix_graph.packages for bi in y.build_inputs]
-    )
-    root_packages = []
-    for pkg in nix_graph.packages:
-        for p in pkg.output_paths:
-            if p.path in build_input_pkgs_paths:
-                break
-        else:
-            root_packages.append(pkg)
-    return model.NixGraph(packages=root_packages)
-
-
-def traverse(
-    nix_graph: model.NixGraph,
-    root_fn: Callable[[graph.Package], None],
-    do_fn: Callable[[graph.Package, graph.Package, graph.Edge], None],
-):
-    """Traverse a Nix graph
-
-    Performs a breadth-first traversal of a nix graph, executing the provided
-    functions on each level of the graph.
-
-    Args:
-        nix_graph (model.NixGraph): The NixGraph to traverse
-        root_fn (Callable[[graph.Package], None]): A function to call only on the root
-            level of the nix graph. This can be useful for things like initialization
-            steps.
-        do_fn (Callable[[graph.Package, graph.Package, graph.Edge], None]): A function
-            to call on every level of the graph, including the root level. This
-            function is expected to take three arguments which correspond to the
-            current level, the next level, and the edge describing the relationship
-            between the current level and the next level.
-    """
-    root_nix_graph = get_root_nix_graph(nix_graph)
-    for model_pkg in root_nix_graph.packages:
-        # Apply the user provided function to the first layer
-        pkgs = safe_parse_package(model_pkg)
-        for pkg in pkgs:
-            root_fn(pkg)
-        next_pkgs = _do_next_graph_level(model_pkg, nix_graph, do_fn)
-        # Iterate over each remaining layer until no more remain
-        while next_pkgs:
-            # TODO: Exception handling
-            next_pkgs = flatten(
-                map(lambda p: _do_next_graph_level(p, nix_graph, do_fn), next_pkgs)
-            )
-
-
 def ingest_nix_graph(nix_graph: model.NixGraph, g: GraphTraversalSource) -> None:
     """Writes the entire provided Nix graph to the provided Gremlin traversal source
 
@@ -217,27 +121,46 @@ def ingest_nix_graph(nix_graph: model.NixGraph, g: GraphTraversalSource) -> None
     """
 
     # Note: As an optimization we split logic for writing the graph into two
-    # functions. The first one ensures that every root node of the graph exists
-    def write_root_node_to_graph(root_package: graph.Package) -> None:
-        graph.insert_unique_vertex(root_package, g)
+    # functions. The first one ensures that every node of the graph exists
+    def write_node_to_graph(package: graph.Package) -> None:
+        graph.insert_unique_vertex(package, g)
 
-    # Then, this second function handles writing the next level of the graph as well
-    # as the edge connecting the levels, assuming that the current level already exists
-    # in the Gremlin graph.
-    def write_layer_to_graph(
+    # Then, this second function handles writing the edges of the graph
+    def write_edge_to_graph(
         current_package: graph.Package,
-        upstream_package: graph.Package,
+        dependency_package: graph.Package,
         edge: graph.Edge,
     ) -> None:
-        graph.insert_unique_vertex(upstream_package, g)
         graph.insert_unique_directed_edge(
             edge,
             from_vertex=current_package,
-            to_vertex=upstream_package,
+            to_vertex=dependency_package,
             g=g,
         )
 
-    traverse(nix_graph, write_root_node_to_graph, write_layer_to_graph)
+    # Write nodes to the Gremlin graph
+    click.echo("Writing nodes to the Gremlin graph...")
+    with click.progressbar(nix_graph.packages) as bar:
+        for model_pkg in bar:
+            pkgs = safe_parse_package(model_pkg)
+            for pkg in pkgs:
+                write_node_to_graph(pkg)
+
+    # Write edges to the Gremlin graph
+    click.echo("Writing edges to the Gremlin graph...")
+    with click.progressbar(nix_graph.packages) as bar:
+        for model_pkg in bar:
+            pkgs = safe_parse_package(model_pkg)
+            for build_input in model_pkg.build_inputs:
+                edge = _edge_from_build_input_type(build_input.build_input_type)
+                bi_model_packages = search_package_by_path(
+                    nix_graph, build_input.output_path
+                )
+                for bi_model_p in bi_model_packages:
+                    bi_graph_pkgs = safe_parse_package(bi_model_p)
+                    for bi_graph_p in bi_graph_pkgs:
+                        for current_graph_p in pkgs:
+                            write_edge_to_graph(current_graph_p, bi_graph_p, edge)
 
 
 @click.command(
