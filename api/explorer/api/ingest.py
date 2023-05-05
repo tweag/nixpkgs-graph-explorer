@@ -98,20 +98,24 @@ def _edge_from_build_input_type(build_input_type: model.BuildInputType) -> graph
         )
 
 
-def search_package_by_path(
-    nix_graph: model.NixGraph, search_path: str
-) -> list[model.Package]:
+def is_output_path_in_graph(nix_graph: model.NixGraph, search_path: str) -> bool:
     """
-    Returns a list of Package objects where at least one of the path in the output_paths
-    field matches the search_string.
+    Check if a given output path exists in a NixGraph.
+
+    Args:
+        nix_graph (model.NixGraph): A NixGraph object representing the graph to search.
+        search_path (str): The output path to search for.
+
+    Returns:
+        bool: True if the output path is present in the graph, False otherwise.
+
     """
-    return [
-        package
-        for package in nix_graph.packages
+    for package in nix_graph.packages:
         if builtins.any(
-            search_path == output_path.path for output_path in package.output_paths
-        )
-    ]
+            output_path.path == search_path for output_path in package.output_paths
+        ):
+            return True
+    return False
 
 
 def ingest_nix_graph(nix_graph: model.NixGraph, g: GraphTraversalSource) -> None:
@@ -156,16 +160,15 @@ def ingest_nix_graph(nix_graph: model.NixGraph, g: GraphTraversalSource) -> None
             pkgs = safe_parse_package(model_package)
             for build_input in model_package.build_inputs:
                 edge = _edge_from_build_input_type(build_input.build_input_type)
-                bi_model_packages = search_package_by_path(
-                    nix_graph, build_input.output_path
-                )
-                for bi_model_package in bi_model_packages:
-                    bi_graph_pkgs = safe_parse_package(bi_model_package)
-                    for bi_graph_package in bi_graph_pkgs:
-                        for current_graph_package in pkgs:
-                            write_edge_to_graph(
-                                current_graph_package, bi_graph_package, edge
-                            )
+                if is_output_path_in_graph(nix_graph, build_input.output_path):
+                    bi_graph_package = graph.Package(
+                        pname=model_package.nixpkgs_metadata.pname,
+                        outputPath=build_input.output_path,
+                    )
+                    for current_graph_package in pkgs:
+                        write_edge_to_graph(
+                            current_graph_package, bi_graph_package, edge
+                        )
 
 
 @click.command(
