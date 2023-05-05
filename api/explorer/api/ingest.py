@@ -1,3 +1,4 @@
+import builtins
 import logging
 from contextlib import closing
 
@@ -104,11 +105,13 @@ def search_package_by_path(
     Returns a list of Package objects where at least one of the path in the output_paths
     field matches the search_string.
     """
-    filtered_package = filter(
-        lambda package: search_path in [p.path for p in package.output_paths],
-        nix_graph.packages,
-    )
-    return list(filtered_package)
+    return [
+        package
+        for package in nix_graph.packages
+        if builtins.any(
+            search_path == output_path.path for output_path in package.output_paths
+        )
+    ]
 
 
 def ingest_nix_graph(nix_graph: model.NixGraph, g: GraphTraversalSource) -> None:
@@ -140,27 +143,29 @@ def ingest_nix_graph(nix_graph: model.NixGraph, g: GraphTraversalSource) -> None
 
     # Write nodes to the Gremlin graph
     click.echo("Writing nodes to the Gremlin graph...")
-    with click.progressbar(nix_graph.packages) as bar:
-        for model_pkg in bar:
-            pkgs = safe_parse_package(model_pkg)
+    with click.progressbar(nix_graph.packages) as model_pkgs_with_bar:
+        for model_package in model_pkgs_with_bar:
+            pkgs = safe_parse_package(model_package)
             for pkg in pkgs:
                 write_node_to_graph(pkg)
 
     # Write edges to the Gremlin graph
     click.echo("Writing edges to the Gremlin graph...")
-    with click.progressbar(nix_graph.packages) as bar:
-        for model_pkg in bar:
-            pkgs = safe_parse_package(model_pkg)
-            for build_input in model_pkg.build_inputs:
+    with click.progressbar(nix_graph.packages) as model_pkgs_with_bar:
+        for model_package in model_pkgs_with_bar:
+            pkgs = safe_parse_package(model_package)
+            for build_input in model_package.build_inputs:
                 edge = _edge_from_build_input_type(build_input.build_input_type)
                 bi_model_packages = search_package_by_path(
                     nix_graph, build_input.output_path
                 )
-                for bi_model_p in bi_model_packages:
-                    bi_graph_pkgs = safe_parse_package(bi_model_p)
-                    for bi_graph_p in bi_graph_pkgs:
-                        for current_graph_p in pkgs:
-                            write_edge_to_graph(current_graph_p, bi_graph_p, edge)
+                for bi_model_package in bi_model_packages:
+                    bi_graph_pkgs = safe_parse_package(bi_model_package)
+                    for bi_graph_package in bi_graph_pkgs:
+                        for current_graph_package in pkgs:
+                            write_edge_to_graph(
+                                current_graph_package, bi_graph_package, edge
+                            )
 
 
 @click.command(
