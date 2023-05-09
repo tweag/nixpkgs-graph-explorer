@@ -221,7 +221,10 @@ def main(graph_json: str, gremlin_server: str, gremlin_source: str):
     with closing(
         default_remote_connection(gremlin_server, traversal_source=gremlin_source)
     ) as remote:
-        g_factory = lambda: traversal().with_remote(remote)
+
+        def g_factory():
+            return traversal().with_remote(remote)
+
         click.echo("Done.")
 
         click.echo("Purging existing entities.")
