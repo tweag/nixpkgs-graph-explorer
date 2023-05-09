@@ -1,11 +1,9 @@
-import builtins
 import logging
 import threading
-from concurrent.futures import ALL_COMPLETED, ThreadPoolExecutor, wait
+from concurrent.futures import ThreadPoolExecutor, wait
 from contextlib import closing
 from typing import Callable, Tuple
 
-from concurrent.futures import ALL_COMPLETED, ThreadPoolExecutor, wait
 import click
 from explorer.core import model
 from gremlin_python.process.anonymous_traversal import traversal
@@ -100,26 +98,6 @@ def _edge_from_build_input_type(build_input_type: model.BuildInputType) -> graph
             "The provided BuildInputType does not correspond to a known edge type:"
             f" {build_input_type}"
         )
-
-
-def is_output_path_in_graph(nix_graph: model.NixGraph, search_path: str) -> bool:
-    """
-    Check if a given output path exists in a NixGraph.
-
-    Args:
-        nix_graph (model.NixGraph): A NixGraph object representing the graph to search.
-        search_path (str): The output path to search for.
-
-    Returns:
-        bool: True if the output path is present in the graph, False otherwise.
-
-    """
-    for package in nix_graph.packages:
-        if builtins.any(
-            output_path.path == search_path for output_path in package.output_paths
-        ):
-            return True
-    return False
 
 
 def split_nix_graph(nix_graph: model.NixGraph):
