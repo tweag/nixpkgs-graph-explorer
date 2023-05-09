@@ -1,7 +1,11 @@
 import builtins
 import logging
+import threading
+from concurrent.futures import ALL_COMPLETED, ThreadPoolExecutor, wait
 from contextlib import closing
+from typing import Callable, Tuple
 
+from concurrent.futures import ALL_COMPLETED, ThreadPoolExecutor, wait
 import click
 from explorer.core import model
 from gremlin_python.process.anonymous_traversal import traversal
@@ -118,7 +122,41 @@ def is_output_path_in_graph(nix_graph: model.NixGraph, search_path: str) -> bool
     return False
 
 
-def ingest_nix_graph(nix_graph: model.NixGraph, g: GraphTraversalSource) -> None:
+def split_nix_graph(nix_graph: model.NixGraph):
+    packages = {}
+    edge_refs = {}
+    edges = []
+    for p in nix_graph.packages:
+        parsed = safe_parse_package(p)
+        for ps in parsed:
+            packages[ps.outputPath] = ps
+            edge_refs |= {
+                (
+                    ps.outputPath,
+                    build_input.output_path,
+                ): _edge_from_build_input_type(build_input.build_input_type)
+                for build_input in p.build_inputs
+            }
+    missing = []
+    for paths, edge in edge_refs.items():
+        package_output_path, dependency_output_path = paths
+        if package_output_path not in packages:
+            raise Exception("EXPLODE")
+        if dependency_output_path not in packages:
+            missing.append(dependency_output_path)
+            continue
+        edges.append(
+            (packages[package_output_path], edge, packages[dependency_output_path])
+        )
+
+    if missing:
+        print(f"Missing packages for a total of {len(missing)} build inputs")
+    return list(packages.values()), edges
+
+
+def ingest_nix_graph(
+    nix_graph: model.NixGraph, g_factory: Callable[[], GraphTraversalSource]
+) -> None:
     """Writes the entire provided Nix graph to the provided Gremlin traversal source
 
     Args:
@@ -127,17 +165,26 @@ def ingest_nix_graph(nix_graph: model.NixGraph, g: GraphTraversalSource) -> None
             the Nix graph
     """
 
-    # Note: As an optimization we split logic for writing the graph into two
-    # functions. The first one ensures that every node of the graph exists
-    def write_node_to_graph(package: graph.Package) -> None:
-        graph.insert_unique_vertex(package, g)
+    packages, edges = split_nix_graph(nix_graph)
 
-    # Then, this second function handles writing the edges of the graph
-    def write_edge_to_graph(
-        current_package: graph.Package,
-        dependency_package: graph.Package,
-        edge: graph.Edge,
-    ) -> None:
+    # Write nodes to the Gremlin graph
+    click.echo("Writing nodes to the Gremlin graph...")
+
+    def get_local_client() -> GraphTraversalSource:
+        thread_local = threading.local()
+        g = getattr(thread_local, "g", None)
+        if g is None:
+            thread_local.g = g_factory()
+        return thread_local.g
+
+    def write_package(p: graph.Package):
+        # print(p)
+        g = get_local_client()
+        graph.insert_unique_vertex(p, g)
+
+    def write_edge(input: Tuple[graph.Package, graph.Edge, graph.Package]):
+        current_package, edge, dependency_package = input
+        g = get_local_client()
         graph.insert_unique_directed_edge(
             edge,
             from_vertex=current_package,
@@ -145,30 +192,22 @@ def ingest_nix_graph(nix_graph: model.NixGraph, g: GraphTraversalSource) -> None
             g=g,
         )
 
-    # Write nodes to the Gremlin graph
-    click.echo("Writing nodes to the Gremlin graph...")
-    with click.progressbar(nix_graph.packages) as model_pkgs_with_bar:
-        for model_package in model_pkgs_with_bar:
-            pkgs = safe_parse_package(model_package)
-            for pkg in pkgs:
-                write_node_to_graph(pkg)
+    with ThreadPoolExecutor() as ex:
+        click.echo("Writing packages")
+        with click.progressbar(length=len(packages)) as bar:
+            futures = [ex.submit(write_package, p) for p in packages]
+            for f in futures:
+                f.add_done_callback(lambda _x: bar.update(1))
+            wait(futures)
+            # FIXME: Check futures for exceptions
 
-    # Write edges to the Gremlin graph
-    click.echo("Writing edges to the Gremlin graph...")
-    with click.progressbar(nix_graph.packages) as model_pkgs_with_bar:
-        for model_package in model_pkgs_with_bar:
-            pkgs = safe_parse_package(model_package)
-            for build_input in model_package.build_inputs:
-                edge = _edge_from_build_input_type(build_input.build_input_type)
-                if is_output_path_in_graph(nix_graph, build_input.output_path):
-                    bi_graph_package = graph.Package(
-                        pname=model_package.nixpkgs_metadata.pname,
-                        outputPath=build_input.output_path,
-                    )
-                    for current_graph_package in pkgs:
-                        write_edge_to_graph(
-                            current_graph_package, bi_graph_package, edge
-                        )
+        click.echo("Writing edges")
+        with click.progressbar(length=len(edges)) as bar:
+            futures = [ex.submit(write_edge, e) for e in edges]
+            for f in futures:
+                f.add_done_callback(lambda _x: bar.update(1))
+            wait(futures)
+            # FIXME: Check futures for exceptions
 
 
 @click.command(
@@ -204,11 +243,16 @@ def main(graph_json: str, gremlin_server: str, gremlin_source: str):
     with closing(
         default_remote_connection(gremlin_server, traversal_source=gremlin_source)
     ) as remote:
-        g = traversal().with_remote(remote)
+        g_factory = lambda: traversal().with_remote(remote)
+        click.echo("Done.")
+
+        click.echo("Purging existing entities.")
+        g_factory().V().drop().iterate().to_list()
+        g_factory().E().drop().iterate().to_list()
         click.echo("Done.")
 
         click.echo("Beginning to write Nix graph to Gremlin Server...")
-        ingest_nix_graph(nix_graph, g)
+        ingest_nix_graph(nix_graph, g_factory)
         click.echo("Success! Exiting...")
 
 
