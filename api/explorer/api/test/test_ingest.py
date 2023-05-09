@@ -163,11 +163,11 @@ def test_unit_ingest_nix_graph(graph_connection: DriverRemoteConnection):
     """Check that all expected nodes and edges are created when ingesting a nix graph"""
     from explorer.api.ingest import ingest_nix_graph
 
-    g = traversal().with_remote(graph_connection)
-    ingest_nix_graph(dummy_nix_graph, g)
+    g_factory = lambda: traversal().with_remote(graph_connection)
+    ingest_nix_graph(dummy_nix_graph, g_factory)
 
-    n_nodes = g.V().count().to_list()
-    n_edges = g.E().count().to_list()
+    n_nodes = g_factory().V().count().to_list()
+    n_edges = g_factory().E().count().to_list()
 
     # TODO: It might be worth further tightening the assertions here in the future
     # since checking the count is only a rough approximation of correctness.
