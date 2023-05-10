@@ -41,7 +41,7 @@ dummy_pkg_b = model.Package(
     build_inputs=[
         model.BuildInput(
             build_input_type=model.BuildInputType.BUILD_INPUT,
-            output_path="/C",
+            output_path=dummy_pkg_c.output_paths[0].path,
         )
     ],
 )
@@ -55,11 +55,11 @@ dummy_pkg_a = model.Package(
     build_inputs=[
         model.BuildInput(
             build_input_type=model.BuildInputType.BUILD_INPUT,
-            output_path="/B",
+            output_path=dummy_pkg_b.output_paths[0].path,
         ),
         model.BuildInput(
             build_input_type=model.BuildInputType.BUILD_INPUT,
-            output_path="/D",
+            output_path=dummy_pkg_d.output_paths[0].path,
         ),
     ],
 )
