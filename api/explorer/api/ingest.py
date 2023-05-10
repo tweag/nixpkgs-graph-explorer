@@ -121,13 +121,22 @@ def split_nix_graph(
         Exception: If package metadata cannot be found for the output path corresponding
     to an edge's input vertex.
     """
+    # A dictionary that maps package output paths to package objects.
     packages = {}
+
+    # A dictionary that maps pairs of package output paths to edge objects.
     edge_refs = {}
+
+    # A list of tuples containing package, edge, and dependency package objects.
     edges = []
+
+    # Iterate over each package in the Nix graph
     for p in nix_graph.packages:
         parsed = safe_parse_package(p)
         for ps in parsed:
             packages[ps.outputPath] = ps
+            # Populate edge_refs dictionary with package output path pairs
+            # and their corresponding edge objects
             edge_refs |= {
                 (
                     ps.outputPath,
@@ -157,6 +166,7 @@ def split_nix_graph(
             f"Warning: {len(missing)} build input(s) in the input JSON file "
             "do not have a corresponding package and will be ignored."
         )
+    # Return the list of API package objects and the list of API package edges
     return list(packages.values()), edges
 
 
