@@ -215,7 +215,12 @@ def ingest_nix_graph(
             for f in futures:
                 f.add_done_callback(lambda _x: bar.update(1))
             wait(futures)
-            # FIXME: Check futures for exceptions
+            exceptions = [f.exception() for f in futures if f.exception()]
+            if exceptions:
+                # Raise a single exception after all tasks have completed
+                raise Exception(
+                    "Exceptions occurred while writing packages."
+                ) from exceptions[0]
 
         click.echo("Writing edges")
         with click.progressbar(length=len(edges)) as bar:
@@ -223,7 +228,11 @@ def ingest_nix_graph(
             for f in futures:
                 f.add_done_callback(lambda _x: bar.update(1))
             wait(futures)
-            # FIXME: Check futures for exceptions
+            for f in futures:
+                try:
+                    f.result()
+                except Exception as exc:
+                    logger.exception(exc)
 
 
 @click.command(
