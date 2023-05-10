@@ -87,6 +87,7 @@ def safe_parse_package(model_pkg: model.Package) -> list[graph.Package]:
 
 
 def _edge_from_build_input_type(build_input_type: model.BuildInputType) -> graph.Edge:
+    """Creates an edge object based on the given build input type."""
     if build_input_type == model.BuildInputType.BUILD_INPUT.value:
         return graph.HasBuildInput()
     elif build_input_type == model.BuildInputType.PROPAGATED_BUILD_INPUT.value:
@@ -100,7 +101,26 @@ def _edge_from_build_input_type(build_input_type: model.BuildInputType) -> graph
         )
 
 
-def split_nix_graph(nix_graph: model.NixGraph):
+def split_nix_graph(
+    nix_graph: model.NixGraph,
+) -> Tuple[list[graph.Package], list[Tuple[graph.Package, graph.Edge, graph.Package]]]:
+    """
+    Splits a Nix graph into API packages and edges.
+
+    Args:
+        nix_graph (model.NixGraph): The Nix graph to split.
+
+    Returns:
+        Tuple[
+            List[graph.Package],
+            List[Tuple[graph.Package, graph.Edge, graph.Package]]
+        ]:
+        A tuple containing the list of API packages and the list of API package edges.
+
+    Raises:
+        Exception: If package metadata cannot be found for the output path corresponding
+    to an edge's input vertex.
+    """
     packages = {}
     edge_refs = {}
     edges = []
@@ -119,7 +139,12 @@ def split_nix_graph(nix_graph: model.NixGraph):
     for paths, edge in edge_refs.items():
         package_output_path, dependency_output_path = paths
         if package_output_path not in packages:
-            raise Exception("EXPLODE")
+            raise Exception(
+                "Package metadata could not be found for the output path "
+                "corresponding to the edge's input vertex. "
+                "This should be impossible! "
+                f"Output path: {package_output_path} "
+            )
         if dependency_output_path not in packages:
             missing.append(dependency_output_path)
             continue
@@ -128,7 +153,10 @@ def split_nix_graph(nix_graph: model.NixGraph):
         )
 
     if missing:
-        print(f"Missing packages for a total of {len(missing)} build inputs")
+        print(
+            f"Warning: {len(missing)} build input(s) in the input JSON file "
+            "do not have a corresponding package and will be ignored."
+        )
     return list(packages.values()), edges
 
 
