@@ -105,7 +105,7 @@ def split_nix_graph(
     nix_graph: model.NixGraph,
 ) -> tuple[list[graph.Package], list[tuple[graph.Package, graph.Edge, graph.Package]]]:
     """
-    Splits a Nix graph into API packages and edges.
+    Turn a parsed NixGraph from core model into two lists, a list of nodes (Package) and a list of edges, in the API model.
 
     Args:
         nix_graph (model.NixGraph): The Nix graph to split.
