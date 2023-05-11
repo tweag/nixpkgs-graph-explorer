@@ -120,8 +120,8 @@ def split_nix_graph(
     Raises:
         Exception: when the output path of an edge's vertex does not correspond to any derivation in the NixGraph 
     """
-    # A dictionary that maps package output paths to package objects.
-    packages = {}
+    # Map from output path to package node
+    packages: dict[str, Package] = {}
 
     # A dictionary that maps pairs of package output paths to edge objects.
     edge_refs = {}
