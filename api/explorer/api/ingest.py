@@ -103,7 +103,7 @@ def _edge_from_build_input_type(build_input_type: model.BuildInputType) -> graph
 
 def split_nix_graph(
     nix_graph: model.NixGraph,
-) -> Tuple[list[graph.Package], list[Tuple[graph.Package, graph.Edge, graph.Package]]]:
+) -> tuple[list[graph.Package], list[tuple[graph.Package, graph.Edge, graph.Package]]]:
     """
     Splits a Nix graph into API packages and edges.
 
