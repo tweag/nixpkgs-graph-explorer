@@ -41,7 +41,7 @@ dummy_pkg_b = model.Package(
     build_inputs=[
         model.BuildInput(
             build_input_type=model.BuildInputType.BUILD_INPUT,
-            package=dummy_pkg_c,
+            output_path=dummy_pkg_c.output_paths[0].path,
         )
     ],
 )
@@ -55,16 +55,18 @@ dummy_pkg_a = model.Package(
     build_inputs=[
         model.BuildInput(
             build_input_type=model.BuildInputType.BUILD_INPUT,
-            package=dummy_pkg_b,
+            output_path=dummy_pkg_b.output_paths[0].path,
         ),
         model.BuildInput(
             build_input_type=model.BuildInputType.BUILD_INPUT,
-            package=dummy_pkg_d,
+            output_path=dummy_pkg_d.output_paths[0].path,
         ),
     ],
 )
 
-dummy_nix_graph = model.NixGraph(packages=[dummy_pkg_a])
+dummy_nix_graph = model.NixGraph(
+    packages=[dummy_pkg_a, dummy_pkg_b, dummy_pkg_c, dummy_pkg_d]
+)
 
 
 #######################################################################################
@@ -157,45 +159,17 @@ def test_unit_core_to_graph_model_no_pname_raises():
         core_to_graph_model(pkg)
 
 
-def test_unit_traverse_visits_all_nodes():
-    """Check traverse visits all nodes in the input graph"""
-    from explorer.api.ingest import traverse
-
-    visited_root_pkgs: list[str] = []
-    visited_pkgs: list[str] = []
-
-    def visit_root_node(p: graph.Package):
-        visited_root_pkgs.append(p.outputPath)
-
-    def visit_layer(p: graph.Package, up: graph.Package, _e: graph.Edge):
-        visited_pkgs.append(p.outputPath)
-        visited_pkgs.append(up.outputPath)
-
-    traverse(dummy_nix_graph, visit_root_node, visit_layer)
-
-    expected_root_pkgs = set(map(lambda x: x.path, dummy_pkg_a.output_paths))
-    expected_pkgs = set(
-        map(
-            lambda x: x.path,
-            dummy_pkg_a.output_paths
-            + dummy_pkg_b.output_paths
-            + dummy_pkg_c.output_paths
-            + dummy_pkg_d.output_paths,
-        )
-    )
-    assert set(visited_root_pkgs) == expected_root_pkgs
-    assert set(visited_pkgs) == expected_pkgs
-
-
 def test_unit_ingest_nix_graph(graph_connection: DriverRemoteConnection):
     """Check that all expected nodes and edges are created when ingesting a nix graph"""
     from explorer.api.ingest import ingest_nix_graph
 
-    g = traversal().with_remote(graph_connection)
-    ingest_nix_graph(dummy_nix_graph, g)
+    def g_factory():
+        return traversal().with_remote(graph_connection)
 
-    n_nodes = g.V().count().to_list()
-    n_edges = g.E().count().to_list()
+    ingest_nix_graph(dummy_nix_graph, g_factory)
+
+    n_nodes = g_factory().V().count().to_list()
+    n_edges = g_factory().E().count().to_list()
 
     # TODO: It might be worth further tightening the assertions here in the future
     # since checking the count is only a rough approximation of correctness.

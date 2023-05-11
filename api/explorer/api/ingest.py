@@ -1,6 +1,8 @@
 import logging
+import threading
+from concurrent.futures import ThreadPoolExecutor, wait
 from contextlib import closing
-from typing import Callable, Iterable, TypeVar
+from typing import Callable, Tuple
 
 import click
 from explorer.core import model
@@ -85,6 +87,7 @@ def safe_parse_package(model_pkg: model.Package) -> list[graph.Package]:
 
 
 def _edge_from_build_input_type(build_input_type: model.BuildInputType) -> graph.Edge:
+    """Creates an edge object based on the given build input type."""
     if build_input_type == model.BuildInputType.BUILD_INPUT.value:
         return graph.HasBuildInput()
     elif build_input_type == model.BuildInputType.PROPAGATED_BUILD_INPUT.value:
@@ -98,75 +101,77 @@ def _edge_from_build_input_type(build_input_type: model.BuildInputType) -> graph
         )
 
 
-# TODO: Add retry logic
-def _do_next_graph_level(
-    model_pkg: model.Package,
-    do_fn: Callable[[graph.Package, graph.Package, graph.Edge], None],
-) -> list[model.Package]:
-    # Map package from core model in that used in the graph. This will expand the
-    # input node into N nodes based on the number of the node's output paths.
-    pkgs = safe_parse_package(model_pkg)
-    # Create all dependency nodes and draw an edge between the input package nodes and
-    # them.
-    for pkg in pkgs:
-        for build_input in model_pkg.build_inputs:
-            edge = _edge_from_build_input_type(build_input.build_input_type)
-            try:
-                # Since build_inputs is defined using the core model, we need to parse
-                # it into the graph model similar to what we do above for model_pkg.
-                build_input_pkgs = safe_parse_package(build_input.package)
-            except IngestionError as e:
-                logger.exception(e)
-                build_input_pkgs = []
-            for bi_pkg in build_input_pkgs:
-                do_fn(pkg, bi_pkg, edge)
-    return [bi.package for bi in model_pkg.build_inputs]
-
-
-A = TypeVar("A")
-
-
-def flatten(lls: Iterable[Iterable[A]]) -> list[A]:
-    """Flattens nested iterables into a list"""
-    return [x for sublist in lls for x in sublist]
-
-
-def traverse(
+def split_nix_graph(
     nix_graph: model.NixGraph,
-    root_fn: Callable[[graph.Package], None],
-    do_fn: Callable[[graph.Package, graph.Package, graph.Edge], None],
-):
-    """Traverse a Nix graph
-
-    Performs a breadth-first traversal of a nix graph, executing the provided
-    functions on each level of the graph.
+) -> tuple[list[graph.Package], list[tuple[graph.Package, graph.Edge, graph.Package]]]:
+    """
+    Turn a parsed NixGraph from core model into two lists, a list of nodes (Package) and a list of edges, in the API model.
 
     Args:
-        nix_graph (model.NixGraph): The NixGraph to traverse
-        root_fn (Callable[[graph.Package], None]): A function to call only on the root
-            level of the nix graph. This can be useful for things like initialization
-            steps.
-        do_fn (Callable[[graph.Package, graph.Package, graph.Edge], None]): A function
-            to call on every level of the graph, including the root level. This
-            function is expected to take three arguments which correspond to the
-            current level, the next level, and the edge describing the relationship
-            between the current level and the next level.
+        nix_graph (model.NixGraph): parsed NixGraph (core model)
+
+    Returns:
+        tuple[
+            List[graph.Package],
+            List[tuple[graph.Package, graph.Edge, graph.Package]]
+        ]:
+        A tuple containing the list of nodes (packages) and the list of edges, both in the graph API model.
+
+    Raises:
+        Exception: when the output path of an edge's vertex does not correspond to any derivation in the NixGraph
     """
-    for model_pkg in nix_graph.packages:
-        # Apply the user provided function to the first layer
-        pkgs = safe_parse_package(model_pkg)
-        for pkg in pkgs:
-            root_fn(pkg)
-        next_pkgs = _do_next_graph_level(model_pkg, do_fn)
-        # Iterate over each remaining layer until no more remain
-        while next_pkgs:
-            # TODO: Exception handling
-            next_pkgs = flatten(
-                map(lambda p: _do_next_graph_level(p, do_fn), next_pkgs)
+    # Map from output path to package node
+    packages: dict[str, Package] = {}
+
+    # A dictionary that maps pairs of package output paths to edge objects.
+    edge_refs = {}
+
+    # A list of tuples containing package, edge, and dependency package objects.
+    edges = []
+
+    # Iterate over each package in the Nix graph
+    for p in nix_graph.packages:
+        parsed = safe_parse_package(p)
+        for ps in parsed:
+            packages[ps.outputPath] = ps
+            # Populate edge_refs dictionary with package output path pairs
+            # and their corresponding edge objects
+            edge_refs |= {
+                (
+                    ps.outputPath,
+                    build_input.output_path,
+                ): _edge_from_build_input_type(build_input.build_input_type)
+                for build_input in p.build_inputs
+            }
+    missing = []
+    for paths, edge in edge_refs.items():
+        package_output_path, dependency_output_path = paths
+        if package_output_path not in packages:
+            raise Exception(
+                "Package metadata could not be found for the output path "
+                "corresponding to the edge's input vertex. "
+                "This should be impossible! "
+                f"Output path: {package_output_path} "
             )
+        if dependency_output_path not in packages:
+            missing.append(dependency_output_path)
+            continue
+        edges.append(
+            (packages[package_output_path], edge, packages[dependency_output_path])
+        )
+
+    if missing:
+        print(
+            f"Warning: {len(missing)} build input(s) in the input JSON file "
+            "do not have a corresponding package and will be ignored."
+        )
+    # Return the list of API package objects and the list of API package edges
+    return list(packages.values()), edges
 
 
-def ingest_nix_graph(nix_graph: model.NixGraph, g: GraphTraversalSource) -> None:
+def ingest_nix_graph(
+    nix_graph: model.NixGraph, g_factory: Callable[[], GraphTraversalSource]
+) -> None:
     """Writes the entire provided Nix graph to the provided Gremlin traversal source
 
     Args:
@@ -175,28 +180,57 @@ def ingest_nix_graph(nix_graph: model.NixGraph, g: GraphTraversalSource) -> None
             the Nix graph
     """
 
-    # Note: As an optimization we split logic for writing the graph into two
-    # functions. The first one ensures that every root node of the graph exists
-    def write_root_node_to_graph(root_package: graph.Package) -> None:
-        graph.insert_unique_vertex(root_package, g)
+    packages, edges = split_nix_graph(nix_graph)
 
-    # Then, this second function handles writing the next level of the graph as well
-    # as the edge connecting the levels, assuming that the current level already exists
-    # in the Gremlin graph.
-    def write_layer_to_graph(
-        current_package: graph.Package,
-        upstream_package: graph.Package,
-        edge: graph.Edge,
-    ) -> None:
-        graph.insert_unique_vertex(upstream_package, g)
+    # Write nodes to the Gremlin graph
+    click.echo("Writing nodes to the Gremlin graph...")
+
+    def get_local_client() -> GraphTraversalSource:
+        thread_local = threading.local()
+        g = getattr(thread_local, "g", None)
+        if g is None:
+            thread_local.g = g_factory()
+        return thread_local.g
+
+    def write_package(p: graph.Package):
+        g = get_local_client()
+        graph.insert_unique_vertex(p, g)
+
+    def write_edge(input: Tuple[graph.Package, graph.Edge, graph.Package]):
+        current_package, edge, dependency_package = input
+        g = get_local_client()
         graph.insert_unique_directed_edge(
             edge,
             from_vertex=current_package,
-            to_vertex=upstream_package,
+            to_vertex=dependency_package,
             g=g,
         )
 
-    traverse(nix_graph, write_root_node_to_graph, write_layer_to_graph)
+    with ThreadPoolExecutor() as ex:
+        click.echo("Writing packages")
+        with click.progressbar(length=len(packages)) as bar:
+            futures = [ex.submit(write_package, p) for p in packages]
+            for f in futures:
+                f.add_done_callback(lambda _x: bar.update(1))
+            wait(futures)
+            exceptions = [f.exception() for f in futures if f.exception()]
+            if exceptions:
+                # Raise a single exception after all tasks have completed
+                raise Exception(
+                    "Exceptions occurred while writing packages."
+                ) from exceptions[0]
+
+        click.echo("Writing edges")
+        with click.progressbar(length=len(edges)) as bar:
+            futures = [ex.submit(write_edge, e) for e in edges]
+            for f in futures:
+                f.add_done_callback(lambda _x: bar.update(1))
+            wait(futures)
+            for f in futures:
+                try:
+                    f.result()
+                except Exception as exc:
+                    logger.exception(exc)
 
 
 @click.command(
@@ -232,11 +266,19 @@ def main(graph_json: str, gremlin_server: str, gremlin_source: str):
     with closing(
         default_remote_connection(gremlin_server, traversal_source=gremlin_source)
     ) as remote:
-        g = traversal().with_remote(remote)
+
+        def g_factory():
+            return traversal().with_remote(remote)
+
+        click.echo("Done.")
+
+        click.echo("Purging existing entities.")
+        g_factory().V().drop().iterate().to_list()
+        g_factory().E().drop().iterate().to_list()
         click.echo("Done.")
 
         click.echo("Beginning to write Nix graph to Gremlin Server...")
-        ingest_nix_graph(nix_graph, g)
+        ingest_nix_graph(nix_graph, g_factory)
         click.echo("Success! Exiting...")
 
 
