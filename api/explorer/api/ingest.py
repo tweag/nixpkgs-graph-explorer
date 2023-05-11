@@ -115,7 +115,7 @@ def split_nix_graph(
             List[graph.Package],
             List[Tuple[graph.Package, graph.Edge, graph.Package]]
         ]:
-        A tuple containing the list of API packages and the list of API package edges.
+        A tuple containing the list of nodes (packages) and the list of edges, both in the graph API model.
 
     Raises:
         Exception: If package metadata cannot be found for the output path corresponding
