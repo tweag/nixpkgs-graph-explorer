@@ -111,14 +111,14 @@ def split_nix_graph(
         nix_graph (model.NixGraph): parsed NixGraph (core model)
 
     Returns:
-        Tuple[
+        tuple[
             List[graph.Package],
-            List[Tuple[graph.Package, graph.Edge, graph.Package]]
+            List[tuple[graph.Package, graph.Edge, graph.Package]]
         ]:
         A tuple containing the list of nodes (packages) and the list of edges, both in the graph API model.
 
     Raises:
-        Exception: when the output path of an edge's vertex does not correspond to any derivation in the NixGraph 
+        Exception: when the output path of an edge's vertex does not correspond to any derivation in the NixGraph
     """
     # Map from output path to package node
     packages: dict[str, Package] = {}
@@ -193,7 +193,6 @@ def ingest_nix_graph(
         return thread_local.g
 
     def write_package(p: graph.Package):
-        # print(p)
         g = get_local_client()
         graph.insert_unique_vertex(p, g)
 
