@@ -118,8 +118,7 @@ def split_nix_graph(
         A tuple containing the list of nodes (packages) and the list of edges, both in the graph API model.
 
     Raises:
-        Exception: If package metadata cannot be found for the output path corresponding
-    to an edge's input vertex.
+        Exception: when the output path of an edge's vertex does not correspond to any derivation in the NixGraph 
     """
     # A dictionary that maps package output paths to package objects.
     packages = {}
