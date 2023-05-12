@@ -1,2 +1,0 @@
-gremlinpython==3.5.1
-pandas==1.5.0
