@@ -105,7 +105,8 @@ def split_nix_graph(
     nix_graph: model.NixGraph,
 ) -> tuple[list[graph.Package], list[tuple[graph.Package, graph.Edge, graph.Package]]]:
     """
-    Turn a parsed NixGraph from core model into two lists, a list of nodes (Package) and a list of edges, in the API model.
+    Turn a parsed NixGraph from core model into two lists, a list of nodes (Package)
+    and a list of edges, in the API model.
 
     Args:
         nix_graph (model.NixGraph): parsed NixGraph (core model)
@@ -115,13 +116,15 @@ def split_nix_graph(
             List[graph.Package],
             List[tuple[graph.Package, graph.Edge, graph.Package]]
         ]:
-        A tuple containing the list of nodes (packages) and the list of edges, both in the graph API model.
+        A tuple containing the list of nodes (packages) and the list of edges,
+    both in the graph API model.
 
     Raises:
-        Exception: when the output path of an edge's vertex does not correspond to any derivation in the NixGraph
+        Exception: when the output path of an edge's vertex does not correspond to
+    any derivation in the NixGraph
     """
     # Map from output path to package node
-    packages: dict[str, Package] = {}
+    packages: dict[str, graph.Package] = {}
 
     # A dictionary that maps pairs of package output paths to edge objects.
     edge_refs = {}
