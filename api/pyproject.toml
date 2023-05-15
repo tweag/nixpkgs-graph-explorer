@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nixpkgs-graph-api"
-version = "0.1.0"
+version = "1.0.0"
 description = "API server for nixpkgs-graph-explorer"
 authors = [
     "Johann Eicher <johann.eicher@tweag.io>",
