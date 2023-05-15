@@ -24,7 +24,9 @@ class OutputPath(BaseModel):
 class ParsedName(BaseModel):
     """The parsed output of the builtins.parseDrvName function."""
 
-    name: str = Field(description="The package name of the Nix derivation")
+    name: str | None = Field(
+        default=None, description="The package name of the Nix derivation"
+    )
     version: str = Field(description="The version of the Nix derivation")
 
 
