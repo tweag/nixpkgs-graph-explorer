@@ -13,6 +13,7 @@ from explorer.api.gremlin import default_remote_connection
 dummy_pkg_d = model.Package(
     name="D",
     output_paths=[model.OutputPath(name="out", path="/D")],
+    parsed_name=model.ParsedName(name="D", version="1.0"),
     nixpkgs_metadata=model.NixpkgsMetadata(
         pname="D", version="1.0", broken=False, license="MIT"
     ),
@@ -23,6 +24,7 @@ dummy_pkg_d = model.Package(
 dummy_pkg_c = model.Package(
     name="C",
     output_paths=[model.OutputPath(name="out", path="/C")],
+    parsed_name=model.ParsedName(name="C", version="1.0"),
     nixpkgs_metadata=model.NixpkgsMetadata(
         pname="C",
         version="1.0",
@@ -35,6 +37,7 @@ dummy_pkg_c = model.Package(
 dummy_pkg_b = model.Package(
     name="B",
     output_paths=[model.OutputPath(name="out", path="/B")],
+    parsed_name=model.ParsedName(name="B", version="1.0"),
     nixpkgs_metadata=model.NixpkgsMetadata(
         pname="B", version="1.0", broken=False, license="MIT"
     ),
@@ -49,6 +52,7 @@ dummy_pkg_b = model.Package(
 dummy_pkg_a = model.Package(
     name="A",
     output_paths=[model.OutputPath(name="out", path="/A")],
+    parsed_name=model.ParsedName(name="A", version="1.0"),
     nixpkgs_metadata=model.NixpkgsMetadata(
         pname="A", version="1.0", broken=False, license="MIT"
     ),
@@ -97,6 +101,7 @@ def test_unit_core_to_graph_model():
 
     pkg = model.Package(
         name="foo",
+        parsed_name=model.ParsedName(name="foo", version="1.0"),
         output_paths=[
             model.OutputPath(name="dev", path="/foo/dev"),
             model.OutputPath(name="lib", path="/foo/lib"),
@@ -121,6 +126,7 @@ def test_unit_core_to_graph_model_no_output_path():
     pkg = model.Package(
         name="foo",
         output_paths=[],
+        parsed_name=model.ParsedName(name="foo", version="1.0"),
         nixpkgs_metadata=model.NixpkgsMetadata(
             pname="foo", version="1.0", broken=False, license="MIT"
         ),
@@ -129,13 +135,14 @@ def test_unit_core_to_graph_model_no_output_path():
     assert core_to_graph_model(pkg) == []
 
 
-def test_unit_core_to_graph_model_no_metadata_raises():
+def test_unit_core_to_graph_model_no_parsed_name_raises():
     """Check that attempting to parse a package without nixpkgs_metadata fails"""
     from explorer.api.ingest import IngestionError, core_to_graph_model
 
     pkg = model.Package(
         name="foo",
         output_paths=[],
+        parsed_name=None,
         nixpkgs_metadata=None,
         build_inputs=[],
     )
@@ -150,6 +157,7 @@ def test_unit_core_to_graph_model_no_pname_raises():
     pkg = model.Package(
         name="foo",
         output_paths=[],
+        parsed_name=model.ParsedName(name=None, version="1.0"),
         nixpkgs_metadata=model.NixpkgsMetadata(
             pname=None, version="1.0", broken=False, license="MIT"
         ),

@@ -41,26 +41,26 @@ def core_to_graph_model(pkg: model.Package) -> list[graph.Package]:
     Returns:
         list[graph.Package]
     """
-    if pkg.nixpkgs_metadata is None:
+    if pkg.parsed_name is None:
         raise IngestionError(
             (
-                "The provided package did not have its nixpkgs_metadata attribute set,"
+                "The provided package did not have its parsed_name attribute set,"
                 " but this is required for converting it to the schema used by the"
                 f" nixpkgs-graph-explorer graph. Package: {pkg}"
             ),
             core_pkg=pkg,
         )
-    if pkg.nixpkgs_metadata.pname is None:
+    if pkg.parsed_name.name is None:
         raise IngestionError(
             (
-                "The provided package did not have its nixpkgs_metadata.pname attribute"
+                "The provided package did not have its parsed_name.name attribute"
                 " set, but this is required for converting it to the schema used by the"
                 f" nixpkgs-graph-explorer graph. Package: {pkg}"
             ),
             core_pkg=pkg,
         )
     return [
-        graph.Package(pname=pkg.nixpkgs_metadata.pname, outputPath=op.path)
+        graph.Package(pname=pkg.parsed_name.name, outputPath=op.path)
         for op in pkg.output_paths
     ]
 

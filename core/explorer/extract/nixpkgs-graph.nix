@@ -50,7 +50,7 @@ let
       if !(nixpkgs.lib.isString name) then null else
       {
         inherit name;
-        parsedName = (builtins.parseDrvName name);
+        parsed_name = (builtins.parseDrvName name);
         nixpkgs_metadata =
           {
             pname = (builtins.tryEval (if okValue ? pname
@@ -90,7 +90,7 @@ in
   packages =
     map
       (drv: {
-        inherit (drv) name parsedName attributesPath derivationPath outputPath output_paths nixpkgs_metadata;
+        inherit (drv) name parsed_name attributesPath derivationPath outputPath output_paths nixpkgs_metadata;
         build_inputs = builtins.concatLists
           [
             (nixpkgs.lib.remove null
