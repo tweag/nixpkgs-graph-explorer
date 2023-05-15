@@ -21,6 +21,13 @@ class OutputPath(BaseModel):
     path: str = Field(description="The output path")
 
 
+class ParsedName(BaseModel):
+    """The parsed output of the builtins.parseDrvName function."""
+
+    name: str = Field(description="The package name of the Nix derivation")
+    version: str = Field(description="The version of the Nix derivation")
+
+
 class BuildInputType(Enum):
     """The type of build input. In Nix there are three different types."""
 
@@ -45,6 +52,9 @@ class Package(BaseModel):
     name: str = Field(description="The name of the package")
     output_paths: list[OutputPath] = Field(
         description="A list of the package's output paths"
+    )
+    parsed_name: ParsedName | None = Field(
+        default=None, description="The parsed package name and version of the package"
     )
     nixpkgs_metadata: NixpkgsMetadata | None = Field(
         default=None, description="Optional metadata specific to packages from nixpkgs"
