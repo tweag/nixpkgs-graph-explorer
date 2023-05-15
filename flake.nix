@@ -50,6 +50,7 @@
                     --prose-wrap always \
                     --loglevel warn \
                     --ignore-path .gitignore \
+                    --ignore-path .prettierignore \
                 '';
             in
             [
