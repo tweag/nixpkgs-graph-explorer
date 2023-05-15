@@ -21,7 +21,7 @@
       "properties": {
         "name": {
           "title": "Name",
-          "description": "The output path's name (doc, dev, etc.)",
+          "description": "The output path's name (out, doc, dev, ...)",
           "type": "string"
         },
         "path": {
@@ -33,6 +33,27 @@
       "required": [
         "name",
         "path"
+      ]
+    },
+    "ParsedName": {
+      "title": "ParsedName",
+      "description": "The parsed output of the builtins.parseDrvName function.",
+      "type": "object",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "description": "The package name of the Nix derivation",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "description": "The version of the Nix derivation",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version"
       ]
     },
     "NixpkgsMetadata": {
@@ -82,26 +103,22 @@
       "type": "object",
       "properties": {
         "build_input_type": {
-          "description": "The type of build input.",
+          "description": "The type of build input",
           "allOf": [
             {
               "$ref": "#/definitions/BuildInputType"
             }
           ]
         },
-        "package": {
-          "title": "Package",
-          "description": "The input package",
-          "allOf": [
-            {
-              "$ref": "#/definitions/Package"
-            }
-          ]
+        "output_path": {
+          "title": "Output Path",
+          "description": "The output path of the input derivation",
+          "type": "string"
         }
       },
       "required": [
         "build_input_type",
-        "package"
+        "output_path"
       ]
     },
     "Package": {
@@ -121,6 +138,15 @@
           "items": {
             "$ref": "#/definitions/OutputPath"
           }
+        },
+        "parsed_name": {
+          "title": "Parsed Name",
+          "description": "The parsed package name and version of the package",
+          "allOf": [
+            {
+              "$ref": "#/definitions/ParsedName"
+            }
+          ]
         },
         "nixpkgs_metadata": {
           "title": "Nixpkgs Metadata",
