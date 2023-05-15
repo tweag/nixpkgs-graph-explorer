@@ -13,6 +13,7 @@ from explorer.api.gremlin import default_remote_connection
 dummy_pkg_d = model.Package(
     name="D",
     output_paths=[model.OutputPath(name="out", path="/D")],
+    parsed_name=model.ParsedName(name="D", version="1.0"),
     nixpkgs_metadata=model.NixpkgsMetadata(
         pname="D", version="1.0", broken=False, license="MIT"
     ),
@@ -23,6 +24,7 @@ dummy_pkg_d = model.Package(
 dummy_pkg_c = model.Package(
     name="C",
     output_paths=[model.OutputPath(name="out", path="/C")],
+    parsed_name=model.ParsedName(name="C", version="1.0"),
     nixpkgs_metadata=model.NixpkgsMetadata(
         pname="C",
         version="1.0",
@@ -35,6 +37,7 @@ dummy_pkg_c = model.Package(
 dummy_pkg_b = model.Package(
     name="B",
     output_paths=[model.OutputPath(name="out", path="/B")],
+    parsed_name=model.ParsedName(name="B", version="1.0"),
     nixpkgs_metadata=model.NixpkgsMetadata(
         pname="B", version="1.0", broken=False, license="MIT"
     ),
@@ -49,6 +52,7 @@ dummy_pkg_b = model.Package(
 dummy_pkg_a = model.Package(
     name="A",
     output_paths=[model.OutputPath(name="out", path="/A")],
+    parsed_name=model.ParsedName(name="A", version="1.0"),
     nixpkgs_metadata=model.NixpkgsMetadata(
         pname="A", version="1.0", broken=False, license="MIT"
     ),
