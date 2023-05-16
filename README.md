@@ -19,6 +19,15 @@ See instructions in [api](./api) to load data.
 
 ## Development
 
+We use [Nix](https://nixos.org/) to manage dependencies, so you need
+[Nix: the package manager](https://nixos.org/download.html) installed to develop
+nixpkgs-graph-explorer. Also, because we use advanced features of Nix (such as flakes), we
+recommend you turn them ON by default with an alias (in `.bashrc` for example):
+
+```
+alias nix='nix --extra-experimental-features nix-command --extra-experimental-features flakes'
+```
+
 The repository is currently split into a few parts, each with its own instructions:
 
 - [core](core): tools to extract the graph of derivations in nixpkgs
