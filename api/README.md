@@ -1,54 +1,56 @@
-# Nixpkgs graph explorer API
+# `nixpkgs-graph-explorer` -  `api`
 
-The REST API for the `nixpkgs-graph-explorer` project, written using
-[FastAPI](https://fastapi.tiangolo.com/).
+An API server to store and serve the data extracted by nixpkgs-graph-explorer core.
+
+## Usage
+
+### Set up
+
+```console
+poetry install --only main
+```
+
+### Load data
+
+This package comes with a command line utility called `explorer-ingest-graph` to load a Nix graph JSON file that follows [`nixpkgs-graph.schema.json`](../core/nixpkgs-graph.schema.json).
+To extract such JSON, see [the `core` package instructions](../core/README.md).
+
+```console
+poetry run python -m explorer.api.ingest --graph-json PATH_TO_FILE
+```
 
 ## Development
 
-To install the application you can run the following from the Nix shell defined
-in the project's [flake.nix](../flake.nix):
+### Set up
 
-```bash
+Use the Nix development shell provided in this repository, see `../README.md#use-nix`
+
+```console
 poetry install
 ```
 
-The Nix Flake also provides some helpers for formatting, etc:
+### Run locally
 
-```bash
-# Formatting
-format-python
-# Linting
-lint-python
-```
+To launch the app with hot reloading for fast iteration, use:
 
-Tests expect Gremlin Server and Postgres to be available. You can launch these
-with the Docker Compose file in the project's root directory:
-
-```bash
-# Launches the required docker-compose stack
-cd ..
-docker-compose --profile db up
-```
-
-then
-
-```bash
-cd api
-poetry run pytest
-```
-
-To launch the app with hot reloading for fast iteration, you can use:
-```bash
+```console
 poetry run uvicorn explorer.api:app --reload
 ```
 
-## Ingesting data
+### Test
 
-This `nixpkgs-graph-explorer` API comes with a command line utility called
-`explorer-ingest-graph` for ingesting a Nix graph JSON file (as specified in the
-[core package](../core/nixpkgs-graph.schema.json)). See the command's help menu
-for additional details on available options.
+Tests expect Gremlin Server and Postgres to be available.
+You can launch these with the Docker Compose file in the project's root directory:
 
-```bash
-poetry run explorer-ingest-graph --help
+```console
+# Launches the required docker-compose stack
+# From the repository root folder
+docker-compose --profile db up
 ```
+
+The project uses pytest:
+
+```
+poetry run pytest
+```
+
