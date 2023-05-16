@@ -53,3 +53,14 @@ docker-compose --profile all up
 nixpkgs-graph-explorer is now running. The API is available on `localhost:5000`
 and the front-end at `localhost:9091`, However, no data is currently loaded to
 the database. See the instructions in [api](./api) on how to ingest data.
+
+## Developing
+
+We use [Nix](https://nixos.org/) to manage dependencies, so you need
+[Nix: the package manager](https://nixos.org/download.html) installed to develop
+nixpkgs-graph-explorer. Also, because we use advanced features of Nix (such as flakes), we
+recommend you turn them ON by default with an alias (in `.bashrc` for example):
+
+```
+alias nix='nix --extra-experimental-features nix-command --extra-experimental-features flakes'
+```
