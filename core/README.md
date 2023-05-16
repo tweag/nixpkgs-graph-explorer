@@ -26,7 +26,7 @@ poetry install
 poetry run python -m explorer.extract --help
 
 # Extract the Nix data for nixpkgs on x86_64-linux distributions
-poetry run python -m explorer.extract
+poetry run python -m explorer.extract outfile.json
 ```
 
 To develop, install the dependencies, and feed them to [vscode](https://code.visualstudio.com/)
