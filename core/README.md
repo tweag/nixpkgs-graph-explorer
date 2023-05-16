@@ -28,6 +28,13 @@ To install the application you can run the following from the Nix shell defined 
 poetry install
 ```
 
+Then launch [vscode](https://code.visualstudio.com/) or your favorite editor from poetry,
+so that it picks up dependencies:
+
+```bash
+poetry run code .
+```
+
 ### JSON schema
 
 The JSON schema is written as a `pydantic` model in `explorer.core`.
