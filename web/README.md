@@ -8,6 +8,8 @@ The client is build with [Lit](https://lit.dev/) and [Shoelace](https://shoelace
 
 ### Set up
 
+Use the Nix development shell provided in this repository, see `../README.md#use-nix`
+
 ```
 npm install
 ```
