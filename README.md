@@ -14,12 +14,12 @@ it to a graph database compatible with the
 The repository is currently split into a few parts, each with its own
 documentation:
 
-* `api` The REST API for serving the graph
-* `etl` Scripts for extracting the nixpkgs graph and loading it to Gremlin
+* [api](api): The REST API for serving the graph
+* [core](core): Scripts for extracting the nixpkgs graph and loading it to Gremlin
   Server
-* `config` Various configuration
-* `docker` Docker image definitions, etc.
-* `web` Web app to interact with the API
+* [config](config): Various configuration
+* [docker](docker): Docker image definitions, etc.
+* [web](web): Web app to interact with the API
 
 ## Running locally
 
