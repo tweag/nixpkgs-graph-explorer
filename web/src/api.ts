@@ -71,6 +71,6 @@ export async function rawQuery(query: string) {
 
 export async function getGraph(pkgName: string) {
   return await rawQuery(
-    `g.V().has('package','pname','${pkgName}').repeat(outE().otherV().simplePath()).until(outE().count().is(0).or().loops().is(gte(2))).path().by('pname').by('label').limit(20)`
+    `g.V().has('package','pname','${pkgName}').repeat(outE().otherV().simplePath()).until(outE().count().is(0).or().loops().is(gte(2))).path().by('pname').by('label')`
   );
 }
