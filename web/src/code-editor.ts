@@ -39,19 +39,31 @@ export class CodeEditor extends LitElement {
   async addEditor() {
     const editor = await this._editor;
     let startState = EditorState.create({
-      doc: `g.V().filter{
-  it.get()
-    .value('pname')
-    // Edit the package name
-    .matches('nickel')
-}.repeat(
+      doc: `g.V()
+ .has(
+   'package',
+    'pname',
+    'python3'
+    // Package name goes here
+ )
+ .repeat(
    outE()
   .otherV()
   .simplePath())
-.times(2)
-.path()
-.by('pname')
-.by(label)`,
+ .until(
+   outE()
+  .count()
+  .is(0)
+  .or()
+  .loops()
+  .is(gte(2))
+  // The value in gte() limits
+  // the depth of the traversal
+ )
+ .path()
+ .by('pname')
+ .by('label')
+ .limit(20) `,
 
       extensions: [
         history(),
