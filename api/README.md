@@ -6,8 +6,8 @@ An API server to store and serve the data extracted by nixpkgs-graph-explorer co
 
 ### Set up
 
-```
-poetry install
+```console
+poetry install --only main
 ```
 
 ### Load data

@@ -11,7 +11,7 @@ This package
 ### Set up
 
 ```console
-poetry install
+poetry install --only main
 ```
 
 ### Extract nixpkgs graph of derivations
