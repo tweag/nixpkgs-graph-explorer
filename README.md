@@ -21,7 +21,7 @@ See instructions in [api](./api) to load data.
 
 The repository is currently split into a few parts, each with its own instructions:
 
-- `core`: tools to extract the graph of derivations in nixpkgs
-- `api`: an API to load and serve the graph
-- `web`: a frontend client to interact with the API
+- [core](core): tools to extract the graph of derivations in nixpkgs
+- [api](api): an API to load and serve the graph
+- [web](web): a frontend client to interact with the API
 
