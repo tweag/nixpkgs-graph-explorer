@@ -42,7 +42,7 @@ poetry install
 
 ### JSON schema
 
-The JSON schema is written as a `pydantic` model in `explorer.core`.
+The JSON schema is written as a [`pydantic`](https://docs.pydantic.dev/latest/) model in `explorer.core`.
 
 Once modified, update the JSON schema using the command:
 
