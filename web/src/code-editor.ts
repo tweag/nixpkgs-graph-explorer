@@ -63,7 +63,9 @@ export class CodeEditor extends LitElement {
  .path()
  .by('pname')
  .by('label')
- .limit(20) `,
+ .limit(20)
+  // This limits the number of "paths" returned
+  // (where a path = [vertex, edge, vertex])`,
 
       extensions: [
         history(),
