@@ -238,7 +238,7 @@ def ingest_nix_package(
                 wait(futures)
                 for i, f in enumerate(futures):
                     if f.exception():
-                        logger.error(
+                        logger.exception(
                             "Error occurred during package ingestion"
                             " (Attempt %s, Vertex: %s): %s",
                             attempt,
@@ -255,7 +255,7 @@ def ingest_nix_package(
                 click.echo("Retrying failed package ingestion in 5 seconds...")
                 time.sleep(5)
             else:
-                logger.error(
+                logger.exception(
                     "Maximum number of retries reached for package ingestion. Aborting."
                 )
                 # Abort ingestion if maximum retries reached
@@ -271,7 +271,7 @@ def ingest_nix_package(
                 wait(futures)
                 for i, f in enumerate(futures):
                     if f.exception():
-                        logger.error(
+                        logger.exception(
                             "Error occurred during edge ingestion "
                             "(Attempt %s, Edge: %s): %s",
                             attempt,
@@ -289,7 +289,7 @@ def ingest_nix_package(
                 click.echo("Retrying failed edge ingestion in 5 seconds...")
                 time.sleep(5)
             else:
-                logger.error(
+                logger.exception(
                     "Maximum number of retries reached for edge ingestion. Aborting."
                 )
                 # Abort ingestion if maximum retries reached
