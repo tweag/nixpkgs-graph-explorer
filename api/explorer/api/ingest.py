@@ -4,6 +4,7 @@ from concurrent.futures import ThreadPoolExecutor, wait
 from contextlib import closing
 from typing import Callable, Tuple
 
+import backoff
 import click
 from explorer.core import model
 from gremlin_python.process.anonymous_traversal import traversal
@@ -195,10 +196,12 @@ def ingest_nix_graph(
             thread_local.g = g_factory()
         return thread_local.g
 
+    @backoff.on_exception(backoff.expo, Exception, max_tries=3)
     def write_package(p: graph.Package):
         g = get_local_client()
         graph.insert_unique_vertex(p, g)
 
+    @backoff.on_exception(backoff.expo, Exception, max_tries=3)
     def write_edge(input: Tuple[graph.Package, graph.Edge, graph.Package]):
         current_package, edge, dependency_package = input
         g = get_local_client()
@@ -216,12 +219,12 @@ def ingest_nix_graph(
             for f in futures:
                 f.add_done_callback(lambda _x: bar.update(1))
             wait(futures)
-            exceptions = [f.exception() for f in futures if f.exception()]
-            if exceptions:
+            packages_exceptions = [f.exception() for f in futures if f.exception()]
+            if packages_exceptions:
                 # Raise a single exception after all tasks have completed
                 raise Exception(
                     "Exceptions occurred while writing packages."
-                ) from exceptions[0]
+                ) from packages_exceptions[0]
 
         click.echo("Writing edges")
         with click.progressbar(length=len(edges)) as bar:
@@ -229,11 +232,16 @@ def ingest_nix_graph(
             for f in futures:
                 f.add_done_callback(lambda _x: bar.update(1))
             wait(futures)
-            for f in futures:
-                try:
-                    f.result()
-                except Exception as exc:
-                    logger.exception(exc)
+            edges_exceptions = [f.exception() for f in futures if f.exception()]
+            if edges_exceptions:
+                # Raise a single exception after all tasks have completed
+                raise Exception(
+                    "Exceptions occurred while writing edges."
+                ) from edges_exceptions[0]
+
+        # Check if all tasks executed successfully
+        if len(packages_exceptions) == 0 and len(edges_exceptions) == 0:
+            click.echo("All ingestion tasks completed successfully.")
 
 
 @click.command(
