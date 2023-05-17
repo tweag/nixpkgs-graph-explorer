@@ -1,11 +1,11 @@
 import dataclasses
 import logging
 import threading
-import time
 from concurrent.futures import ThreadPoolExecutor, wait
 from contextlib import closing
 from typing import Callable, Optional, Tuple
 
+import backoff
 import click
 from explorer.core import model
 from gremlin_python.process.anonymous_traversal import traversal
@@ -209,10 +209,12 @@ def ingest_nix_package(
             thread_local.g = g_factory()
         return thread_local.g
 
+    @backoff.on_exception(backoff.expo, Exception, max_tries=3)
     def write_package(p: graph.Package):
         g = get_local_client()
         graph.insert_unique_vertex(p, g)
 
+    @backoff.on_exception(backoff.expo, Exception, max_tries=3)
     def write_edge(input: Tuple[graph.Package, graph.Edge, graph.Package]):
         current_package, edge, dependency_package = input
         g = get_local_client()
@@ -224,78 +226,35 @@ def ingest_nix_package(
         )
 
     with ThreadPoolExecutor() as ex:
-        failed_packages = packages.copy()
-        failed_edges = edges.copy()
+        click.echo("Writing packages")
+        with click.progressbar(length=len(packages)) as bar:
+            futures = [ex.submit(write_package, p) for p in packages]
+            for f in futures:
+                f.add_done_callback(lambda _x: bar.update(1))
+            wait(futures)
+            packages_exceptions = [f.exception() for f in futures if f.exception()]
+            if packages_exceptions:
+                # Raise a single exception after all tasks have completed
+                raise Exception(
+                    "Exceptions occurred while writing packages."
+                ) from packages_exceptions[0]
 
-        # Ingest vertices
-        for attempt in range(1, retries + 1):
-            click.echo(f"Writing packages (Attempt {attempt})")
+        click.echo("Writing edges")
+        with click.progressbar(length=len(edges)) as bar:
+            futures = [ex.submit(write_edge, e) for e in edges]
+            for f in futures:
+                f.add_done_callback(lambda _x: bar.update(1))
+            wait(futures)
+            edges_exceptions = [f.exception() for f in futures if f.exception()]
+            if edges_exceptions:
+                # Raise a single exception after all tasks have completed
+                raise Exception(
+                    "Exceptions occurred while writing edges."
+                ) from edges_exceptions[0]
 
-            with click.progressbar(length=len(failed_packages)) as bar:
-                futures = [ex.submit(write_package, p) for p in failed_packages]
-                for f in futures:
-                    f.add_done_callback(lambda _x: bar.update(1))
-                wait(futures)
-                failed_packages_copy = failed_packages.copy()
-                for i, f in enumerate(futures):
-                    if f.exception():
-                        logger.exception(
-                            "Error occurred during package ingestion"
-                            " (Attempt %s, Vertex: %s): %s",
-                            attempt,
-                            failed_packages[i],
-                            str(f.exception()),
-                        )
-                    else:
-                        # Remove the vertex as successfully ingested
-                        failed_packages.remove(failed_packages_copy[i])
-            if failed_packages == []:
-                # All vertices ingested successfully, break the loop
-                break
-            if attempt < retries:
-                click.echo("Retrying failed package ingestion in 5 seconds...")
-                time.sleep(5)
-            else:
-                click.echo(
-                    "Maximum number of retries reached for package ingestion. Aborting."
-                )
-                # Abort ingestion if maximum retries reached
-                break
-
-        # Ingest edges
-        for attempt in range(1, retries + 1):
-            click.echo(f"Writing edges (Attempt {attempt})")
-            with click.progressbar(length=len(failed_edges)) as bar:
-                futures = [ex.submit(write_edge, e) for e in failed_edges]
-                for f in futures:
-                    f.add_done_callback(lambda _x: bar.update(1))
-                wait(futures)
-                failed_edges_copy = failed_edges.copy()
-                for i, f in enumerate(futures):
-                    if f.exception():
-                        logger.exception(
-                            "Error occurred during edge ingestion "
-                            "(Attempt %s, Edge: %s): %s",
-                            attempt,
-                            failed_edges[i],
-                            str(f.exception()),
-                        )
-                    else:
-                        # Remove the edge as successfully ingested
-                        failed_edges.remove(failed_edges_copy[i])
-            if failed_edges == []:
-                # All edges ingested successfully, break the loop
-                break
-
-            if attempt < retries:
-                click.echo("Retrying failed edge ingestion in 5 seconds...")
-                time.sleep(5)
-            else:
-                click.echo(
-                    "Maximum number of retries reached for edge ingestion. Aborting."
-                )
-                # Abort ingestion if maximum retries reached
-                break
+        # Check if all tasks executed successfully
+        if len(packages_exceptions) == 0 and len(edges_exceptions) == 0:
+            click.echo("All ingestion tasks completed successfully.")
 
 
 def ingest_nix_graph(
