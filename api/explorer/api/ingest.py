@@ -247,9 +247,8 @@ def ingest_nix_package(
                         )
                     else:
                         # Mark the vertex as successfully ingested
-                        failed_packages[i] = None
-            failed_packages = [p for p in failed_packages if p is not None]
-            if not failed_packages:
+                        failed_packages.remove(failed_packages[i])
+            if failed_packages == []:
                 # All vertices ingested successfully, break the loop
                 break
             if attempt < retries:
@@ -281,9 +280,8 @@ def ingest_nix_package(
                         )
                     else:
                         # Mark the edge as successfully ingested
-                        failed_edges[i] = None
-            failed_edges = [e for e in failed_edges if e is not None]
-            if not failed_edges:
+                        failed_edges.remove(failed_edges[i])
+            if failed_edges == []:
                 # All edges ingested successfully, break the loop
                 break
 
