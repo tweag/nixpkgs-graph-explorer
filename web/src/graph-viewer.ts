@@ -12,11 +12,15 @@ import { DataPayload, QueryResultPayload } from "./api";
 
 cytoscape.use(dagre);
 
-function renderCyGraph(result: QueryResultPayload, container: HTMLElement) {
+function renderCyGraph(
+  result: QueryResultPayload,
+  container: HTMLElement,
+  onSelectNode: (nodeId: string) => void
+) {
   const graphData = result?.data;
   if (graphData == null) return;
   const data = graphData.cyto["graph-data"];
-  cytoscape({
+  const cy = cytoscape({
     container,
     ...data,
     layout: { name: "dagre" },
@@ -28,6 +32,9 @@ function renderCyGraph(result: QueryResultPayload, container: HTMLElement) {
         },
       },
     ],
+  });
+  cy.on("select", "node", function (evt) {
+    onSelectNode(evt.target.id());
   });
 }
 
@@ -45,6 +52,8 @@ export class GraphViewer extends LitElement {
   @property() queryResult?: QueryResultPayload;
 
   @state() _currentTab: TabType = TABS.graph;
+
+  @state() _selectedNode?: string = null;
 
   // Current error friendly message. The absence of a value (null/undefined)
   // represents the lack of a current error
@@ -85,6 +94,14 @@ export class GraphViewer extends LitElement {
       padding: 1em;
       font-family: monospace;
     }
+
+    #selected-node-details {
+      font-family: var(--sl-font-sans);
+      font-size: var(--sl-font-size-medium);
+      font-weight: var(--sl-font-weight-normal);
+      color: var(--sl-color-neutral-800);
+      line-height: var(--sl-line-height-normal);
+    }
   `;
 
   connectedCallback() {
@@ -124,6 +141,9 @@ export class GraphViewer extends LitElement {
             <div id="cy-container">
               <div id="cy"></div>
             </div>
+            <div id="selected-node-details">
+              <p>Selected node: ${this._selectedNode}</p>
+            </div>
           `,
         ],
         [
@@ -134,6 +154,10 @@ export class GraphViewer extends LitElement {
     `;
   }
 
+  selectNode(nodeId: string) {
+    this._selectedNode = nodeId;
+  }
+
   async updated(changedProperties: Map<string, any>) {
     if (
       this._errorMsg != null &&
@@ -141,7 +165,7 @@ export class GraphViewer extends LitElement {
       this._currentTab === TABS.graph
     ) {
       const cy = await this._cy;
-      renderCyGraph(this.queryResult, cy);
+      renderCyGraph(this.queryResult, cy, this.selectNode.bind(this));
     }
 
     if (this.queryResult != null && changedProperties.has("queryResult")) {
@@ -161,7 +185,7 @@ export class GraphViewer extends LitElement {
         this._errorMsg = null; // Remove old errors
         const cy = await this._cy;
         if (this._currentTab === TABS.graph)
-          renderCyGraph(this.queryResult, cy);
+          renderCyGraph(this.queryResult, cy, this.selectNode.bind(this));
       } catch {
         this._errorMsg = html`Something went wrong :(<br />
           Please try again later, if the error persists contact us on GitHub`;
