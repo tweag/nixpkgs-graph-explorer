@@ -255,7 +255,7 @@ def ingest_nix_package(
                 click.echo("Retrying failed package ingestion in 5 seconds...")
                 time.sleep(5)
             else:
-                logger.exception(
+                click.echo(
                     "Maximum number of retries reached for package ingestion. Aborting."
                 )
                 # Abort ingestion if maximum retries reached
@@ -289,7 +289,7 @@ def ingest_nix_package(
                 click.echo("Retrying failed edge ingestion in 5 seconds...")
                 time.sleep(5)
             else:
-                logger.exception(
+                click.echo(
                     "Maximum number of retries reached for edge ingestion. Aborting."
                 )
                 # Abort ingestion if maximum retries reached
