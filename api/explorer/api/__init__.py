@@ -15,7 +15,10 @@ from explorer.api.gremlin import WebSocketTransport, default_remote_connection
 from explorer.api.queries.packages import (
     ListPackagesRequest,
     ListPackagesResponse,
+    ListUniquePackageNamesRequest,
+    ListUniquePackageNamesResponse,
     list_packages,
+    list_unique_package_names,
 )
 from explorer.api.queries.query import GremlinResult, QueryResult
 
@@ -111,6 +114,14 @@ def packages(
 ) -> ListPackagesResponse:
     remote_connection = get_state(raw_request)["gremlin_remote_connection"]
     return list_packages(list_packages_request, remote_connection)
+
+
+@app.post("/package-names")
+def packages(
+    list_package_names_request: ListUniquePackageNamesRequest, raw_request: Request
+) -> ListUniquePackageNamesResponse:
+    remote_connection = get_state(raw_request)["gremlin_remote_connection"]
+    return list_unique_package_names(list_package_names_request, remote_connection)
 
 
 @app.post("/gremlin")
