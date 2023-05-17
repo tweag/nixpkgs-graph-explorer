@@ -236,6 +236,7 @@ def ingest_nix_package(
                 for f in futures:
                     f.add_done_callback(lambda _x: bar.update(1))
                 wait(futures)
+                failed_packages_copy = failed_packages.copy()
                 for i, f in enumerate(futures):
                     if f.exception():
                         logger.exception(
@@ -246,8 +247,8 @@ def ingest_nix_package(
                             str(f.exception()),
                         )
                     else:
-                        # Mark the vertex as successfully ingested
-                        failed_packages.remove(failed_packages[i])
+                        # Remove the vertex as successfully ingested
+                        failed_packages.remove(failed_packages_copy[i])
             if failed_packages == []:
                 # All vertices ingested successfully, break the loop
                 break
@@ -269,6 +270,7 @@ def ingest_nix_package(
                 for f in futures:
                     f.add_done_callback(lambda _x: bar.update(1))
                 wait(futures)
+                failed_edges_copy = failed_edges.copy()
                 for i, f in enumerate(futures):
                     if f.exception():
                         logger.exception(
@@ -279,8 +281,8 @@ def ingest_nix_package(
                             str(f.exception()),
                         )
                     else:
-                        # Mark the edge as successfully ingested
-                        failed_edges.remove(failed_edges[i])
+                        # Remove the edge as successfully ingested
+                        failed_edges.remove(failed_edges_copy[i])
             if failed_edges == []:
                 # All edges ingested successfully, break the loop
                 break
