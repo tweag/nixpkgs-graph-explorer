@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "nixpkgs-graph-core"
-version = "0.1.0"
+version = "1.0.0"
 description = "Core data model and related utilities for nixpkgs-graph-explorer"
 authors = [
     "Dorran Howell <dorran.howell@tweag.io>"
