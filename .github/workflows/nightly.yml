@@ -1,0 +1,32 @@
+---
+name: Nightly
+
+on:
+  workflow_dispatch:  # This makes possible to launch the pipeline manually on the GitHub UI
+  schedule:
+    # https://docs.github.com/en/actions/using-workflows/events-that-trigger-workflows#schedule
+    # Syntax: minute, hour, day of month, month, day of week
+    - cron: '0 4 * * 1-5'  # At 4AM on work days, see https://crontab.guru/
+
+jobs:
+  nightly:
+    name: Nightly
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - uses: cachix/install-nix-action@v19
+
+      - name: Install dependencies
+        run: |
+          nix develop --command bash -c 'cd core && poetry install'
+
+      - name: Run extraction
+        run: |
+          # We write the output to a file, not to standard output,
+          # to keep log size small.
+          nix develop --command bash -c 'cd core && poetry run python -m explorer.extract graph.json'
+          wc -l graph.json
