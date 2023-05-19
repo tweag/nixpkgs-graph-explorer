@@ -13,7 +13,6 @@ import click
 
 def reader(
     pipe_in: IO[Any],
-    pool: multiprocessing.pool.Pool,
     queue: multiprocessing.Queue,
     queued_output_paths: set[str],
     visited_output_paths: set[str],
@@ -97,7 +96,7 @@ def process_attribute_path(
 
 def process_queue(
     output_file_path: str,
-    pool: multiprocessing.pool.Pool,
+    pool: multiprocessing.pool.ThreadPool,
     queue: multiprocessing.Queue,
     queued_output_paths: set[str],
     visited_output_paths: set[str],
@@ -214,7 +213,6 @@ def extract_data(
         target=reader,
         args=[
             finder_process.stderr,
-            derivation_description_pool,
             derivation_description_queue,
             queued_output_paths,
             visited_output_paths,
@@ -238,9 +236,10 @@ def extract_data(
     process_queue_thread.start()
 
     finder_process.wait()
+    derivation_description_pool.close()
+    derivation_description_pool.join()
     reader_thread.join()
     process_queue_thread.join()
-    derivation_description_pool.join()
 
 
 if __name__ == "__main__":
