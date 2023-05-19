@@ -5,7 +5,6 @@ import multiprocessing.pool
 import os
 import pathlib
 import subprocess
-import sys
 from threading import Thread
 from typing import IO, Any
 
@@ -16,7 +15,7 @@ def reader(
     pipe_in: IO[Any],
     pool: multiprocessing.pool.Pool,
     queue: multiprocessing.Queue,
-    visited_output_paths: set[str],
+    queued_output_paths: set[str],
     logger,
 ):
     """Read lines from `pipe` to push attribute paths to process to `queue`"""
@@ -37,11 +36,12 @@ def reader(
                 for found_derivation in parsed_found_derivations:
                     output_path = found_derivation["outputPath"]
                     attribute_path = found_derivation["attributePath"]
-                    if output_path not in visited_output_paths:
+                    if output_path not in queued_output_paths:
                         queue.put(attribute_path)
+                        queued_output_paths.add(output_path)
                         logger.info(
                             "visited=%s,queue=%s",
-                            len(visited_output_paths),
+                            len(queued_output_paths),
                             queue.qsize(),
                         )
         # None means it's the end
@@ -52,13 +52,12 @@ def process_attribute_path(
     pipe_out: IO[str],
     pool: multiprocessing.pool.Pool,
     queue: multiprocessing.Queue,
-    visited_output_paths: set[str],
+    queued_output_paths: set[str],
     finder_env: dict,
     attribute_path: str,
 ):
     """Describe a derivation, write results to pipe_out and add potential
     derivations to process to queue"""
-    visited_output_paths.add(attribute_path)
     env = copy.deepcopy(finder_env)
     env["TARGET_ATTRIBUTE_PATH"] = attribute_path
     description_process = subprocess.run(
@@ -82,11 +81,12 @@ def process_attribute_path(
         for found_derivation in input_type_drvs:
             output_path = found_derivation["outputPath"]
             attribute_path = found_derivation["attributePath"]
-            if output_path not in visited_output_paths:
+            if output_path not in queued_output_paths:
                 queue.put(attribute_path)
+                queued_output_paths.add(output_path)
                 # logger.info(
                 #     "visited=%s,queue=%s",
-                #     len(visited_output_paths),
+                #     len(queued_output_paths),
                 #     queue.qsize(),
                 # )
 
@@ -95,21 +95,21 @@ def process_queue(
     output_file_path: str,
     pool: multiprocessing.pool.Pool,
     queue: multiprocessing.Queue,
-    visited_output_paths: set[str],
+    queued_output_paths: set[str],
     finder_env: dict,
     logger,
 ):
     """Continuously process attribute paths in the queue to the pool"""
 
     while (attribute_path := queue.get(block=True, timeout=60)) is not None:
-        logger.info("visited=%s,queue=%s", len(visited_output_paths), queue.qsize())
+        logger.info("visited=%s,queue=%s", len(queued_output_paths), queue.qsize())
         pool.apply_async(
             func=process_attribute_path,
             args=[
                 output_file_path,
                 pool,
                 queue,
-                visited_output_paths,
+                queued_output_paths,
                 finder_env,
                 attribute_path,
             ],
@@ -141,7 +141,7 @@ def process_queue(
 )
 @click.argument(
     "outfile",
-    type=click.File('wt'),
+    type=click.File("wt"),
 )
 def extract_data(
     target_flake_ref: str,
@@ -202,7 +202,7 @@ def extract_data(
 
     derivation_description_pool = multiprocessing.pool.ThreadPool(n_workers)
     derivation_description_queue = multiprocessing.Queue()
-    visited_output_paths: set[str] = set()
+    queued_output_paths: set[str] = set()
 
     Thread(
         target=reader,
@@ -210,7 +210,7 @@ def extract_data(
             finder_process.stderr,
             derivation_description_pool,
             derivation_description_queue,
-            visited_output_paths,
+            queued_output_paths,
             logger,
         ],
     ).start()
@@ -221,7 +221,7 @@ def extract_data(
             outfile,
             derivation_description_pool,
             derivation_description_queue,
-            visited_output_paths,
+            queued_output_paths,
             finder_env,
             logger,
         ],
