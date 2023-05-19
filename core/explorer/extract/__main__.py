@@ -1,10 +1,119 @@
+import copy
+import json
 import logging
+import multiprocessing.pool
 import os
 import pathlib
 import subprocess
+import sys
+from threading import Thread
 from typing import IO, Any
 
 import click
+
+
+def reader(
+    pipe_in: IO[Any],
+    pool: multiprocessing.pool.Pool,
+    queue: multiprocessing.Queue,
+    visited_output_paths: set[str],
+    logger,
+):
+    """Read lines from `pipe` to push attribute paths to process to `queue`"""
+    with pipe_in:
+        line: bytes
+        # read incoming lines from the Nix expression
+        for line in iter(pipe_in.readline, b""):
+            s = line.decode()
+            if s.startswith("trace: "):
+                # remove beginning "trace:"
+                s = s[6:]
+                try:
+                    # FIXME use pydantic
+                    parsed_found_derivations = json.loads(s)["foundDrvs"]
+                except Exception:
+                    # fail silently, most likely some other trace from nixpkgs
+                    continue
+                for found_derivation in parsed_found_derivations:
+                    output_path = found_derivation["outputPath"]
+                    attribute_path = found_derivation["attributePath"]
+                    if output_path not in visited_output_paths:
+                        queue.put(attribute_path)
+                        logger.info(
+                            "visited=%s,queue=%s",
+                            len(visited_output_paths),
+                            queue.qsize(),
+                        )
+        # None means it's the end
+        queue.put(None)
+
+
+def process_attribute_path(
+    pipe_out: IO[str],
+    pool: multiprocessing.pool.Pool,
+    queue: multiprocessing.Queue,
+    visited_output_paths: set[str],
+    finder_env: dict,
+    attribute_path: str,
+):
+    """Describe a derivation, write results to pipe_out and add potential
+    derivations to process to queue"""
+    visited_output_paths.add(attribute_path)
+    env = copy.deepcopy(finder_env)
+    env["TARGET_ATTRIBUTE_PATH"] = attribute_path
+    description_process = subprocess.run(
+        args=[
+            "nix",
+            "eval",
+            "--extra-experimental-features",
+            "nix-command flakes",
+            "--json",
+            "--file",
+            str(pathlib.Path(__file__).parent.joinpath("describe-derivation.nix")),
+        ],
+        capture_output=True,
+        # write to file passed as argument (or stdout)
+        env=env,
+    )
+    description_str = description_process.stdout.decode()
+    pipe_out.write(description_str)
+    description = json.loads(description_str)
+    for input_type, input_type_drvs in description["inputs"].items():
+        for found_derivation in input_type_drvs:
+            output_path = found_derivation["outputPath"]
+            attribute_path = found_derivation["attributePath"]
+            if output_path not in visited_output_paths:
+                queue.put(attribute_path)
+                # logger.info(
+                #     "visited=%s,queue=%s",
+                #     len(visited_output_paths),
+                #     queue.qsize(),
+                # )
+
+
+def process_queue(
+    output_file_path: str,
+    pool: multiprocessing.pool.Pool,
+    queue: multiprocessing.Queue,
+    visited_output_paths: set[str],
+    finder_env: dict,
+    logger,
+):
+    """Continuously process attribute paths in the queue to the pool"""
+
+    while (attribute_path := queue.get(block=True, timeout=60)) is not None:
+        logger.info("visited=%s,queue=%s", len(visited_output_paths), queue.qsize())
+        pool.apply_async(
+            func=process_attribute_path,
+            args=[
+                output_file_path,
+                pool,
+                queue,
+                visited_output_paths,
+                finder_env,
+                attribute_path,
+            ],
+        )
 
 
 @click.command()
@@ -19,6 +128,12 @@ import click
     help="The system in which to evaluate the packages",
 )
 @click.option(
+    "--n-workers",
+    default=1,
+    type=int,
+    help="Count of workers to spawn to describe the stream of found derivations",
+)
+@click.option(
     "--verbose",
     "-v",
     is_flag=True,
@@ -26,10 +141,14 @@ import click
 )
 @click.argument(
     "outfile",
-    type=click.File("wb"),
+    type=click.File('wt'),
 )
 def extract_data(
-    target_flake_ref: str, target_system: str, verbose: bool, outfile: IO[Any]
+    target_flake_ref: str,
+    target_system: str,
+    n_workers: int,
+    verbose: bool,
+    outfile: IO[str],
 ):
     """
     Extract the graph of derivations from a flake as JSON.
@@ -39,11 +158,6 @@ def extract_data(
     logger = logging.getLogger(__name__)
     if verbose:
         logger.setLevel(logging.INFO)
-
-    # Nix expression to evaluate with Nix
-    nixpkgs_graph_nix_file_path = (
-        pathlib.Path(__file__).parent.joinpath("nixpkgs-graph.nix").resolve()
-    )
 
     # overwrite some environment variables
     extra_env = {
@@ -59,28 +173,61 @@ def extract_data(
         "extra_env=%s",
         " ".join(f"{k}={v}" for k, v in extra_env.items()),
     )
-    env = os.environ.copy()
+    finder_env = os.environ.copy()
     for k, v in extra_env.items():
-        env[k] = v
+        finder_env[k] = v
 
-    cmd = [
-        "nix",
-        "eval",
-        "--extra-experimental-features",
-        "nix-command flakes",
-        "--json",
-        "--file",
-        str(nixpkgs_graph_nix_file_path),
-    ]
-    logger.info("cmd=%s", " ".join(cmd))
-    subprocess.run(
-        cmd,
-        # raise an exception on failure
-        check=True,
+    finder_process = subprocess.Popen(
+        args=[
+            "nix",
+            "eval",
+            "--extra-experimental-features",
+            "nix-command flakes",
+            "--json",
+            "--file",
+            str(pathlib.Path(__file__).parent.joinpath("find-attribute-paths.nix")),
+        ],
         # write to file passed as argument (or stdout)
-        stdout=outfile,
-        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        env=finder_env,
     )
+
+    def visit_output_path(
+        attribute_path: str,
+        outfile: IO[Any],
+    ):
+        # TODO run process
+        pass
+
+    derivation_description_pool = multiprocessing.pool.ThreadPool(n_workers)
+    derivation_description_queue = multiprocessing.Queue()
+    visited_output_paths: set[str] = set()
+
+    Thread(
+        target=reader,
+        args=[
+            finder_process.stderr,
+            derivation_description_pool,
+            derivation_description_queue,
+            visited_output_paths,
+            logger,
+        ],
+    ).start()
+
+    Thread(
+        target=process_queue,
+        args=[
+            outfile,
+            derivation_description_pool,
+            derivation_description_queue,
+            visited_output_paths,
+            finder_env,
+            logger,
+        ],
+    ).start()
+
+    finder_process.wait()
 
 
 if __name__ == "__main__":
