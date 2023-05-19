@@ -117,7 +117,7 @@ def packages(
 
 
 @app.post("/package-names")
-def packages(
+def package_names(
     list_package_names_request: ListUniquePackageNamesRequest, raw_request: Request
 ) -> ListUniquePackageNamesResponse:
     remote_connection = get_state(raw_request)["gremlin_remote_connection"]

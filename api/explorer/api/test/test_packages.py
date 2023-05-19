@@ -21,6 +21,10 @@ DUPLICATE_PACKAGES = [PACKAGE_X, PACKAGE_X_DUPLICATE]
 
 @pytest.fixture
 def graph_connection():
+    """
+    Fixture providing a connection to a graph which contains
+    a small set of packages.
+    """
     # FIXME: use a traversal_source purely dedicated to tests
     conn = default_remote_connection(
         "ws://localhost:8182/gremlin", traversal_source="g"
@@ -38,7 +42,10 @@ def graph_connection():
 
 @pytest.fixture
 def graph_connection_with_duplicates():
-    """Fixture providing a connection a graph which contains packages with duplicate pname values"""
+    """
+    Fixture providing a connection a graph which contains packages
+    with duplicate `pname` values
+    """
     # FIXME: use a traversal_source purely dedicated to tests
     conn = default_remote_connection(
         "ws://localhost:8182/gremlin", traversal_source="g"

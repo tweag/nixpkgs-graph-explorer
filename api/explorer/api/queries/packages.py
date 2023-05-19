@@ -40,8 +40,8 @@ class ListUniquePackageNamesResponse(BaseModel):
 
 
 def list_unique_package_names(
-    request: ListPackagesRequest, conn: DriverRemoteConnection
-) -> ListPackagesResponse:
+    request: ListUniquePackageNamesRequest, conn: DriverRemoteConnection
+) -> ListUniquePackageNamesResponse:
     """Lists the unique names of packages available in the specified Gremlin Server
 
     Args:
