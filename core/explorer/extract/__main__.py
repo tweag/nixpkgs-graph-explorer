@@ -16,7 +16,8 @@ def reader(
     pool: multiprocessing.pool.Pool,
     queue: multiprocessing.Queue,
     queued_output_paths: set[str],
-    logger,
+    visited_output_paths: set[str],
+    logger: logging.Logger,
 ):
     """Read lines from `pipe` to push attribute paths to process to `queue`"""
     with pipe_in:
@@ -41,7 +42,7 @@ def reader(
                         queued_output_paths.add(output_path)
                         logger.info(
                             "visited=%s,queue=%s",
-                            len(queued_output_paths),
+                            len(visited_output_paths),
                             queue.qsize(),
                         )
         # None means it's the end
@@ -53,8 +54,10 @@ def process_attribute_path(
     pool: multiprocessing.pool.Pool,
     queue: multiprocessing.Queue,
     queued_output_paths: set[str],
+    visited_output_paths: set[str],
     finder_env: dict,
     attribute_path: str,
+    logger: logging.Logger,
 ):
     """Describe a derivation, write results to pipe_out and add potential
     derivations to process to queue"""
@@ -77,6 +80,7 @@ def process_attribute_path(
     description_str = description_process.stdout.decode()
     pipe_out.write(description_str)
     description = json.loads(description_str)
+    visited_output_paths.add(description["outputPath"])
     for input_type, input_type_drvs in description["inputs"].items():
         for found_derivation in input_type_drvs:
             output_path = found_derivation["outputPath"]
@@ -84,11 +88,11 @@ def process_attribute_path(
             if output_path not in queued_output_paths:
                 queue.put(attribute_path)
                 queued_output_paths.add(output_path)
-                # logger.info(
-                #     "visited=%s,queue=%s",
-                #     len(queued_output_paths),
-                #     queue.qsize(),
-                # )
+                logger.info(
+                    "visited=%s,queue=%s",
+                    len(visited_output_paths),
+                    queue.qsize(),
+                )
 
 
 def process_queue(
@@ -96,13 +100,12 @@ def process_queue(
     pool: multiprocessing.pool.Pool,
     queue: multiprocessing.Queue,
     queued_output_paths: set[str],
+    visited_output_paths: set[str],
     finder_env: dict,
-    logger,
+    logger: logging.Logger,
 ):
     """Continuously process attribute paths in the queue to the pool"""
-
     while (attribute_path := queue.get(block=True, timeout=60)) is not None:
-        logger.info("visited=%s,queue=%s", len(queued_output_paths), queue.qsize())
         pool.apply_async(
             func=process_attribute_path,
             args=[
@@ -110,8 +113,10 @@ def process_queue(
                 pool,
                 queue,
                 queued_output_paths,
+                visited_output_paths,
                 finder_env,
                 attribute_path,
+                logger,
             ],
         )
 
@@ -203,31 +208,39 @@ def extract_data(
     derivation_description_pool = multiprocessing.pool.ThreadPool(n_workers)
     derivation_description_queue = multiprocessing.Queue()
     queued_output_paths: set[str] = set()
+    visited_output_paths: set[str] = set()
 
-    Thread(
+    reader_thread = Thread(
         target=reader,
         args=[
             finder_process.stderr,
             derivation_description_pool,
             derivation_description_queue,
             queued_output_paths,
+            visited_output_paths,
             logger,
         ],
-    ).start()
+    )
+    reader_thread.start()
 
-    Thread(
+    process_queue_thread = Thread(
         target=process_queue,
         args=[
             outfile,
             derivation_description_pool,
             derivation_description_queue,
             queued_output_paths,
+            visited_output_paths,
             finder_env,
             logger,
         ],
-    ).start()
+    )
+    process_queue_thread.start()
 
     finder_process.wait()
+    reader_thread.join()
+    process_queue_thread.join()
+    derivation_description_pool.join()
 
 
 if __name__ == "__main__":
