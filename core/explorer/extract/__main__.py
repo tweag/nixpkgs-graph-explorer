@@ -17,8 +17,6 @@ def reader(
     pipe_in: IO[Any],
     queue: multiprocessing.Queue,
     queued_output_paths: set[str],
-    visited_output_paths: set[str],
-    logger: logging.Logger,
 ):
     """Read lines from `pipe` to push attribute paths to process to `queue`"""
     with pipe_in:
@@ -41,11 +39,6 @@ def reader(
                     if output_path not in queued_output_paths:
                         queue.put(attribute_path)
                         queued_output_paths.add(output_path)
-                        logger.info(
-                            "visited=%s,queue=%s",
-                            len(visited_output_paths),
-                            queue.qsize(),
-                        )
 
 
 def process_attribute_path(
@@ -55,7 +48,6 @@ def process_attribute_path(
     visited_output_paths: set[str],
     finder_env: dict,
     attribute_path: str,
-    logger: logging.Logger,
 ):
     """Describe a derivation, write results to pipe_out and add potential
     derivations to process to queue"""
@@ -92,11 +84,6 @@ def process_attribute_path(
             if output_path not in queued_output_paths:
                 queue.put(attribute_path)
                 queued_output_paths.add(output_path)
-                logger.info(
-                    "visited=%s,queue=%s",
-                    len(visited_output_paths),
-                    queue.qsize(),
-                )
 
     # return success
     return True
@@ -144,6 +131,12 @@ def process_queue(
         # filter jobs to keep uncompleted ones
         jobs = [job for job in jobs if not job.ready()]
 
+        logger.info(
+            "visited=%s,queue=%s,jobs=%s",
+            len(visited_output_paths),
+            queue.qsize(),
+            len(jobs),
+        )
         # if no attribute path in the queue, look for the next one
         if attribute_path is None:
             continue
@@ -158,7 +151,6 @@ def process_queue(
                 visited_output_paths,
                 finder_env,
                 attribute_path,
-                logger,
             ],
         )
         jobs.append(job)
@@ -254,8 +246,6 @@ def extract_data(
             finder_process.stderr,
             derivation_description_queue,
             queued_output_paths,
-            visited_output_paths,
-            logger,
         ],
     )
     reader_thread.start()
