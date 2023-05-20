@@ -1,11 +1,11 @@
 import copy
-import sys
 import json
 import logging
 import multiprocessing.pool
 import os
 import pathlib
 import subprocess
+import sys
 from queue import Empty
 from threading import Thread
 from typing import IO, Any, Callable, Type
@@ -59,6 +59,8 @@ def process_attribute_path(
 ):
     """Describe a derivation, write results to pipe_out and add potential
     derivations to process to queue"""
+
+    # evaluate value at the attribute path using Nix
     env = copy.deepcopy(finder_env)
     env["TARGET_ATTRIBUTE_PATH"] = attribute_path
     description_process = subprocess.run(
@@ -75,8 +77,12 @@ def process_attribute_path(
         # write to file passed as argument (or stdout)
         env=env,
     )
+
+    # write to output pipe
     description_str = description_process.stdout.decode()
     pipe_out.write(description_str)
+
+    # add its inputs to the queue if they have not been processed
     description = json.loads(description_str)
     visited_output_paths.add(description["outputPath"])
     for input_type, input_type_drvs in description["inputs"].items():
@@ -91,6 +97,9 @@ def process_attribute_path(
                     len(visited_output_paths),
                     queue.qsize(),
                 )
+
+    # return success
+    return True
 
 
 def try_or_none(f: Callable, e_type: Type[Exception]):
@@ -111,19 +120,35 @@ def process_queue(
     logger: logging.Logger,
 ):
     """Continuously process attribute paths in the queue to the pool"""
-    jobs: list[multiprocessing.pool.AsyncResult] = []
-    while attribute_path := try_or_none(
-        lambda: queue.get(block=True, timeout=5),
-        Empty,
-    ):
-        if (
-            attribute_path is None
-            and queue.empty()
-            and finder_process.poll() is not None
-            and all(job.successful() for job in jobs)
-        ):
-            break
 
+    # list of ongoing jobs
+    jobs: list[multiprocessing.pool.AsyncResult] = []
+
+    # main loop of task
+    while (
+        # there is an attribute path to process
+        (
+            attribute_path := try_or_none(
+                lambda: queue.get(block=True, timeout=1),
+                Empty,
+            )
+        )
+        is not None
+        # there are attribute paths to process
+        or not queue.empty()
+        # the finder process is still running
+        or finder_process.poll() is None
+        # there are jobs which have yet to complete
+        or len(jobs) > 0
+    ):
+        # filter jobs to keep uncompleted ones
+        jobs = [job for job in jobs if not job.ready()]
+
+        # if no attribute path in the queue, look for the next one
+        if attribute_path is None:
+            continue
+
+        # process attribute path
         job = pool.apply_async(
             func=process_attribute_path,
             args=[
@@ -137,6 +162,7 @@ def process_queue(
             ],
         )
         jobs.append(job)
+
     logger.info("QUEUE PROCESSOR CLOSED")
 
 
@@ -238,7 +264,7 @@ def extract_data(
         target=process_queue,
         args=[
             outfile,
-            finder_process ,
+            finder_process,
             derivation_description_pool,
             derivation_description_queue,
             queued_output_paths,
