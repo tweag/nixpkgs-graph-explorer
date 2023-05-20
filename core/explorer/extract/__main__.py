@@ -4,8 +4,8 @@ import logging
 import multiprocessing.pool
 import os
 import pathlib
-from queue import Empty
 import subprocess
+from queue import Empty
 from threading import Thread
 from typing import IO, Any
 
