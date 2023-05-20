@@ -1,4 +1,5 @@
 import copy
+import sys
 import json
 import logging
 import multiprocessing.pool
@@ -7,7 +8,7 @@ import pathlib
 import subprocess
 from queue import Empty
 from threading import Thread
-from typing import IO, Any
+from typing import IO, Any, Callable, Type
 
 import click
 
@@ -92,8 +93,16 @@ def process_attribute_path(
                 )
 
 
+def try_or_none(f: Callable, e_type: Type[Exception]):
+    try:
+        return f()
+    except e_type:
+        return None
+
+
 def process_queue(
     output_file_path: str,
+    finder_process: subprocess.Popen,
     pool: multiprocessing.pool.ThreadPool,
     queue: multiprocessing.Queue,
     queued_output_paths: set[str],
@@ -102,22 +111,32 @@ def process_queue(
     logger: logging.Logger,
 ):
     """Continuously process attribute paths in the queue to the pool"""
-    try:
-        while attribute_path := queue.get(block=True, timeout=5):
-            pool.apply_async(
-                func=process_attribute_path,
-                args=[
-                    output_file_path,
-                    queue,
-                    queued_output_paths,
-                    visited_output_paths,
-                    finder_env,
-                    attribute_path,
-                    logger,
-                ],
-            )
-    except Empty:
-        pass
+    jobs: list[multiprocessing.pool.AsyncResult] = []
+    while attribute_path := try_or_none(
+        lambda: queue.get(block=True, timeout=5),
+        Empty,
+    ):
+        if (
+            attribute_path is None
+            and queue.empty()
+            and finder_process.poll() is not None
+            and all(job.successful() for job in jobs)
+        ):
+            break
+
+        job = pool.apply_async(
+            func=process_attribute_path,
+            args=[
+                output_file_path,
+                queue,
+                queued_output_paths,
+                visited_output_paths,
+                finder_env,
+                attribute_path,
+                logger,
+            ],
+        )
+        jobs.append(job)
     logger.info("QUEUE PROCESSOR CLOSED")
 
 
@@ -219,6 +238,7 @@ def extract_data(
         target=process_queue,
         args=[
             outfile,
+            finder_process ,
             derivation_description_pool,
             derivation_description_queue,
             queued_output_paths,
@@ -238,7 +258,10 @@ def extract_data(
     derivation_description_pool.close()
     derivation_description_pool.join()
     logger.info("POOL EXIT")
-    logger.info("IS QUEUE EMPTY: %s", derivation_description_queue.empty())
+    is_queue_empty = derivation_description_queue.empty()
+    logger.info("IS QUEUE EMPTY: %s", is_queue_empty)
+    if not is_queue_empty:
+        sys.exit(1)
 
 
 if __name__ == "__main__":
