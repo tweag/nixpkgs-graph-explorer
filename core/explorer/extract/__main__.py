@@ -4,6 +4,7 @@ import logging
 import multiprocessing.pool
 import os
 import pathlib
+from queue import Empty
 import subprocess
 from threading import Thread
 from typing import IO, Any
@@ -44,13 +45,10 @@ def reader(
                             len(visited_output_paths),
                             queue.qsize(),
                         )
-        # None means it's the end
-        queue.put(None)
 
 
 def process_attribute_path(
     pipe_out: IO[str],
-    pool: multiprocessing.pool.Pool,
     queue: multiprocessing.Queue,
     queued_output_paths: set[str],
     visited_output_paths: set[str],
@@ -104,20 +102,22 @@ def process_queue(
     logger: logging.Logger,
 ):
     """Continuously process attribute paths in the queue to the pool"""
-    while (attribute_path := queue.get(block=True, timeout=60)) is not None:
-        pool.apply_async(
-            func=process_attribute_path,
-            args=[
-                output_file_path,
-                pool,
-                queue,
-                queued_output_paths,
-                visited_output_paths,
-                finder_env,
-                attribute_path,
-                logger,
-            ],
-        )
+    try:
+        while attribute_path := queue.get(block=True, timeout=5):
+            pool.apply_async(
+                func=process_attribute_path,
+                args=[
+                    output_file_path,
+                    queue,
+                    queued_output_paths,
+                    visited_output_paths,
+                    finder_env,
+                    attribute_path,
+                    logger,
+                ],
+            )
+    except Empty:
+        pass
 
 
 @click.command()
@@ -197,13 +197,6 @@ def extract_data(
         env=finder_env,
     )
 
-    def visit_output_path(
-        attribute_path: str,
-        outfile: IO[Any],
-    ):
-        # TODO run process
-        pass
-
     derivation_description_pool = multiprocessing.pool.ThreadPool(n_workers)
     derivation_description_queue = multiprocessing.Queue()
     queued_output_paths: set[str] = set()
@@ -236,10 +229,15 @@ def extract_data(
     process_queue_thread.start()
 
     finder_process.wait()
+    logger.info("FINDER EXIT")
+    reader_thread.join()
+    logger.info("READER THREAD EXIT")
+    process_queue_thread.join()
+    logger.info("PROCESS QUEUE THREAD EXIT")
     derivation_description_pool.close()
     derivation_description_pool.join()
-    reader_thread.join()
-    process_queue_thread.join()
+    logger.info("POOL EXIT")
+    logger.info("IS QUEUE EMPTY: %s", derivation_description_queue.empty())
 
 
 if __name__ == "__main__":
