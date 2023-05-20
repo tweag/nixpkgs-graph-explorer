@@ -2,13 +2,18 @@
 
 rec {
   /* Utility function to enumerate a list
-  Type: [a] -> [(int, a)]
+    Type: [a] -> [(int, a)]
   
-  Example:
-      enumerate [ "a" "b" ]
-      => [ { index = 0; value = "a"; } { index = 1; value = "b"; } ]
+    Example:
+    enumerate [ "a" "b" ]
+    => [ { index = 0; value = "a"; } { index = 1; value = "b"; } ]
   */
   enumerate = lst: map (zippedElem: { index = zippedElem.fst; value = zippedElem.snd; }) (nixpkgs.lib.zipLists (nixpkgs.lib.range 0 (builtins.length lst)) lst);
+
+  /* To camel case to snake case
+    Type: string -> string
+  */
+  toSnakeCase = string: nixpkgs.lib.concatStrings (map (s: if builtins.isString s then s else "_" + nixpkgs.lib.toLower (builtins.elemAt s 0)) (builtins.split "([A-Z])" string));
 
   /* A modified version of nixpkgs lib.attrsets.collect to go inside lists as well
   */
@@ -22,7 +27,7 @@ rec {
     else if nixpkgs.lib.isList v then
       nixpkgs.lib.concatMap (collect pred) v
     else
-      [];
+      [ ];
 
   /* Packages in a flake are usually a flat attribute set in outputs, but legacy systems use `legacyPackages`
   */
@@ -33,10 +38,10 @@ rec {
   safeEval = v: (builtins.tryEval v).value or null;
 
   /* Utility specific to nixpkgs, as nixpkgs prevents computing some fields if meta.platforms does not contain the target system
-  Args:
-      targetSystem: (string) target system
-      f: (derivation -> a) function to apply to derivation
-      drv: derivation
+    Args:
+    targetSystem: (string) target system
+    f: (derivation -> a) function to apply to derivation
+    drv: derivation
   */
   safePlatformDrvEval =
     targetSystem: f: drv:

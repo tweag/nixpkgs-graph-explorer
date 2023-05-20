@@ -66,26 +66,25 @@ in
   # note: we can't name it `outPath` because serialization would only output it instead of dict, see Nix `toString` docs
   outputPath = lib.safePlatformDrvEval targetSystem (drv: drv.outPath) value;
   outputPaths = map (name: { inherit name; path = lib.safePlatformDrvEval targetSystem (drv: drv.outPath) value.${name}; }) value.outputs;
-  inputs = builtins.listToAttrs
+  buildInputs = nixpkgs.lib.lists.flatten
     (map
-      (inputType: {
-        name = inputType;
-        value = map
+      (inputType:
+        map
           (elem:
-            if builtins.isPath elem.value then
-              {
-                attributePath = targetAttributePath + ".${inputType}.${builtins.toString elem.index}";
-                outputPath = elem.value;
-              }
-            else
-              let inputDrv = elem.value;
-              in
-              {
-                attributePath = targetAttributePath + ".${inputType}.${builtins.toString elem.index}";
-                outputPath = lib.safePlatformDrvEval targetSystem (drv: drv.outPath) inputDrv;
-              })
-          (lib.enumerate (value.${inputType} or [ ]));
-      })
+            {
+              buildInputType = nixpkgs.lib.removeSuffix "s" (lib.toSnakeCase inputType);
+              attributePath = targetAttributePath + ".${inputType}.${builtins.toString elem.index}";
+              outputPath = lib.safePlatformDrvEval targetSystem (drv: drv.outPath) elem.value;
+            }
+          )
+          (
+            # only keep derivations in inputs
+            # TODO include path objects
+            builtins.filter
+            (elem: nixpkgs.lib.isDerivation elem.value)
+            (lib.enumerate (value.${inputType} or [ ]))
+          )
+      )
       [ "nativeBuildInputs" "buildInputs" "propagatedBuildInputs" ]
     );
 }

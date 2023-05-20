@@ -3,6 +3,11 @@ from enum import Enum
 from pydantic import BaseModel, Field
 
 
+def snake_case_to_camel_case(name: str):
+    parts = name.split("_")
+    return "".join([parts[0]] + [part.capitalize() for part in parts[1:]])
+
+
 class NixpkgsMetadata(BaseModel):
     """Package metadata defined by nixpkgs specifically."""
 
@@ -41,17 +46,21 @@ class BuildInputType(Enum):
 class BuildInput(BaseModel):
     """A build input to a Nix derivation"""
 
+    attribute_path: str = Field(description="Attribute path from the flake package set")
     build_input_type: BuildInputType = Field(description="The type of build input")
     output_path: str = Field(description="The output path of the input derivation")
 
     class Config:
         use_enum_values = True
+        alias_generator = snake_case_to_camel_case 
 
 
 class Package(BaseModel):
     """A Nix package, which is an evaluated (not realized) derivation."""
 
     name: str = Field(description="The name of the package")
+    attribute_path: str = Field(description="Attribute path from the flake package set")
+    output_path: str = Field(description="The output path of this derivation")
     output_paths: list[OutputPath] = Field(
         description="A list of the package's output paths"
     )
@@ -65,7 +74,4 @@ class Package(BaseModel):
 
     class Config:
         use_enum_values = True
-
-
-class NixGraph(BaseModel):
-    packages: list[Package]
+        alias_generator = snake_case_to_camel_case 

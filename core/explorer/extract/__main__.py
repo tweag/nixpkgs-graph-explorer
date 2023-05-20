@@ -12,13 +12,15 @@ from typing import IO, Any, Callable, Type
 
 import click
 
+from explorer.core import model
+
 
 def reader(
     pipe_in: IO[Any],
     queue: multiprocessing.Queue,
     queued_output_paths: set[str],
 ):
-    """Read lines from `pipe` to push attribute paths to process to `queue`"""
+    """Read lines from pipe to push found attribute paths to queue"""
     with pipe_in:
         line: bytes
         # read incoming lines from the Nix expression
@@ -33,6 +35,7 @@ def reader(
                 except Exception:
                     # fail silently, most likely some other trace from nixpkgs
                     continue
+                # push found derivations to queue if they haven't been queued already
                 for found_derivation in parsed_found_derivations:
                     output_path = found_derivation["outputPath"]
                     attribute_path = found_derivation["attributePath"]
@@ -48,9 +51,12 @@ def process_attribute_path(
     visited_output_paths: set[str],
     finder_env: dict,
     attribute_path: str,
+    logger: logging.Logger,
 ):
-    """Describe a derivation, write results to pipe_out and add potential
-    derivations to process to queue"""
+    """
+    Describe a derivation, write results to output pipe and add potential derivations
+    to process to queue
+    """
 
     # evaluate value at the attribute path using Nix
     env = copy.deepcopy(finder_env)
@@ -70,20 +76,29 @@ def process_attribute_path(
         env=env,
     )
 
-    # write to output pipe
     description_str = description_process.stdout.decode()
+    if len(description_str) == 0:
+        logger.warning("Empty evaluation: %s", attribute_path)
+        logger.error(description_process.stdout)
+        return True
+
+    # write to output pipe
     pipe_out.write(description_str)
 
     # add its inputs to the queue if they have not been processed
-    description = json.loads(description_str)
-    visited_output_paths.add(description["outputPath"])
-    for input_type, input_type_drvs in description["inputs"].items():
-        for found_derivation in input_type_drvs:
-            output_path = found_derivation["outputPath"]
-            attribute_path = found_derivation["attributePath"]
-            if output_path not in queued_output_paths:
-                queue.put(attribute_path)
-                queued_output_paths.add(output_path)
+    try:
+        description: model.Package = model.Package.parse_raw(description_str)
+    except Exception as e:
+        logger.warning("Failed to parse to model: attribute_path=%s, str=", attribute_path, description_str)
+        logger.error(description_process.stdout)
+        raise e from e
+    visited_output_paths.add(description.output_path)
+    for build_input in description.build_inputs:
+        output_path = build_input.output_path
+        attribute_path = build_input.attribute_path
+        if output_path not in queued_output_paths:
+            queue.put(attribute_path)
+            queued_output_paths.add(output_path)
 
     # return success
     return True
@@ -109,7 +124,7 @@ def process_queue(
     """Continuously process attribute paths in the queue to the pool"""
 
     # list of ongoing jobs
-    jobs: list[multiprocessing.pool.AsyncResult] = []
+    pool_jobs: list[multiprocessing.pool.AsyncResult] = []
 
     # main loop of task
     while (
@@ -126,16 +141,24 @@ def process_queue(
         # the finder process is still running
         or finder_process.poll() is None
         # there are jobs which have yet to complete
-        or len(jobs) > 0
+        or len(pool_jobs) > 0
     ):
         # filter jobs to keep uncompleted ones
-        jobs = [job for job in jobs if not job.ready()]
+        for job in pool_jobs:
+            if job.ready():
+                # job is done, remove it
+                pool_jobs.remove(job)
+                # check success
+                try:
+                    job.get()
+                except Exception as e:
+                    logger.exception(e)
 
         logger.info(
             "visited=%s,queue=%s,jobs=%s",
             len(visited_output_paths),
             queue.qsize(),
-            len(jobs),
+            len(pool_jobs),
         )
         # if no attribute path in the queue, look for the next one
         if attribute_path is None:
@@ -151,9 +174,10 @@ def process_queue(
                 visited_output_paths,
                 finder_env,
                 attribute_path,
+                logger,
             ],
         )
-        jobs.append(job)
+        pool_jobs.append(job)
 
     logger.info("QUEUE PROCESSOR CLOSED")
 
