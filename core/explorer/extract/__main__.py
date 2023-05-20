@@ -118,6 +118,7 @@ def process_queue(
             )
     except Empty:
         pass
+    logger.info("QUEUE PROCESSOR CLOSED")
 
 
 @click.command()
