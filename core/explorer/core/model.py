@@ -46,32 +46,56 @@ class BuildInputType(Enum):
 class BuildInput(BaseModel):
     """A build input to a Nix derivation"""
 
-    attribute_path: str = Field(description="Attribute path from the flake package set")
-    build_input_type: BuildInputType = Field(description="The type of build input")
-    output_path: str = Field(description="The output path of the input derivation")
+    attribute_path: str = Field(
+        description="Attribute path from the flake package set",
+    )
+    build_input_type: BuildInputType = Field(
+        description="The type of build input",
+    )
+    # None when it can't be built (e.g. wrong platform)
+    output_path: str | None = Field(
+        description="The output path of the input derivation",
+    )
 
     class Config:
         use_enum_values = True
-        alias_generator = snake_case_to_camel_case 
+        alias_generator = snake_case_to_camel_case
 
 
 class Package(BaseModel):
     """A Nix package, which is an evaluated (not realized) derivation."""
 
-    name: str = Field(description="The name of the package")
-    attribute_path: str = Field(description="Attribute path from the flake package set")
-    output_path: str = Field(description="The output path of this derivation")
+    attribute_path: str = Field(
+        description="Attribute path from the flake package set",
+    )
+    derivation_path: str = Field(
+        description="The derivation path of this derivation",
+    )
+    # None when it can't be built (e.g. wrong platform)
+    output_path: str | None = Field(
+        description="The output path of this derivation",
+    )
     output_paths: list[OutputPath] = Field(
-        description="A list of the package's output paths"
+        description="A list of the package's output paths",
+    )
+
+    name: str = Field(
+        description="The name of the package",
     )
     parsed_name: ParsedName | None = Field(
-        default=None, description="The parsed package name and version of the package"
+        default=None,
+        description=(
+            "The parsed package name and version of the package by Nix builtins"
+        ),
     )
     nixpkgs_metadata: NixpkgsMetadata | None = Field(
-        default=None, description="Optional metadata specific to packages from nixpkgs"
+        default=None,
+        description="Optional metadata specific to packages from nixpkgs",
     )
-    build_inputs: list[BuildInput] = Field(description="The package's build inputs")
+    build_inputs: list[BuildInput] = Field(
+        description="The package's build inputs",
+    )
 
     class Config:
         use_enum_values = True
-        alias_generator = snake_case_to_camel_case 
+        alias_generator = snake_case_to_camel_case

@@ -21,51 +21,33 @@ let
   targetFlake = builtins.getFlake targetFlakeRef;
   targetFlakePkgs = lib.getFlakePkgs targetFlake targetSystem;
 
-  # Follow attribute path (split by dot) to access value in tree of nested attribute sets and lists
-  getAttrByPath = collection: pathList:
-    let
-      x = builtins.head pathList;
-      value =
-        if nixpkgs.lib.isAttrs collection
-        then collection.${x}
-        else
-          if nixpkgs.lib.isList collection
-          then
-            let index = nixpkgs.lib.toIntBase10 x;
-            in builtins.elemAt collection index
-          else builtins.throw "Trying to follow path in neither an attribute set nor a list";
-    in
-    if builtins.length pathList > 1 then
-      let
-        # need to skip an item, see `builtins.split` doc
-        xs = builtins.tail (builtins.tail pathList);
-      in
-      getAttrByPath value xs
-    else value;
-  value =
-    let splitPath = (builtins.split "\\." targetAttributePath);
-    in getAttrByPath targetFlakePkgs splitPath;
-
+  # Get target value
+  targetValue = lib.getValueAtPath targetFlakePkgs targetAttributePath;
 in
 {
-  name = value.name;
-  parsed_name = (builtins.parseDrvName value.name);
+  name = targetValue.name;
+  parsed_name = (builtins.parseDrvName targetValue.name);
   attributePath = targetAttributePath;
   nixpkgsMetadata =
     {
-      pname = (builtins.tryEval (if value ? pname then value.pname else false)).value or null;
-      version = (builtins.tryEval (if value ? version then value.version else "")).value;
-      broken = (builtins.tryEval (if value ? meta.broken then value.meta.broken else false)).value;
-      license = (builtins.tryEval (if value ? meta.license.fullName then value.meta.license.fullName else "")).value;
+      pname = (builtins.tryEval (if targetValue ? pname then targetValue.pname else false)).value or null;
+      version = (builtins.tryEval (if targetValue ? version then targetValue.version else "")).value;
+      broken = (builtins.tryEval (if targetValue ? meta.broken then targetValue.meta.broken else false)).value;
+      license = (builtins.tryEval (if targetValue ? meta.license.fullName then targetValue.meta.license.fullName else "")).value;
     };
 
   # path to the evaluated derivation file
-  derivationPath = lib.safePlatformDrvEval targetSystem (drv: drv.drvPath) value;
+  derivationPath = lib.safePlatformDrvEval targetSystem (drv: drv.drvPath) targetValue;
 
   # path to the realized (=built) derivation
   # note: we can't name it `outPath` because serialization would only output it instead of dict, see Nix `toString` docs
-  outputPath = lib.safePlatformDrvEval targetSystem (drv: drv.outPath) value;
-  outputPaths = map (name: { inherit name; path = lib.safePlatformDrvEval targetSystem (drv: drv.outPath) value.${name}; }) value.outputs;
+  outputPath = 
+    # TODO meaningfully represent when it's not the right platform (instead of null)
+    lib.safePlatformDrvEval
+      targetSystem
+      (drv: drv.outPath)
+      targetValue;
+  outputPaths = map (name: { inherit name; path = lib.safePlatformDrvEval targetSystem (drv: drv.outPath) targetValue.${name}; }) targetValue.outputs;
   buildInputs = nixpkgs.lib.lists.flatten
     (map
       (inputType:
@@ -82,7 +64,7 @@ in
             # TODO include path objects
             builtins.filter
             (elem: nixpkgs.lib.isDerivation elem.value)
-            (lib.enumerate (value.${inputType} or [ ]))
+            (lib.enumerate (targetValue.${inputType} or [ ]))
           )
       )
       [ "nativeBuildInputs" "buildInputs" "propagatedBuildInputs" ]

@@ -33,6 +33,42 @@ rec {
   */
   getFlakePkgs = flake: targetSystem: flake.outputs.packages.${targetSystem} or flake.outputs.defaultPackage.${targetSystem} or flake.outputs.legacyPackages.${targetSystem} or { };
 
+
+  /* Follow "attribute path" (split by dot) to access value in tree of nested attribute sets and lists
+    Type: (attrs | list) -> str -> any
+
+    Examples:
+    getValueAtPath {a = { b = 1; c = [ 2 ]; }; } "a.b"
+    => 1
+
+    getValueAtPath {a = { b = 1; c = [ 2 ]; }; } "a.c.0"
+    => 2
+  */
+  getValueAtPath =
+    collection: attributePath:
+    let recurse =
+      collection: pathList:
+      let
+        x = builtins.head pathList;
+        value =
+          if nixpkgs.lib.isAttrs collection
+          then collection.${x}
+          else
+            if nixpkgs.lib.isList collection
+            then
+              let index = nixpkgs.lib.toIntBase10 x;
+              in builtins.elemAt collection index
+            else builtins.throw "Trying to follow path in neither an attribute set nor a list";
+      in
+      if builtins.length pathList > 1 then
+        let
+          # need to skip an item, see `builtins.split` doc
+          xs = builtins.tail (builtins.tail pathList);
+        in
+        recurse value xs
+      else value;
+    in recurse collection (builtins.split "\\." attributePath);
+
   /* Utility function for safe evaluation of any value, null if evaluation fails
   */
   safeEval = v: (builtins.tryEval v).value or null;

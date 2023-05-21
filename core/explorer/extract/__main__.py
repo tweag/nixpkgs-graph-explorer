@@ -39,7 +39,10 @@ def reader(
                 for found_derivation in parsed_found_derivations:
                     output_path = found_derivation["outputPath"]
                     attribute_path = found_derivation["attributePath"]
-                    if output_path not in queued_output_paths:
+                    if (
+                        output_path is not None
+                        and output_path not in queued_output_paths
+                    ):
                         queue.put(attribute_path)
                         queued_output_paths.add(output_path)
 
@@ -82,21 +85,31 @@ def process_attribute_path(
         logger.error(description_process.stdout)
         return True
 
-    # write to output pipe
-    pipe_out.write(description_str)
-
     # add its inputs to the queue if they have not been processed
     try:
         description: model.Package = model.Package.parse_raw(description_str)
     except Exception as e:
-        logger.warning("Failed to parse to model: attribute_path=%s, str=", attribute_path, description_str)
+        logger.warning(
+            "Failed to parse to model: attribute_path=%s, str=",
+            attribute_path,
+            description_str,
+        )
         logger.error(description_process.stdout)
         raise e from e
+
+    if description.output_path is None:
+        logger.warning("Ignore empty outputPath: %s", attribute_path)
+        return True
+
+    # write to output pipe
+    pipe_out.write(description.json(by_alias=False))
+    pipe_out.write("\n")
+
     visited_output_paths.add(description.output_path)
     for build_input in description.build_inputs:
         output_path = build_input.output_path
         attribute_path = build_input.attribute_path
-        if output_path not in queued_output_paths:
+        if output_path is not None and output_path not in queued_output_paths:
             queue.put(attribute_path)
             queued_output_paths.add(output_path)
 
