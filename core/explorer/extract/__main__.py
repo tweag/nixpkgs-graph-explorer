@@ -63,6 +63,7 @@ def process_attribute_path(
     queued_output_paths: set[str],
     visited_output_paths: set[str],
     finder_env: dict,
+    offline: bool,
     attribute_path: str,
     logger: logging.Logger,
 ):
@@ -76,13 +77,18 @@ def process_attribute_path(
     env["TARGET_ATTRIBUTE_PATH"] = attribute_path
     description_process = subprocess.run(
         args=[
-            "nix",
-            "eval",
-            "--extra-experimental-features",
-            "nix-command flakes",
-            "--json",
-            "--file",
-            str(pathlib.Path(__file__).parent.joinpath("describe-derivation.nix")),
+            arg
+            for arg in [
+                "nix",
+                "eval",
+                "--offline" if offline else None,
+                "--extra-experimental-features",
+                "nix-command flakes",
+                "--json",
+                "--file",
+                str(pathlib.Path(__file__).parent.joinpath("describe-derivation.nix")),
+            ]
+            if arg is not None
         ],
         capture_output=True,
         # write to file passed as argument (or stdout)
@@ -142,6 +148,7 @@ def queue_processor(
     queued_output_paths: set[str],
     visited_output_paths: set[str],
     finder_env: dict,
+    offline: bool,
     logger: logging.Logger,
 ):
     """Continuously process attribute paths in the queue to the pool"""
@@ -196,6 +203,7 @@ def queue_processor(
                 queued_output_paths,
                 visited_output_paths,
                 finder_env,
+                offline,
                 attribute_path,
                 logger,
             ],
@@ -223,6 +231,11 @@ def queue_processor(
     help="Count of workers to spawn to describe the stream of found derivations",
 )
 @click.option(
+    "--offline",
+    is_flag=True,
+    help="Pass --offline to Nix commands",
+)
+@click.option(
     "--verbose",
     "-v",
     is_flag=True,
@@ -236,6 +249,7 @@ def cli(
     target_flake_ref: str,
     target_system: str,
     n_workers: int,
+    offline: bool,
     verbose: bool,
     outfile: IO[str],
 ):
@@ -269,13 +283,18 @@ def cli(
     # start process to find derivations directly available
     finder_process = subprocess.Popen(
         args=[
-            "nix",
-            "eval",
-            "--extra-experimental-features",
-            "nix-command flakes",
-            "--json",
-            "--file",
-            str(pathlib.Path(__file__).parent.joinpath("find-attribute-paths.nix")),
+            arg
+            for arg in [
+                "nix",
+                "--offline" if offline else None,
+                "eval",
+                "--extra-experimental-features",
+                "nix-command flakes",
+                "--json",
+                "--file",
+                str(pathlib.Path(__file__).parent.joinpath("find-attribute-paths.nix")),
+            ]
+            if arg is not None
         ],
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -317,6 +336,7 @@ def cli(
             queued_output_paths,
             visited_output_paths,
             finder_env,
+            offline,
             logger,
         ],
     )
