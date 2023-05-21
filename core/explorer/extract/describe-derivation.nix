@@ -47,7 +47,7 @@ in
       targetSystem
       (drv: drv.outPath)
       targetValue;
-  outputPaths = map (name: { inherit name; path = lib.safePlatformDrvEval targetSystem (drv: drv.outPath) targetValue.${name}; }) targetValue.outputs;
+  outputPaths = map (name: { inherit name; path = lib.safePlatformDrvEval targetSystem (drv: drv.outPath) targetValue.${name}; }) (targetValue.outputs or []);
   buildInputs = nixpkgs.lib.lists.flatten
     (map
       (inputType:
