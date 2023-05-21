@@ -19,6 +19,7 @@ def finder_output_reader(
     pipe_in: IO[Any],
     queue: multiprocessing.Queue,
     queued_output_paths: set[str],
+    logger: logging.Logger,
 ):
     """Read lines from finder standard output to push found attribute paths to queue"""
     with pipe_in:
@@ -26,27 +27,34 @@ def finder_output_reader(
         # read incoming lines
         for line_bytes in iter(pipe_in.readline, b""):
             line: str = line_bytes.decode()
-            if line.startswith("trace: "):
-                # remove beginning "trace:"
-                trace = line[6:]
-                try:
-                    # FIXME use pydantic
-                    parsed_found_derivations = json.loads(trace)["foundDrvs"]
-                except Exception:
-                    # fail silently, most likely some other trace from nixpkgs
-                    sys.stderr.write(line)
+
+            if not line.startswith("trace: "):
+                sys.stderr.write(line)
+                continue
+
+            # remove beginning "trace:"
+            trace = line[6:]
+
+            try:
+                # FIXME use pydantic
+                parsed_found_derivations: list[dict[str, str]] = json.loads(trace)[
+                    "foundDrvs"
+                ]
+            except Exception:
+                # fail silently, most likely some other trace from nixpkgs
+                sys.stderr.write(line)
+                continue
+
+            # push found derivations to queue if they haven't been queued already
+            for found_derivation in parsed_found_derivations:
+                attribute_path = found_derivation.get("attributePath")
+                output_path = found_derivation.get("outputPath")
+                if attribute_path is None or output_path is None:
+                    logger.warning("Wrong derivation: %s", json.dumps(found_derivation))
                     continue
-                # push found derivations to queue if they haven't been queued already
-                for found_derivation in parsed_found_derivations:
-                    attribute_path = found_derivation.get("attributePath")
-                    output_path = found_derivation.get("outputPath")
-                    if (
-                        attribute_path is not None
-                        and output_path is not None
-                        and output_path not in queued_output_paths
-                    ):
-                        queue.put(attribute_path)
-                        queued_output_paths.add(output_path)
+                if output_path not in queued_output_paths:
+                    queue.put(attribute_path)
+                    queued_output_paths.add(output_path)
 
 
 def process_attribute_path(
@@ -293,6 +301,7 @@ def cli(
             finder_process.stderr,
             derivation_description_queue,
             queued_output_paths,
+            logger,
         ],
     )
     reader_thread.start()
