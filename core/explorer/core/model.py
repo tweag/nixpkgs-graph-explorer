@@ -62,6 +62,7 @@ class BuildInput(BaseModel):
         alias_generator = snake_case_to_camel_case
 
 
+# FIXME rename to "Derivation"
 class Package(BaseModel):
     """A Nix package, which is an evaluated (not realized) derivation."""
 

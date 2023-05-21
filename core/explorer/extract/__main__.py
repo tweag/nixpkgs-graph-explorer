@@ -15,32 +15,34 @@ import click
 from explorer.core import model
 
 
-def reader(
+def finder_output_reader(
     pipe_in: IO[Any],
     queue: multiprocessing.Queue,
     queued_output_paths: set[str],
 ):
-    """Read lines from pipe to push found attribute paths to queue"""
+    """Read lines from finder standard output to push found attribute paths to queue"""
     with pipe_in:
-        line: bytes
-        # read incoming lines from the Nix expression
-        for line in iter(pipe_in.readline, b""):
-            s = line.decode()
-            if s.startswith("trace: "):
+        line_bytes: bytes
+        # read incoming lines
+        for line_bytes in iter(pipe_in.readline, b""):
+            line: str = line_bytes.decode()
+            if line.startswith("trace: "):
                 # remove beginning "trace:"
-                s = s[6:]
+                trace = line[6:]
                 try:
                     # FIXME use pydantic
-                    parsed_found_derivations = json.loads(s)["foundDrvs"]
+                    parsed_found_derivations = json.loads(trace)["foundDrvs"]
                 except Exception:
                     # fail silently, most likely some other trace from nixpkgs
+                    sys.stderr.write(line)
                     continue
                 # push found derivations to queue if they haven't been queued already
                 for found_derivation in parsed_found_derivations:
-                    output_path = found_derivation["outputPath"]
-                    attribute_path = found_derivation["attributePath"]
+                    attribute_path = found_derivation.get("attributePath")
+                    output_path = found_derivation.get("outputPath")
                     if (
-                        output_path is not None
+                        attribute_path is not None
+                        and output_path is not None
                         and output_path not in queued_output_paths
                     ):
                         queue.put(attribute_path)
@@ -124,7 +126,7 @@ def try_or_none(f: Callable, e_type: Type[Exception]):
         return None
 
 
-def process_queue(
+def queue_processor(
     output_file_path: str,
     finder_process: subprocess.Popen,
     pool: multiprocessing.pool.ThreadPool,
@@ -222,7 +224,7 @@ def process_queue(
     "outfile",
     type=click.File("wt"),
 )
-def extract_data(
+def cli(
     target_flake_ref: str,
     target_system: str,
     n_workers: int,
@@ -256,6 +258,7 @@ def extract_data(
     for k, v in extra_env.items():
         finder_env[k] = v
 
+    # start process to find derivations directly available
     finder_process = subprocess.Popen(
         args=[
             "nix",
@@ -266,19 +269,26 @@ def extract_data(
             "--file",
             str(pathlib.Path(__file__).parent.joinpath("find-attribute-paths.nix")),
         ],
-        # write to file passed as argument (or stdout)
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         env=finder_env,
     )
 
+    # while we find these derivations directly available, we process found derivations
+    # at the same time to describe them, but also to find derivations indirectly
+    # available via their build inputs
     derivation_description_pool = multiprocessing.pool.ThreadPool(n_workers)
+
+    # we can't access the pool job queue so we use our own (thanks encapsulation U_U)
     derivation_description_queue = multiprocessing.Queue()
+    # we don't want to process the same derivation twice, so we use their output path to
+    # check that
     queued_output_paths: set[str] = set()
     visited_output_paths: set[str] = set()
 
+    # read derivations found by the finder to feed the processing queue
     reader_thread = Thread(
-        target=reader,
+        target=finder_output_reader,
         args=[
             finder_process.stderr,
             derivation_description_queue,
@@ -287,8 +297,9 @@ def extract_data(
     )
     reader_thread.start()
 
+    # process derivations pushed to the processing queue
     process_queue_thread = Thread(
-        target=process_queue,
+        target=queue_processor,
         args=[
             outfile,
             finder_process,
@@ -302,6 +313,7 @@ def extract_data(
     )
     process_queue_thread.start()
 
+    # all is done once finder is done, reader is done and processing queue is done
     finder_process.wait()
     logger.info("FINDER EXIT")
     reader_thread.join()
@@ -311,12 +323,12 @@ def extract_data(
     derivation_description_pool.close()
     derivation_description_pool.join()
     logger.info("POOL EXIT")
-    is_queue_empty = derivation_description_queue.empty()
-    logger.info("IS QUEUE EMPTY: %s", is_queue_empty)
-    if not is_queue_empty:
+
+    if not derivation_description_queue.empty():
+        logger.error("Finished but queue is not empty")
         sys.exit(1)
 
 
 if __name__ == "__main__":
     logging.basicConfig()
-    extract_data()
+    cli()
