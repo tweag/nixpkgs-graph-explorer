@@ -100,3 +100,7 @@ class Package(BaseModel):
     class Config:
         use_enum_values = True
         alias_generator = snake_case_to_camel_case
+
+
+class NixGraph(BaseModel):
+    packages: list[Package]
