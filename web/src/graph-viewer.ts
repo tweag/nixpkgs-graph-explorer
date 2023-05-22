@@ -4,6 +4,12 @@ import { choose } from "lit/directives/choose.js";
 import { customElement, property, queryAsync, state } from "lit/decorators.js";
 import "@shoelace-style/shoelace/dist/components/tab-group/tab-group.js";
 import "@shoelace-style/shoelace/dist/components/tab/tab.js";
+import "@shoelace-style/shoelace/dist/components/tab/tab.js";
+import "@shoelace-style/shoelace/dist/components/tree/tree.js";
+import "@shoelace-style/shoelace/dist/components/tree-item/tree-item.js";
+import "@shoelace-style/shoelace/dist/components/split-panel/split-panel.js";
+import "@shoelace-style/shoelace/dist/components/icon/icon.js";
+import "@shoelace-style/shoelace/dist/components/details/details.js";
 
 import dagre from "cytoscape-dagre";
 import cytoscape from "cytoscape";
@@ -37,6 +43,14 @@ function renderCyGraph(result: QueryResultPayload, container: HTMLElement) {
     });
     container.dispatchEvent(customEvent);
   });
+  cy.on("unselect", "node", function (graphEvent) {
+    const customEvent = new CustomEvent("node-deselected", {
+      detail: { packageName: graphEvent.target.id() },
+      bubbles: true,
+      composed: true,
+    });
+    container.dispatchEvent(customEvent);
+  });
 }
 
 const TABS = {
@@ -54,7 +68,7 @@ export class GraphViewer extends LitElement {
 
   @state() _currentTab: TabType = TABS.graph;
 
-  @state() _selectedNode?: string = null;
+  @state() _selectedNodes: Array<string> = [];
 
   // Current error friendly message. The absence of a value (null/undefined)
   // represents the lack of a current error
@@ -72,10 +86,6 @@ export class GraphViewer extends LitElement {
       box-sizing: border-box;
     }
     #cy-container,
-    #raw-data {
-      border: 1px solid var(--sl-panel-border-color);
-      border-top: none;
-    }
     #cy {
       width: 100%;
       height: 100%;
@@ -86,22 +96,38 @@ export class GraphViewer extends LitElement {
       place-items: center;
       grid-row: 1 / -1;
       height: 100%;
-      font-family: Raleway, HelveticaNeue, "Helvetica Neue", Helvetica, Arial,
-        sans-serif;
-      font-size: 2rem;
+      font-family: var(--sl-font-sans);
+      font-size: var(--sl-font-size-2x-large);
     }
 
     #raw-data {
-      padding: 1em;
-      font-family: monospace;
+      padding: var(--sl-spacing-small);
+      font-family: var(--sl-font-mono);
     }
 
     #selected-node-details {
       font-family: var(--sl-font-sans);
-      font-size: var(--sl-font-size-medium);
-      font-weight: var(--sl-font-weight-normal);
       color: var(--sl-color-neutral-800);
       line-height: var(--sl-line-height-normal);
+      background: var(--sl-color-neutral-100);
+      overflow: scroll;
+    }
+
+    .tab-content {
+      border: 1px solid var(--sl-panel-border-color);
+      border-top: none;
+    }
+
+    sl-split-panel::part(divider) {
+      background-color: var(--sl-color-neutral-200);
+    }
+
+    sl-icon {
+      position: absolute;
+      border-radius: var(--sl-border-radius-small);
+      background: var(--sl-color-neutral-300);
+      color: var(--sl-color-neutral-0);
+      padding: 0.5rem 0.125rem;
     }
   `;
 
@@ -139,25 +165,42 @@ export class GraphViewer extends LitElement {
         [
           TABS.graph,
           () => html`
-            <div id="cy-container" @node-selected=${this._handleSelectedNode}>
-              <div id="cy"></div>
-            </div>
-            <div id="selected-node-details">
-              <p>Selected node: ${this._selectedNode}</p>
-            </div>
+            <sl-split-panel class="tab-content" position="75">
+              <sl-icon slot="divider" name="grip-vertical"></sl-icon>
+              <div
+                id="cy-container"
+                slot="start"
+                @node-selected=${this._handleSelectedNode}
+                @node-deselected=${this._handleDeselectedNode}
+              >
+                <div id="cy"></div>
+              </div>
+              <div id="selected-node-details" slot="end">
+                <packages-outline .packages=${this._selectedNodes}></packages-outline>
+              </div>
+              </div>
+            </sl-split-panel>
           `,
         ],
         [
           TABS.raw,
-          () => html`<div id="raw-data">${this.queryResult.data.raw}</div>`,
+          () =>
+            html`<div class="tab-content" id="raw-data">
+              ${this.queryResult.data.raw}
+            </div>`,
         ],
       ])}
     `;
   }
 
   private _handleSelectedNode(event: CustomEvent) {
-    console.log(event);
-    this._selectedNode = event.detail.packageName;
+    this._selectedNodes = [event.detail.packageName, ...this._selectedNodes];
+  }
+
+  private _handleDeselectedNode(event: CustomEvent) {
+    this._selectedNodes = this._selectedNodes.filter(
+      (name) => name !== event.detail.packageName
+    );
   }
 
   async updated(changedProperties: Map<string, any>) {
@@ -171,6 +214,8 @@ export class GraphViewer extends LitElement {
     }
 
     if (this.queryResult != null && changedProperties.has("queryResult")) {
+      this._selectedNodes = [];
+
       // Server error
       if (this.queryResult.error === true) {
         this._errorMsg = html`Error fetching graph data :(<br />
@@ -193,6 +238,29 @@ export class GraphViewer extends LitElement {
           Please try again later, if the error persists contact us on GitHub`;
       }
     }
+  }
+}
+
+@customElement("packages-outline")
+export class PackagesOutline extends LitElement {
+  // TODO Eventually, this should be a collection of Pkg and contain actual details.
+  @property({ attribute: false }) packages: Array<string> = ["hello"];
+
+  static styles = css`
+    sl-details {
+      margin: var(--sl-spacing-small);
+      margin-left: var(--sl-spacing-medium);
+    }
+  `;
+
+  render() {
+    return this.packages.map(
+      (packageName, index) => html`
+        <sl-details summary="${packageName}" ?open=${index === 0}>
+          Details about ${packageName}.
+        </sl-details>
+      `
+    );
   }
 }
 
