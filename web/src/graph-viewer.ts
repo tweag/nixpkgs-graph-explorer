@@ -12,11 +12,7 @@ import { DataPayload, QueryResultPayload } from "./api";
 
 cytoscape.use(dagre);
 
-function renderCyGraph(
-  result: QueryResultPayload,
-  container: HTMLElement,
-  onSelectNode: (nodeId: string) => void
-) {
+function renderCyGraph(result: QueryResultPayload, container: HTMLElement) {
   const graphData = result?.data;
   if (graphData == null) return;
   const data = graphData.cyto["graph-data"];
@@ -33,8 +29,13 @@ function renderCyGraph(
       },
     ],
   });
-  cy.on("select", "node", function (evt) {
-    onSelectNode(evt.target.id());
+  cy.on("select", "node", function (graphEvent) {
+    const customEvent = new CustomEvent("node-selected", {
+      detail: { packageName: graphEvent.target.id() },
+      bubbles: true,
+      composed: true,
+    });
+    container.dispatchEvent(customEvent);
   });
 }
 
@@ -138,7 +139,7 @@ export class GraphViewer extends LitElement {
         [
           TABS.graph,
           () => html`
-            <div id="cy-container">
+            <div id="cy-container" @node-selected=${this._handleSelectedNode}>
               <div id="cy"></div>
             </div>
             <div id="selected-node-details">
@@ -154,8 +155,9 @@ export class GraphViewer extends LitElement {
     `;
   }
 
-  selectNode(nodeId: string) {
-    this._selectedNode = nodeId;
+  private _handleSelectedNode(event: CustomEvent) {
+    console.log(event);
+    this._selectedNode = event.detail.packageName;
   }
 
   async updated(changedProperties: Map<string, any>) {
@@ -165,7 +167,7 @@ export class GraphViewer extends LitElement {
       this._currentTab === TABS.graph
     ) {
       const cy = await this._cy;
-      renderCyGraph(this.queryResult, cy, this.selectNode.bind(this));
+      renderCyGraph(this.queryResult, cy);
     }
 
     if (this.queryResult != null && changedProperties.has("queryResult")) {
@@ -185,7 +187,7 @@ export class GraphViewer extends LitElement {
         this._errorMsg = null; // Remove old errors
         const cy = await this._cy;
         if (this._currentTab === TABS.graph)
-          renderCyGraph(this.queryResult, cy, this.selectNode.bind(this));
+          renderCyGraph(this.queryResult, cy);
       } catch {
         this._errorMsg = html`Something went wrong :(<br />
           Please try again later, if the error persists contact us on GitHub`;
