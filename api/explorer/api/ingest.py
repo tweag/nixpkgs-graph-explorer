@@ -2,7 +2,7 @@ import logging
 import threading
 from concurrent.futures import ThreadPoolExecutor, wait
 from contextlib import closing
-from typing import Callable, Tuple
+from typing import Callable, Optional, Tuple
 
 import click
 from explorer.core import model
@@ -101,89 +101,100 @@ def _edge_from_build_input_type(build_input_type: model.BuildInputType) -> graph
         )
 
 
-def split_nix_graph(
-    nix_graph: model.NixGraph,
+class _IngestionContext:
+    """Class holding data that is passed along successive calls to
+    split_nix_package"""
+
+    def __init__(self) -> None:
+        """Map from package output path to graph Package object.
+        Continuously grows while ingesting"""
+        self.packages: dict[str, graph.Package] = {}
+
+        """Edges that could not be added yet, because the package
+           that is the destination of the edge has not been processed yet.
+           For example if package A at "/A" depends on "/B" and package "A" is
+           processed first, this dict will be {"/B": [(A, edge)]} until B is processed.
+           When package B is processed, "A -edge-> B" will be returned in the
+           ingestion methods below, and the dict is shrunk.
+
+           This dict has the destination of the edge as key, to allow for fast
+           lookup (as opposed to using a list of triplets)."""
+        # TODO, this is a multimap, is there a Python class for that?
+        self.pending_edges: dict[str, list[tuple[graph.Package, graph.Edge]]] = {}
+
+
+def split_nix_package(
+    nix_package: model.Package, ctxt: _IngestionContext
 ) -> tuple[list[graph.Package], list[tuple[graph.Package, graph.Edge, graph.Package]]]:
     """
-    Turn a parsed NixGraph from core model into two lists, a list of nodes (Package)
-    and a list of edges, in the API model.
+    Processes nix_package, returning the new edges that must be created,
+    and augmenting ctxt with both the new packages (ctxt.packages) and
+    the edges to add later on (ctxt.pending_edges)
 
     Args:
-        nix_graph (model.NixGraph): parsed NixGraph (core model)
-
+        nix_package (model.Package): parsed Nix package (core model)
+        ctxt (_IngestionContext): accumulator of the ingestion
     Returns:
         tuple[
-            List[graph.Package],
-            List[tuple[graph.Package, graph.Edge, graph.Package]]
-        ]:
-        A tuple containing the list of nodes (packages) and the list of edges,
-    both in the graph API model.
-
-    Raises:
-        Exception: when the output path of an edge's vertex does not correspond to
-    any derivation in the NixGraph
+            list[graph.Package],
+            list[tuple[graph.Package, graph.Edge, graph.Package]]:
+        ]
+        The packages and edges created while processing nix_package. In the edges,
+        a tuple (A, edge, B) means A -edge-> B.
     """
-    # Map from output path to package node
-    packages: dict[str, graph.Package] = {}
+    edges: list[tuple[graph.Package, graph.Edge, graph.Package]] = []
 
-    # A dictionary that maps pairs of package output paths to edge objects.
-    edge_refs = {}
+    parsed_pkgs: list[graph.Package] = safe_parse_package(nix_package)
+    for pkg in parsed_pkgs:
+        # TODO: do we have the invariant that packages[ps.outputPath]
+        # is not mapped here? If yes should we check it?
+        ctxt.packages[pkg.outputPath] = pkg
 
-    # A list of tuples containing package, edge, and dependency package objects.
-    edges = []
+        # Go over the build inputs of the package being processed, and
+        # record edges to these build inputs.
+        for build_input in nix_package.build_inputs:
+            edge: graph.Edge = _edge_from_build_input_type(build_input.build_input_type)
+            dest_output_path: str = build_input.output_path
+            dest: Optional[graph.Package] = ctxt.packages.get(dest_output_path, None)
+            if dest:
+                # Record edge right away
+                edges.append((pkg, edge, dest))
+            else:
+                # Register for being recorded when destination will be processed
+                if dest_output_path in ctxt.pending_edges:
+                    ctxt.pending_edges[dest_output_path].append((pkg, edge))
+                else:
+                    ctxt.pending_edges[dest_output_path] = [(pkg, edge)]
 
-    # Iterate over each package in the Nix graph
-    for p in nix_graph.packages:
-        parsed = safe_parse_package(p)
-        for ps in parsed:
-            packages[ps.outputPath] = ps
-            # Populate edge_refs dictionary with package output path pairs
-            # and their corresponding edge objects
-            edge_refs |= {
-                (
-                    ps.outputPath,
-                    build_input.output_path,
-                ): _edge_from_build_input_type(build_input.build_input_type)
-                for build_input in p.build_inputs
-            }
-    missing = []
-    for paths, edge in edge_refs.items():
-        package_output_path, dependency_output_path = paths
-        if package_output_path not in packages:
-            raise Exception(
-                "Package metadata could not be found for the output path "
-                "corresponding to the edge's input vertex. "
-                "This should be impossible! "
-                f"Output path: {package_output_path} "
-            )
-        if dependency_output_path not in packages:
-            missing.append(dependency_output_path)
+    # For every new package, add pending edges to this package
+    for pkg in parsed_pkgs:
+        if pkg.outputPath not in ctxt.pending_edges:
+            # No edge to this package was pending addition
             continue
-        edges.append(
-            (packages[package_output_path], edge, packages[dependency_output_path])
-        )
+        src_edge_pairs = ctxt.pending_edges[pkg.outputPath]
+        for source_pkg, edge in src_edge_pairs:
+            edges.append((source_pkg, edge, pkg))
+        # Shrink pending_edges, as key has been processed
+        ctxt.pending_edges.pop(pkg.outputPath)
 
-    if missing:
-        print(
-            f"Warning: {len(missing)} build input(s) in the input JSON file "
-            "do not have a corresponding package and will be ignored."
-        )
-    # Return the list of API package objects and the list of API package edges
-    return list(packages.values()), edges
+    return parsed_pkgs, edges
 
 
-def ingest_nix_graph(
-    nix_graph: model.NixGraph, g_factory: Callable[[], GraphTraversalSource]
+def ingest_nix_package(
+    nix_package: model.Package,
+    ctxt: _IngestionContext,
+    g_factory: Callable[[], GraphTraversalSource],
 ) -> None:
     """Writes the entire provided Nix graph to the provided Gremlin traversal source
 
     Args:
-        nix_graph (model.NixGraph): The Nix graph to ingest
+        nix_package (model.NixPackage): The Nix package to ingest
+        ctxt (_IngestionContext): The ingestion context
         g (GraphTraversalSource): The graph traversal source to use for ingesting
             the Nix graph
     """
 
-    packages, edges = split_nix_graph(nix_graph)
+    packages, edges = split_nix_package(nix_package, ctxt)
 
     # Write nodes to the Gremlin graph
     click.echo("Writing nodes to the Gremlin graph...")
@@ -234,6 +245,30 @@ def ingest_nix_graph(
                     f.result()
                 except Exception as exc:
                     logger.exception(exc)
+
+
+def ingest_nix_graph(
+    nix_graph: model.NixGraph, g_factory: Callable[[], GraphTraversalSource]
+) -> None:
+    """Writes the entire provided Nix graph to the provided Gremlin traversal source
+
+    Args:
+        nix_graph (model.NixGraph): The Nix graph to ingest
+        g (GraphTraversalSource): The graph traversal source to use for ingesting
+            the Nix graph
+    """
+    ctxt = _IngestionContext()
+    for package in nix_graph.packages:
+        ingest_nix_package(package, ctxt, g_factory)
+
+    nb_missing_edges = sum(
+        len(src_edge_pairs) for src_edge_pairs in ctxt.pending_edges.values()
+    )
+    if nb_missing_edges > 0:
+        print(
+            f"Warning: {nb_missing_edges} build input(s) in the input JSON file "
+            "do not have a corresponding package and will be ignored."
+        )
 
 
 @click.command(
