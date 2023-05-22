@@ -29,24 +29,23 @@ Use the Nix development shell provided in this repository, see `../README.md#use
 poetry install
 ```
 
+The API server expects Gremlin Server and Postgres to be available.
+You can launch these with the Docker Compose file in the project's root directory:
+
+```console
+# From the repository root folder
+docker-compose --profile db up
+```
+
 ### Run locally
 
 To launch the app with hot reloading for fast iteration, use:
 
 ```console
-poetry run uvicorn explorer.api:app --reload
+poetry run uvicorn explorer.api:app --port 5000 --reload
 ```
 
 ### Test
-
-Tests expect Gremlin Server and Postgres to be available.
-You can launch these with the Docker Compose file in the project's root directory:
-
-```console
-# Launches the required docker-compose stack
-# From the repository root folder
-docker-compose --profile db up
-```
 
 The project uses pytest:
 
