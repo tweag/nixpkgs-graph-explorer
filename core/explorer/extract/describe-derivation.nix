@@ -26,7 +26,7 @@ let
 in
 {
   name = targetValue.name;
-  parsed_name = (builtins.parseDrvName targetValue.name);
+  parsedName = (builtins.parseDrvName targetValue.name);
   attributePath = targetAttributePath;
   nixpkgsMetadata =
     {
