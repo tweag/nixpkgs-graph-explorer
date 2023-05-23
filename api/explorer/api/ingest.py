@@ -1,3 +1,4 @@
+import dataclasses
 import logging
 import threading
 from concurrent.futures import ThreadPoolExecutor, wait
@@ -101,26 +102,27 @@ def _edge_from_build_input_type(build_input_type: model.BuildInputType) -> graph
         )
 
 
+@dataclasses.dataclass(frozen=True)
 class _IngestionContext:
     """Class holding data that is passed along successive calls to
     split_nix_package"""
 
-    def __init__(self) -> None:
-        """Map from package output path to graph Package object.
-        Continuously grows while ingesting"""
-        self.packages: dict[str, graph.Package] = {}
+    """Map from package output path to graph Package object.
+       Continuously grows while ingesting"""
+    packages: dict[str, graph.Package] = dataclasses.field(default_factory=dict)
+    """Edges that could not be added yet, because the package
+       that is the destination of the edge has not been processed yet.
+       For example if package A at "/A" depends on "/B" and package "A" is
+       processed first, this dict will be {"/B": [(A, edge)]} until B is processed.
+       When package B is processed, "A -edge-> B" will be returned in the
+       ingestion methods below, and the dict is shrunk.
 
-        """Edges that could not be added yet, because the package
-           that is the destination of the edge has not been processed yet.
-           For example if package A at "/A" depends on "/B" and package "A" is
-           processed first, this dict will be {"/B": [(A, edge)]} until B is processed.
-           When package B is processed, "A -edge-> B" will be returned in the
-           ingestion methods below, and the dict is shrunk.
-
-           This dict has the destination of the edge as key, to allow for fast
-           lookup (as opposed to using a list of triplets)."""
-        # TODO, this is a multimap, is there a Python class for that?
-        self.pending_edges: dict[str, list[tuple[graph.Package, graph.Edge]]] = {}
+       This dict has the destination of the edge as key, to allow for fast
+       lookup (as opposed to using a list of triplets)."""
+    # TODO, this is a multimap, is there a Python class for that?
+    pending_edges: dict[
+        str, list[tuple[graph.Package, graph.Edge]]
+    ] = dataclasses.field(default_factory=dict)
 
 
 def split_nix_package(
@@ -146,8 +148,6 @@ def split_nix_package(
 
     parsed_pkgs: list[graph.Package] = safe_parse_package(nix_package)
     for pkg in parsed_pkgs:
-        # TODO: do we have the invariant that packages[ps.outputPath]
-        # is not mapped here? If yes should we check it?
         ctxt.packages[pkg.outputPath] = pkg
 
         # Go over the build inputs of the package being processed, and
