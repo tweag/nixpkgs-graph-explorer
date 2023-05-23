@@ -7,7 +7,7 @@ import pathlib
 import subprocess
 import sys
 from queue import Empty
-from threading import Thread, Lock
+from threading import Lock, Thread
 from typing import IO, Any, Callable, Type
 
 import click
