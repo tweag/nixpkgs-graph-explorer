@@ -7,7 +7,7 @@ import pathlib
 import subprocess
 import sys
 from queue import Empty
-from threading import Thread
+from threading import Thread, Lock
 from typing import IO, Any, Callable, Type
 
 import click
@@ -59,6 +59,7 @@ def finder_output_reader(
 
 def process_attribute_path(
     pipe_out: IO[str],
+    pipe_out_lock: Lock,
     queue: multiprocessing.Queue,
     queued_output_paths: set[str],
     visited_output_paths: set[str],
@@ -118,8 +119,9 @@ def process_attribute_path(
         return True
 
     # write to output pipe
-    pipe_out.write(description.json(by_alias=False))
-    pipe_out.write("\n")
+    with pipe_out_lock:
+        pipe_out.write(description.json(by_alias=False))
+        pipe_out.write("\n")
 
     visited_output_paths.add(description.output_path)
     for build_input in description.build_inputs:
@@ -141,7 +143,8 @@ def try_or_none(f: Callable, e_type: Type[Exception]):
 
 
 def queue_processor(
-    output_file_path: str,
+    outfile: IO[str],
+    outfile_lock: Lock,
     finder_process: subprocess.Popen,
     pool: multiprocessing.pool.ThreadPool,
     queue: multiprocessing.Queue,
@@ -198,7 +201,8 @@ def queue_processor(
         job = pool.apply_async(
             func=process_attribute_path,
             args=[
-                output_file_path,
+                outfile,
+                outfile_lock,
                 queue,
                 queued_output_paths,
                 visited_output_paths,
@@ -313,6 +317,9 @@ def cli(
     queued_output_paths: set[str] = set()
     visited_output_paths: set[str] = set()
 
+    # we need to use a mutex lock to make sure we write one line at a time
+    outfile_lock = Lock()
+
     # read derivations found by the finder to feed the processing queue
     reader_thread = Thread(
         target=finder_output_reader,
@@ -330,6 +337,7 @@ def cli(
         target=queue_processor,
         args=[
             outfile,
+            outfile_lock,
             finder_process,
             derivation_description_pool,
             derivation_description_queue,
