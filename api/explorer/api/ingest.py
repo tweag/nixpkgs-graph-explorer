@@ -127,10 +127,10 @@ def split_nix_graph(
     packages: dict[str, graph.Package] = {}
 
     # A dictionary that maps pairs of package output paths to edge objects.
-    edge_refs = {}
+    edge_refs: dict[tuple[str, str], graph.Edge] = {}
 
     # A list of tuples containing package, edge, and dependency package objects.
-    edges = []
+    edges: list[tuple[graph.Package, graph.Edge, graph.Package]] = []
 
     # Iterate over each package in the Nix graph
     for p in nix_graph.packages:
@@ -146,7 +146,7 @@ def split_nix_graph(
                 ): _edge_from_build_input_type(build_input.build_input_type)
                 for build_input in p.build_inputs
             }
-    missing = []
+    missing: list[str] = []
     for paths, edge in edge_refs.items():
         package_output_path, dependency_output_path = paths
         if package_output_path not in packages:
