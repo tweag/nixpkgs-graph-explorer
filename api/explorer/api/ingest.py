@@ -3,7 +3,7 @@ import logging
 import threading
 from concurrent.futures import ThreadPoolExecutor, wait
 from contextlib import closing
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional
 
 import backoff
 import click
@@ -213,7 +213,7 @@ def ingest_nix_package(
         graph.insert_unique_vertex(p, g)
 
     @backoff.on_exception(backoff.expo, Exception, max_tries=3)
-    def write_edge(input: Tuple[graph.Package, graph.Edge, graph.Package]):
+    def write_edge(input: tuple[graph.Package, graph.Edge, graph.Package]):
         current_package, edge, dependency_package = input
         g = get_local_client()
         graph.insert_unique_directed_edge(
