@@ -197,8 +197,6 @@ def ingest_nix_package(
 
     packages, edges = split_nix_package(nix_package, ctxt)
 
-    retries = 3  # Number of retry attempts
-
     # Write nodes to the Gremlin graph
     click.echo("Writing nodes to the Gremlin graph...")
 
