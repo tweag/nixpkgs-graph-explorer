@@ -232,12 +232,17 @@ def ingest_nix_package(
             for f in futures:
                 f.add_done_callback(lambda _x: bar.update(1))
             wait(futures)
-            packages_exceptions = [f.exception() for f in futures if f.exception()]
-            if packages_exceptions:
-                # Raise a single exception after all tasks have completed
-                raise Exception(
-                    "Exceptions occurred while writing packages."
-                ) from packages_exceptions[0]
+            # Collect the packages which are not ingested successfully
+            failed_packages = [
+                packages[futures.index(f)] for f in futures if f.exception()
+            ]
+            failed_packages_copy = failed_packages.copy()
+            if failed_packages_copy:
+                click.echo("\nRetrying to write packages...")
+                for i in range(len(failed_packages_copy)):
+                    write_package(failed_packages_copy[i])
+                    failed_packages.remove(failed_packages_copy[i])
+                click.echo("Done.")
 
         click.echo("Writing edges")
         with click.progressbar(length=len(edges)) as bar:
@@ -245,16 +250,24 @@ def ingest_nix_package(
             for f in futures:
                 f.add_done_callback(lambda _x: bar.update(1))
             wait(futures)
-            edges_exceptions = [f.exception() for f in futures if f.exception()]
-            if edges_exceptions:
-                # Raise a single exception after all tasks have completed
-                raise Exception(
-                    "Exceptions occurred while writing edges."
-                ) from edges_exceptions[0]
+            # Collect the edges which are not ingested successfully
+            failed_edges = [edges[futures.index(f)] for f in futures if f.exception()]
+            failed_edges_copy = failed_edges.copy()
+            if failed_edges_copy:
+                click.echo("\nRetrying to write edges...")
+                for i in range(len(failed_edges_copy)):
+                    write_edge(failed_packages_copy[i])
+                    failed_edges.remove(failed_packages_copy[i])
+                click.echo("Done.")
 
         # Check if all tasks executed successfully
-        if len(packages_exceptions) == 0 and len(edges_exceptions) == 0:
+        if len(failed_packages) == 0 and len(failed_edges) == 0:
             click.echo("All ingestion tasks completed successfully.")
+        else:
+            logger.error(
+                f"{failed_packages + failed_edges} are not successfully "
+                "ingested, please try again later."
+            )
 
 
 def ingest_nix_graph(
