@@ -197,9 +197,6 @@ def ingest_nix_package(
 
     packages, edges = split_nix_package(nix_package, ctxt)
 
-    # Write nodes to the Gremlin graph
-    click.echo("Writing nodes to the Gremlin graph...")
-
     def get_local_client() -> GraphTraversalSource:
         thread_local = threading.local()
         g = getattr(thread_local, "g", None)
@@ -224,7 +221,8 @@ def ingest_nix_package(
         )
 
     with ThreadPoolExecutor() as ex:
-        click.echo("Writing packages")
+        # Write nodes to the Gremlin graph
+        click.echo("Writing nodes to the Gremlin graph...")
         with click.progressbar(length=len(packages)) as bar:
             futures = [ex.submit(write_package, p) for p in packages]
             for f in futures:
@@ -236,13 +234,14 @@ def ingest_nix_package(
             ]
             failed_packages_copy = failed_packages.copy()
             if failed_packages_copy:
-                click.echo("\nRetrying to write packages...")
+                click.echo("\nRetrying to write nodes...")
                 for i in range(len(failed_packages_copy)):
                     write_package(failed_packages_copy[i])
                     failed_packages.remove(failed_packages_copy[i])
                 click.echo("Done.")
 
-        click.echo("Writing edges")
+        # Write edges to the Gremlin graph
+        click.echo("Writing edges to the Gremlin graph...")
         with click.progressbar(length=len(edges)) as bar:
             futures = [ex.submit(write_edge, e) for e in edges]
             for f in futures:
@@ -254,8 +253,8 @@ def ingest_nix_package(
             if failed_edges_copy:
                 click.echo("\nRetrying to write edges...")
                 for i in range(len(failed_edges_copy)):
-                    write_edge(failed_packages_copy[i])
-                    failed_edges.remove(failed_packages_copy[i])
+                    write_edge(failed_edges_copy[i])
+                    failed_edges.remove(failed_edges_copy[i])
                 click.echo("Done.")
 
         # Check if all tasks executed successfully
