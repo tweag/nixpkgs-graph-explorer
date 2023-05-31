@@ -1,12 +1,16 @@
 import json
-from click.testing import CliRunner
 from pathlib import Path
+
+from click.testing import CliRunner
 
 from explorer.extract.cli import cli
 
+
 def test_trivial():
     # need absolute path
-    trivial_flake_path = (Path(__file__).parent / "fixtures" / "flake-trivial").absolute()
+    trivial_flake_path = (
+        Path(__file__).parent / "fixtures" / "flake-trivial"
+    ).absolute()
     # sanity checks
     assert trivial_flake_path.exists()
     assert trivial_flake_path.is_dir()
@@ -15,15 +19,18 @@ def test_trivial():
 
     # test CLI
     runner = CliRunner()
-    result = runner.invoke(cli, [
-        "--target-flake-ref",
-        f"path:{trivial_flake_path}",
-        "--target-system",
-        "x86_64-linux",
-        "--verbose",
-        # print to stdout
-        "-",
-    ])
+    result = runner.invoke(
+        cli,
+        [
+            "--target-flake-ref",
+            f"path:{trivial_flake_path}",
+            "--target-system",
+            "x86_64-linux",
+            "--verbose",
+            # print to stdout
+            "-",
+        ],
+    )
 
     assert result.stdout != "", "Empty result"
     result_node = json.loads(result.stdout)
