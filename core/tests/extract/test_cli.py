@@ -1,9 +1,12 @@
+from io import StringIO
 import json
+import logging
 from pathlib import Path
+import sys
 
 from click.testing import CliRunner
 
-from explorer.extract.cli import cli
+import explorer.extract.cli
 
 
 def test_trivial():
@@ -17,11 +20,19 @@ def test_trivial():
     assert (trivial_flake_path / "flake.nix").exists()
     assert (trivial_flake_path / "flake.lock").exists()
 
+    # CLI logger
+    cli_stderr_handler = StringIO()
+    logging.getLogger(explorer.extract.cli.__name__).addHandler(
+        logging.StreamHandler(stream=cli_stderr_handler)
+    )
+
     # test CLI
-    runner = CliRunner()
+    runner = CliRunner(
+        mix_stderr=False,
+    )
     result = runner.invoke(
-        cli,
-        [
+        cli=explorer.extract.cli.cli,
+        args=[
             "--target-flake-ref",
             f"path:{trivial_flake_path}",
             "--target-system",
@@ -32,9 +43,25 @@ def test_trivial():
         ],
     )
 
+    # test success
+    assert result.exit_code == 0
+
+    # test output node
+    # trivial flake should contain a single node without dependencies
     assert result.stdout != "", "Empty result"
     result_node = json.loads(result.stdout)
     assert result_node.get("output_path") is not None
     assert result_node.get("name") == "trivial-1.0"
     assert result_node.get("parsed_name", {}).get("name") == "trivial"
     assert result_node.get("parsed_name", {}).get("version") == "1.0"
+    assert result_node.get("build_inputs") == []
+
+    # test behavior through logs
+    # quite unstable, will do for now
+    cli_stderr_handler.seek(0)
+    cli_stderr = cli_stderr_handler.read()
+    assert "FINDER EXIT" in cli_stderr
+    assert "QUEUE PROCESSOR CLOSED" in cli_stderr
+    assert "READER THREAD EXIT" in cli_stderr
+    assert "PROCESS QUEUE THREAD EXIT" in cli_stderr
+    assert "POOL EXIT" in cli_stderr
