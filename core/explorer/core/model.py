@@ -60,6 +60,7 @@ class BuildInput(BaseModel):
     class Config:
         use_enum_values = True
         alias_generator = snake_case_to_camel_case
+        allow_population_by_field_name = True
 
 
 # FIXME rename to "Derivation"
@@ -100,6 +101,7 @@ class Package(BaseModel):
     class Config:
         use_enum_values = True
         alias_generator = snake_case_to_camel_case
+        allow_population_by_field_name = True
 
 
 class NixGraph(BaseModel):
