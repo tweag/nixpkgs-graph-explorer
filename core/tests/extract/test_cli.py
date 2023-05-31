@@ -1,8 +1,8 @@
-from io import StringIO
 import json
 import logging
-from pathlib import Path
 import sys
+from io import StringIO
+from pathlib import Path
 
 from click.testing import CliRunner
 
