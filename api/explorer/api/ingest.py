@@ -236,7 +236,7 @@ def ingest_nix_package(
             if failed_packages_copy:
                 click.echo("\nRetrying to write nodes...")
                 for i in range(len(failed_packages_copy)):
-                    write_package(failed_packages_copy[i])
+                    graph.insert_unique_vertex(failed_packages_copy[i], g_factory())
                     failed_packages.remove(failed_packages_copy[i])
                 click.echo("Done.")
 
@@ -253,7 +253,12 @@ def ingest_nix_package(
             if failed_edges_copy:
                 click.echo("\nRetrying to write edges...")
                 for i in range(len(failed_edges_copy)):
-                    write_edge(failed_edges_copy[i])
+                    graph.insert_unique_directed_edge(
+                        failed_edges_copy[i][1],
+                        from_vertex=failed_edges_copy[i][0],
+                        to_vertex=failed_edges_copy[i][2],
+                        g=g_factory(),
+                    )
                     failed_edges.remove(failed_edges_copy[i])
                 click.echo("Done.")
 
