@@ -236,8 +236,11 @@ def ingest_nix_package(
             if failed_packages_copy:
                 click.echo("\nRetrying to write nodes...")
                 for i in range(len(failed_packages_copy)):
-                    graph.insert_unique_vertex(failed_packages_copy[i], g_factory())
-                    failed_packages.remove(failed_packages_copy[i])
+                    try:
+                        graph.insert_unique_vertex(failed_packages_copy[i], g_factory())
+                        failed_packages.remove(failed_packages_copy[i])
+                    except Exception as e:
+                        logger.exception(f"An exception occurred: {e}")
                 click.echo("Done.")
 
         # Write edges to the Gremlin graph
@@ -253,13 +256,16 @@ def ingest_nix_package(
             if failed_edges_copy:
                 click.echo("\nRetrying to write edges...")
                 for i in range(len(failed_edges_copy)):
-                    graph.insert_unique_directed_edge(
-                        failed_edges_copy[i][1],
-                        from_vertex=failed_edges_copy[i][0],
-                        to_vertex=failed_edges_copy[i][2],
-                        g=g_factory(),
-                    )
-                    failed_edges.remove(failed_edges_copy[i])
+                    try:
+                        graph.insert_unique_directed_edge(
+                            failed_edges_copy[i][1],
+                            from_vertex=failed_edges_copy[i][0],
+                            to_vertex=failed_edges_copy[i][2],
+                            g=g_factory(),
+                        )
+                        failed_edges.remove(failed_edges_copy[i])
+                    except Exception as e:
+                        logger.exception(f"An exception occurred: {e}")
                 click.echo("Done.")
 
         # Check if all tasks executed successfully
