@@ -232,15 +232,22 @@ def ingest_nix_package(
             failed_packages = [
                 packages[futures.index(f)] for f in futures if f.exception()
             ]
-            failed_packages_copy = failed_packages.copy()
-            if failed_packages_copy:
-                click.echo("\nRetrying to write nodes...")
-                for i in range(len(failed_packages_copy)):
+            retried_successful_packages = set()
+            if failed_packages:
+                click.echo(
+                    "\nInserting synchroneously nodes that failed to be inserted"
+                    " asynchroneously..."
+                )
+                for failed_package in failed_packages:
                     try:
-                        graph.insert_unique_vertex(failed_packages_copy[i], g_factory())
-                        failed_packages.remove(failed_packages_copy[i])
+                        graph.insert_unique_vertex(failed_package, g_factory())
+                        retried_successful_packages.add(failed_package)
                     except Exception as e:
-                        logger.exception(f"An exception occurred: {e}")
+                        logger.error(
+                            "Synchronous insertion failed for node: "
+                            f"{failed_package}"
+                        )
+                        logger.exception(e)
                 click.echo("Done.")
 
         # Write edges to the Gremlin graph
@@ -252,29 +259,38 @@ def ingest_nix_package(
             wait(futures)
             # Collect the edges which are not ingested successfully
             failed_edges = [edges[futures.index(f)] for f in futures if f.exception()]
-            failed_edges_copy = failed_edges.copy()
-            if failed_edges_copy:
-                click.echo("\nRetrying to write edges...")
-                for i in range(len(failed_edges_copy)):
+            retried_successful_edges = set()
+            if failed_edges:
+                click.echo(
+                    "\nInserting synchroneously edges that failed to be inserted"
+                    " asynchroneously..."
+                )
+                for failed_edge in failed_edges:
                     try:
                         graph.insert_unique_directed_edge(
-                            failed_edges_copy[i][1],
-                            from_vertex=failed_edges_copy[i][0],
-                            to_vertex=failed_edges_copy[i][2],
+                            failed_edge[1],
+                            from_vertex=failed_edge[0],
+                            to_vertex=failed_edge[2],
                             g=g_factory(),
                         )
-                        failed_edges.remove(failed_edges_copy[i])
+                        retried_successful_edges.add(failed_edge)
                     except Exception as e:
-                        logger.exception(f"An exception occurred: {e}")
+                        logger.error(
+                            f"Synchronous insertion failed for edge: {failed_edge}"
+                        )
+                        logger.exception(e)
                 click.echo("Done.")
 
         # Check if all tasks executed successfully
-        if len(failed_packages) == 0 and len(failed_edges) == 0:
+        if (
+            set(failed_packages).difference(retried_successful_packages) == set()
+            and set(failed_edges).difference(retried_successful_edges) == set()
+        ):
             click.echo("All ingestion tasks completed successfully.")
         else:
             logger.error(
-                f"{failed_packages + failed_edges} are not successfully "
-                "ingested, please try again later."
+                "Some nodes or edges were not successfully ingested, "
+                "please try again later."
             )
 
 
