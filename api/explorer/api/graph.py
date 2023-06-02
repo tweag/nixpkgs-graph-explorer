@@ -89,6 +89,10 @@ class Package(UniqueGraphElement):
     pname: str
     outputPath: str
 
+    def __hash__(self):
+        # Calculate the hash based on the object's properties
+        return hash((self.pname, self.outputPath))
+
     @classmethod
     def label(cls) -> str:
         return "package"
@@ -114,6 +118,10 @@ class HasBuildInput(Edge):
     def label(cls) -> str:
         return "hasBuildInput"
 
+    def __hash__(self):
+        # Return a unique hash based on the object's properties
+        return hash(tuple(sorted(self.__dict__.items())))
+
 
 class HasPropagatedBuildInput(Edge):
     """
@@ -125,6 +133,10 @@ class HasPropagatedBuildInput(Edge):
     def label(cls) -> str:
         return "hasPropagatedBuildInput"
 
+    def __hash__(self):
+        # Return a unique hash based on the object's properties
+        return hash(tuple(sorted(self.__dict__.items())))
+
 
 class HasNativeBuiltInput(Edge):
     """A directed edge indicating a Nix nativeBuildInput dependency between packages"""
@@ -132,6 +144,10 @@ class HasNativeBuiltInput(Edge):
     @classmethod
     def label(cls) -> str:
         return "hasNativeBuildInput"
+
+    def __hash__(self):
+        # Return a unique hash based on the object's properties
+        return hash(tuple(sorted(self.__dict__.items())))
 
 
 def insert_unique_directed_edge(
