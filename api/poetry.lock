@@ -290,6 +290,22 @@ files = [
 ]
 
 [[package]]
+name = "errorhandler"
+version = "2.0.1"
+description = "A logging framework handler that tracks when messages above a certain level have been logged."
+category = "main"
+optional = false
+python-versions = "*"
+files = [
+    {file = "errorhandler-2.0.1-py2.py3-none-any.whl", hash = "sha256:dc6c54f5d9a4599e744b57aac2f925cce873188e9b02cae7c0eb120ee08a893f"},
+    {file = "errorhandler-2.0.1.tar.gz", hash = "sha256:7e578ad67af40845bfd044f71627a29f1fc436d53ccb058bbf1792ef31ab6163"},
+]
+
+[package.extras]
+build = ["pkginfo", "setuptools-git", "sphinx", "twine", "wheel"]
+test = ["coveralls", "nose", "nose-cov", "nose-fixes"]
+
+[[package]]
 name = "exceptiongroup"
 version = "1.1.1"
 description = "Backport of PEP 654 (exception groups)"
@@ -1405,4 +1421,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.10"
-content-hash = "d6459ccd7e54f0108d89097a60f841637b5c72dd8c53385fb7ec8ad5df5b29c1"
+content-hash = "7e57fbef33499ceb73ac57d608622dd8c28eda6f6dbd32338f355f2f00a77d1c"

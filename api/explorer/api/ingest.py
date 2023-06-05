@@ -7,6 +7,7 @@ from typing import Callable, Optional
 
 import backoff
 import click
+import errorhandler
 from explorer.core import model
 from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.process.graph_traversal import GraphTraversalSource
@@ -15,6 +16,8 @@ from explorer.api import graph
 from explorer.api.gremlin import default_remote_connection
 
 logger = logging.getLogger(__name__)
+stream_handler = logging.StreamHandler()
+logger.addHandler(stream_handler)
 
 
 class IngestionError(Exception):
@@ -222,76 +225,51 @@ def ingest_nix_package(
 
     with ThreadPoolExecutor() as ex:
         # Write nodes to the Gremlin graph
-        click.echo("Writing nodes to the Gremlin graph...")
-        with click.progressbar(length=len(packages)) as bar:
-            futures = [ex.submit(write_package, p) for p in packages]
-            for f in futures:
-                f.add_done_callback(lambda _x: bar.update(1))
-            wait(futures)
-            # Collect the packages which are not ingested successfully
-            failed_packages = [
-                packages[futures.index(f)] for f in futures if f.exception()
-            ]
-            retried_successful_packages = set()
-            if failed_packages:
-                click.echo(
-                    "\nInserting synchroneously nodes that failed to be inserted"
-                    " asynchroneously..."
-                )
-                for failed_package in failed_packages:
-                    try:
-                        graph.insert_unique_vertex(failed_package, g_factory())
-                        retried_successful_packages.add(failed_package)
-                    except Exception as e:
-                        logger.error(
-                            "Synchronous insertion failed for node: "
-                            f"{failed_package}"
-                        )
-                        logger.exception(e)
-                click.echo("Done.")
+        futures = [ex.submit(write_package, p) for p in packages]
+        wait(futures)
+        # Collect the packages which are not ingested successfully
+        failed_packages = [packages[futures.index(f)] for f in futures if f.exception()]
+        retried_successful_packages = set()
+        if failed_packages:
+            click.echo(
+                "\nInserting synchroneously nodes that failed to be inserted"
+                " asynchroneously..."
+            )
+            for failed_package in failed_packages:
+                try:
+                    graph.insert_unique_vertex(failed_package, g_factory())
+                    retried_successful_packages.add(failed_package)
+                except Exception as e:
+                    logger.error(
+                        "Synchronous insertion failed for node: " f"{failed_package}"
+                    )
+                    logger.exception(e)
 
         # Write edges to the Gremlin graph
-        click.echo("Writing edges to the Gremlin graph...")
-        with click.progressbar(length=len(edges)) as bar:
-            futures = [ex.submit(write_edge, e) for e in edges]
-            for f in futures:
-                f.add_done_callback(lambda _x: bar.update(1))
-            wait(futures)
-            # Collect the edges which are not ingested successfully
-            failed_edges = [edges[futures.index(f)] for f in futures if f.exception()]
-            retried_successful_edges = set()
-            if failed_edges:
-                click.echo(
-                    "\nInserting synchroneously edges that failed to be inserted"
-                    " asynchroneously..."
-                )
-                for failed_edge in failed_edges:
-                    try:
-                        graph.insert_unique_directed_edge(
-                            failed_edge[1],
-                            from_vertex=failed_edge[0],
-                            to_vertex=failed_edge[2],
-                            g=g_factory(),
-                        )
-                        retried_successful_edges.add(failed_edge)
-                    except Exception as e:
-                        logger.error(
-                            f"Synchronous insertion failed for edge: {failed_edge}"
-                        )
-                        logger.exception(e)
-                click.echo("Done.")
-
-        # Check if all tasks executed successfully
-        if (
-            set(failed_packages).difference(retried_successful_packages) == set()
-            and set(failed_edges).difference(retried_successful_edges) == set()
-        ):
-            click.echo("All ingestion tasks completed successfully.")
-        else:
-            logger.error(
-                "Some nodes or edges were not successfully ingested, "
-                "please try again later."
+        futures = [ex.submit(write_edge, e) for e in edges]
+        wait(futures)
+        # Collect the edges which are not ingested successfully
+        failed_edges = [edges[futures.index(f)] for f in futures if f.exception()]
+        retried_successful_edges = set()
+        if failed_edges:
+            click.echo(
+                "\nInserting synchroneously edges that failed to be inserted"
+                " asynchroneously..."
             )
+            for failed_edge in failed_edges:
+                try:
+                    graph.insert_unique_directed_edge(
+                        failed_edge[1],
+                        from_vertex=failed_edge[0],
+                        to_vertex=failed_edge[2],
+                        g=g_factory(),
+                    )
+                    retried_successful_edges.add(failed_edge)
+                except Exception as e:
+                    logger.error(
+                        f"Synchronous insertion failed for edge: {failed_edge}"
+                    )
+                    logger.exception(e)
 
 
 def ingest_nix_graph(
@@ -304,9 +282,13 @@ def ingest_nix_graph(
         g (GraphTraversalSource): The graph traversal source to use for ingesting
             the Nix graph
     """
+    # Track if message gets logged with severity of error or greater
+    error_handler = errorhandler.ErrorHandler()
     ctxt = _IngestionContext()
-    for package in nix_graph.packages:
-        ingest_nix_package(package, ctxt, g_factory)
+    click.echo("Writing nodes and edges to the Gremlin graph...")
+    with click.progressbar(nix_graph.packages) as bar:
+        for package in bar:
+            ingest_nix_package(package, ctxt, g_factory)
 
     nb_missing_edges = sum(
         len(src_edge_pairs) for src_edge_pairs in ctxt.pending_edges.values()
@@ -316,6 +298,14 @@ def ingest_nix_graph(
             f"Warning: {nb_missing_edges} build input(s) in the input JSON file "
             "do not have a corresponding package and will be ignored."
         )
+
+    if error_handler.fired:
+        logger.error(
+            "Some nodes or edges were not successfully ingested, "
+            "please try again later."
+        )
+    else:
+        click.echo("All ingestion tasks completed successfully.")
 
 
 @click.command(

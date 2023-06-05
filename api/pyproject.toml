@@ -29,6 +29,7 @@ uvicorn = {extras = ["standard"], version = "^0.21.1"}
 nixpkgs-graph-core = { version = "^1.0.0" }
 websockets = "^11.0.1"
 backoff = "^2.2.1"
+errorhandler = "^2.0.1"
 
 [tool.isort]
 profile = "black"
