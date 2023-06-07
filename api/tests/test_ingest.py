@@ -12,6 +12,9 @@ from explorer.api.gremlin import default_remote_connection
 
 dummy_pkg_d = model.Package(
     name="D",
+    attribute_path="D",
+    output_path="/nix/store/D",
+    derivation_path="/nix/store/D.drv",
     output_paths=[model.OutputPath(name="out", path="/D")],
     parsed_name=model.ParsedName(name="D", version="1.0"),
     nixpkgs_metadata=model.NixpkgsMetadata(
@@ -23,6 +26,9 @@ dummy_pkg_d = model.Package(
 
 dummy_pkg_c = model.Package(
     name="C",
+    attribute_path="C",
+    output_path="/nix/store/C",
+    derivation_path="/nix/store/C.drv",
     output_paths=[model.OutputPath(name="out", path="/C")],
     parsed_name=model.ParsedName(name="C", version="1.0"),
     nixpkgs_metadata=model.NixpkgsMetadata(
@@ -36,6 +42,9 @@ dummy_pkg_c = model.Package(
 
 dummy_pkg_b = model.Package(
     name="B",
+    attribute_path="B",
+    output_path="/nix/store/B",
+    derivation_path="/nix/store/B.drv",
     output_paths=[model.OutputPath(name="out", path="/B")],
     parsed_name=model.ParsedName(name="B", version="1.0"),
     nixpkgs_metadata=model.NixpkgsMetadata(
@@ -43,6 +52,7 @@ dummy_pkg_b = model.Package(
     ),
     build_inputs=[
         model.BuildInput(
+            attribute_path="B.buildInputs.0",
             build_input_type=model.BuildInputType.BUILD_INPUT,
             output_path=dummy_pkg_c.output_paths[0].path,
         )
@@ -51,6 +61,9 @@ dummy_pkg_b = model.Package(
 
 dummy_pkg_a = model.Package(
     name="A",
+    attribute_path="A",
+    output_path="/nix/store/A",
+    derivation_path="/nix/store/A.drv",
     output_paths=[model.OutputPath(name="out", path="/A")],
     parsed_name=model.ParsedName(name="A", version="1.0"),
     nixpkgs_metadata=model.NixpkgsMetadata(
@@ -58,10 +71,12 @@ dummy_pkg_a = model.Package(
     ),
     build_inputs=[
         model.BuildInput(
+            attribute_path="A.buildInputs.0",
             build_input_type=model.BuildInputType.BUILD_INPUT,
             output_path=dummy_pkg_b.output_paths[0].path,
         ),
         model.BuildInput(
+            attribute_path="A.buildInputs.1",
             build_input_type=model.BuildInputType.BUILD_INPUT,
             output_path=dummy_pkg_d.output_paths[0].path,
         ),
@@ -101,6 +116,9 @@ def test_unit_core_to_graph_model():
 
     pkg = model.Package(
         name="foo",
+        attribute_path="foo",
+        derivation_path="/nix/store/foo.drv",
+        output_path="/nix/store/foo",
         parsed_name=model.ParsedName(name="foo", version="1.0"),
         output_paths=[
             model.OutputPath(name="dev", path="/foo/dev"),
@@ -125,6 +143,9 @@ def test_unit_core_to_graph_model_no_output_path():
 
     pkg = model.Package(
         name="foo",
+        attribute_path="foo",
+        derivation_path="/nix/store/foo.drv",
+        output_path="/nix/store/foo",
         output_paths=[],
         parsed_name=model.ParsedName(name="foo", version="1.0"),
         nixpkgs_metadata=model.NixpkgsMetadata(
@@ -141,6 +162,9 @@ def test_unit_core_to_graph_model_no_parsed_name_raises():
 
     pkg = model.Package(
         name="foo",
+        attribute_path="foo",
+        derivation_path="/nix/store/foo.drv",
+        output_path="/nix/store/foo",
         output_paths=[],
         parsed_name=None,
         nixpkgs_metadata=None,
@@ -156,6 +180,9 @@ def test_unit_core_to_graph_model_no_pname_raises():
 
     pkg = model.Package(
         name="foo",
+        attribute_path="foo",
+        derivation_path="/nix/store/foo.drv",
+        output_path="/nix/store/foo",
         output_paths=[],
         parsed_name=model.ParsedName(name=None, version="1.0"),
         nixpkgs_metadata=model.NixpkgsMetadata(

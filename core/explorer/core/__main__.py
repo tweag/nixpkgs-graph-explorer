@@ -6,7 +6,7 @@ from explorer.core import model
 @click.command()
 @click.option(
     "--out",
-    default="nixpkgs-graph.schema.json",
+    default="derivation.schema.json",
     help="The output path at which to write the JSON Schema",
     type=click.Path(),
 )
@@ -27,7 +27,7 @@ def cli(out: str, stdout: bool, pretty: bool):
     else:
         indent = None
 
-    schema_json = model.NixGraph.schema_json(indent=indent)
+    schema_json = model.Package.schema_json(indent=indent)
 
     if stdout:
         print(schema_json)
