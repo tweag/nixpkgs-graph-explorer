@@ -78,18 +78,14 @@ export class GraphViewer extends LitElement {
 
   static styles = css`
     :host {
-      height: 100%;
-      display: grid;
-      grid-template-rows: auto 1fr;
+      display: flex;
+      flex-direction: column;
     }
-    * {
-      box-sizing: border-box;
-    }
+
     #cy-container,
     #cy {
       width: 100%;
       height: 100%;
-      left: 10px;
     }
     #error {
       display: grid;
@@ -116,6 +112,13 @@ export class GraphViewer extends LitElement {
     .tab-content {
       border: 1px solid var(--sl-panel-border-color);
       border-top: none;
+      flex-grow: 1;
+      overflow: scroll;
+    }
+
+    sl-tab-group {
+      flex-shrink: 0;
+      flex-grow: 0;
     }
 
     sl-split-panel::part(divider) {
