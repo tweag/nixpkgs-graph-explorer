@@ -1,3 +1,24 @@
+"""
+Extraction of a graph of derivations in a flake.
+
+Implements a CLI using `click` to be used in the terminal.
+
+Calling this tool starts a subprocess that list top-level derivations (outputPath + attribute path) to its stderr pipe, see `./find-attribute-paths.nix`.
+This pipe is consumed in a thread (`finder_output_reader`) that reads each line and feeds found attribute paths to a queue.
+This queue is consumed by another thread (`queue_processor`) that will call a subprocess that describes the derivation (name, version, license, dependencies, ...), see `./describe-derivation.nix`.
+When describing a derivation, if dependencies are found and have not been already queued for processing, they are added to the queue as well, which makes us explore the entire depth of the graph.
+
+The whole system stops once
+- all top-level attribute paths have been found
+- all derivations from that search have been processed
+- all dependencies have been processed
+
+Glossary:
+- output path: full path of the realization of the derivation in the Nix store.
+               e.g. /nix/store/py9jjqsgsya5b9cpps64gchaj8lq2h5i-python3.10-versioneer-0.28
+- attribute path: path from the root attribute set to get the desired value.
+                  e.g. python3Packages.versioneer
+"""  # noqa
 import copy
 import json
 import logging
@@ -7,16 +28,18 @@ import pathlib
 import subprocess
 import sys
 from queue import Empty
-from threading import Lock, Thread
-from typing import IO, Any, Callable, Type
+from threading import Lock
+from typing import IO
 
 import click
 
 from explorer.core import model
+from explorer.extract.threading import thread
 
 
+@thread
 def finder_output_reader(
-    pipe_in: IO[Any],
+    pipe_in: IO[bytes],
     queue: multiprocessing.Queue,
     queued_output_paths: set[str],
     logger: logging.Logger,
@@ -135,13 +158,7 @@ def process_attribute_path(
     return True
 
 
-def try_or_none(f: Callable, e_type: Type[Exception]):
-    try:
-        return f()
-    except e_type:
-        return None
-
-
+@thread
 def queue_processor(
     outfile: IO[str],
     outfile_lock: Lock,
@@ -156,49 +173,50 @@ def queue_processor(
 ):
     """Continuously process attribute paths in the queue to the pool"""
 
-    # list of ongoing jobs
-    pool_jobs: list[multiprocessing.pool.AsyncResult] = []
+    # list of ongoing evaluations in the pool
+    pool_promises: list[multiprocessing.pool.AsyncResult] = []
+
+    def try_queue_get():
+        try:
+            return queue.get(block=True, timeout=1)
+        except Empty:
+            return None
 
     # main loop of task
     while (
         # there is an attribute path to process
-        (
-            attribute_path := try_or_none(
-                lambda: queue.get(block=True, timeout=1),
-                Empty,
-            )
-        )
-        is not None
+        # FIXME this is active polling, a notification system would save resources
+        (attribute_path := try_queue_get()) is not None
         # there are attribute paths to process
         or not queue.empty()
         # the finder process is still running
         or finder_process.poll() is None
-        # there are jobs which have yet to complete
-        or len(pool_jobs) > 0
+        # there are promises which have yet to resolve
+        or len(pool_promises) > 0
     ):
-        # filter jobs to keep uncompleted ones
-        for job in pool_jobs:
-            if job.ready():
-                # job is done, remove it
-                pool_jobs.remove(job)
+        # filter promises to keep unresolved ones
+        for promise in pool_promises:
+            if promise.ready():
+                # evaluation is done, remove it
+                pool_promises.remove(promise)
                 # check success
                 try:
-                    job.get()
+                    promise.get()
                 except Exception as e:
                     logger.exception(e)
 
         logger.info(
-            "visited=%s,queue=%s,jobs=%s",
+            "visited=%s,queue=%s,promises=%s",
             len(visited_output_paths),
             queue.qsize(),
-            len(pool_jobs),
+            len(pool_promises),
         )
         # if no attribute path in the queue, look for the next one
         if attribute_path is None:
             continue
 
         # process attribute path
-        job = pool.apply_async(
+        promise = pool.apply_async(
             func=process_attribute_path,
             args=[
                 outfile,
@@ -212,7 +230,7 @@ def queue_processor(
                 logger,
             ],
         )
-        pool_jobs.append(job)
+        pool_promises.append(promise)
 
     logger.info("QUEUE PROCESSOR CLOSED")
 
@@ -304,13 +322,14 @@ def cli(
         stderr=subprocess.PIPE,
         env=finder_env,
     )
+    assert finder_process.stderr is not None
 
     # while we find these derivations directly available, we process found derivations
     # at the same time to describe them, but also to find derivations indirectly
     # available via their build inputs
     derivation_description_pool = multiprocessing.pool.ThreadPool(n_workers)
 
-    # we can't access the pool job queue so we use our own (thanks encapsulation U_U)
+    # we can't access the pool queue so we use our own (thanks encapsulation U_U)
     derivation_description_queue = multiprocessing.Queue()
     # we don't want to process the same derivation twice, so we use their output path to
     # check that
@@ -321,32 +340,26 @@ def cli(
     outfile_lock = Lock()
 
     # read derivations found by the finder to feed the processing queue
-    reader_thread = Thread(
-        target=finder_output_reader,
-        args=[
-            finder_process.stderr,
-            derivation_description_queue,
-            queued_output_paths,
-            logger,
-        ],
+    reader_thread = finder_output_reader(
+        finder_process.stderr,
+        derivation_description_queue,
+        queued_output_paths,
+        logger,
     )
     reader_thread.start()
 
     # process derivations pushed to the processing queue
-    process_queue_thread = Thread(
-        target=queue_processor,
-        args=[
-            outfile,
-            outfile_lock,
-            finder_process,
-            derivation_description_pool,
-            derivation_description_queue,
-            queued_output_paths,
-            visited_output_paths,
-            finder_env,
-            offline,
-            logger,
-        ],
+    process_queue_thread = queue_processor(
+        outfile,
+        outfile_lock,
+        finder_process,
+        derivation_description_pool,
+        derivation_description_queue,
+        queued_output_paths,
+        visited_output_paths,
+        finder_env,
+        offline,
+        logger,
     )
     process_queue_thread.start()
 
