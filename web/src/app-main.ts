@@ -33,27 +33,31 @@ export class AppMain extends LitElement {
     const year = new Date().getFullYear();
     return html`
       <header>
-        <img src=${graphLogo} class="logo graph-logo" />
-        <h3>Nixpkgs Graph Explorer</h3>
+        <div class="logo-group">
+          <img src=${graphLogo} class="logo graph-logo" />
+          <h1 class="logo-title">Nixpkgs Graph Explorer</h1>
+        </div>
         <a href="https://www.tweag.io/">
           <img src=${tweagLogo} class="logo tweag" alt="Tweag logo" />
         </a>
       </header>
 
-      <sl-tab-group>
-        <sl-tab slot="nav" panel="search">Search</sl-tab>
-        <sl-tab slot="nav" panel="query">Query</sl-tab>
+      <main>
+        <sl-tab-group>
+          <sl-tab slot="nav" panel="search">Search</sl-tab>
+          <sl-tab slot="nav" panel="query">Query</sl-tab>
 
-        <sl-tab-panel name="search">
-          <nix-search @query-result=${this.setQueryResult}> </nix-search>
-        </sl-tab-panel>
-        <sl-tab-panel name="query">
-          <code-editor @query-result=${this.setQueryResult}> </code-editor>
-        </sl-tab-panel>
-      </sl-tab-group>
+          <sl-tab-panel name="search">
+            <nix-search @query-result=${this.setQueryResult}> </nix-search>
+          </sl-tab-panel>
+          <sl-tab-panel name="query">
+            <code-editor @query-result=${this.setQueryResult}> </code-editor>
+          </sl-tab-panel>
+        </sl-tab-group>
 
-      <graph-viewer slot="end" .queryResult=${this._queryResult}>
-      </graph-viewer>
+        <graph-viewer slot="end" .queryResult=${this._queryResult}>
+        </graph-viewer>
+      </main>
 
       <footer>
         <div>
@@ -65,33 +69,35 @@ export class AppMain extends LitElement {
           <div>All rights reserved.</div>
         </div>
 
-        <div @click=${async () => (await this._drawer).show()} id="info">
-          <sl-icon slot="icon" name="info-circle-fill"> info </sl-icon>
-          Info
-        </div>
+        <div class="footer-right">
+          <div @click=${async () => (await this._drawer).show()} id="info">
+            <sl-icon slot="icon" name="info-circle-fill"> info </sl-icon>
+            Info
+          </div>
 
-        <sl-divider vertical></sl-divider>
+          <sl-divider vertical></sl-divider>
 
-        <span>
-          Nixpkgs rev:
-          <a
-            href="https://github.com/NixOS/nixpkgs/tree/53dad94e874c9586e71decf82d972dfb640ef044"
-          >
-            53dad94
+          <div>
+            Nixpkgs rev:
+            <a
+              href="https://github.com/NixOS/nixpkgs/tree/53dad94e874c9586e71decf82d972dfb640ef044"
+            >
+              53dad94
+            </a>
+          </div>
+
+          <sl-divider vertical></sl-divider>
+
+          <a href="https://docs.janusgraph.org/getting-started/gremlin/">
+            Gremlin Query Language
           </a>
-        </span>
 
-        <sl-divider vertical></sl-divider>
+          <sl-divider vertical></sl-divider>
 
-        <a href="https://docs.janusgraph.org/getting-started/gremlin/">
-          Gremlin Query Language
-        </a>
-
-        <sl-divider vertical></sl-divider>
-
-        <a href="https://github.com/tweag/nixpkgs-graph-explorer">
-          <sl-icon slot="icon" name="github" library="default"> </sl-icon>
-        </a>
+          <a href="https://github.com/tweag/nixpkgs-graph-explorer">
+            <sl-icon slot="icon" name="github" library="default"> </sl-icon>
+          </a>
+        </div>
       </footer>
 
       <sl-drawer label="About Nixpkgs Graph Explorer" id="drawer-info">
@@ -112,56 +118,96 @@ export class AppMain extends LitElement {
     :host {
       width: 100svw;
       height: 100svh;
-      display: grid;
-      gap: 10px;
-      padding: 1rem;
-      grid-template-columns: min(25%, 300px) 1fr;
-      grid-template-rows: auto minmax(0, 1fr);
+      display: flex;
+      flex-direction: column;
+      margin: 0;
+      padding: 0;
+      font-family: var(--sl-font-sans);
+      grid-template-columns: 1fr;
+      grid-template-rows: auto 1fr auto;
+      grid-template-areas: "header" "main" "footer";
+    }
+
+    a {
+      color: var(--sl-color-primary-600);
+    }
+
+    a img {
+      display: block;
     }
 
     header,
     footer {
-      grid-column: 1 / -1;
-      color: black;
       display: flex;
       align-items: center;
-      font-family: Raleway, HelveticaNeue, "Helvetica Neue", Helvetica, Arial,
-        sans-serif;
+      flex-shrink: 0;
+      flex-grow: 0;
+      justify-content: space-between;
+      padding: var(--sl-spacing-small);
+      white-space: nowrap;
+      overflow: hidden;
     }
-    header > *:nth-child(1) {
+
+    .logo-group {
+      display: flex;
+      flex-wrap: nowrap;
+      align-items: center;
+      gap: var(--sl-spacing-x-small);
+    }
+    .logo-title {
+      font-weight: var(--sl-font-weight-bold);
+      font-size: var(--sl-font-size-large);
+    }
+    .graph-logo {
       width: 2rem;
       height: 2rem;
     }
-    header > :nth-child(3) {
-      margin-left: auto;
+
+    main {
+      overflow: scroll;
+      flex-grow: 1;
+      display: flex;
+      gap: var(--sl-spacing-x-small);
     }
 
-    footer > :first-child {
-      margin-right: auto;
+    main sl-tab-group {
+      flex-grow: 0;
+      flex-shrink: 0;
+      width: min(25%, 20rem);
+      padding-left: var(--sl-spacing-small);
     }
+
+    main graph-viewer {
+      flex-grow: 1;
+      overflow: scroll;
+      padding-right: var(--sl-spacing-small);
+    }
+
     footer {
-      gap: 1rem;
-      align-items: center;
       font-family: var(--sl-font-sans);
       font-size: var(--sl-font-size-small);
       font-weight: var(--sl-font-weight-semibold);
       color: var(--sl-color-neutral-600);
       line-height: var(--sl-line-height-normal);
-      white-space: nowrap;
     }
-    a {
-      color: var(--sl-color-primary-600);
-    }
-    sl-icon[name="github"] {
+    footer sl-icon[name="github"] {
       width: 1.75rem;
       height: 1.75rem;
     }
-    sl-drawer {
-      --size: 50vw;
+    footer .footer-right {
       display: flex;
-      flex-direction: column;
-      font-family: Raleway, HelveticaNeue, "Helvetica Neue", Helvetica, Arial,
-        sans-serif;
+      align-items: center;
+      gap: var(--sl-spacing-x-small);
+      margin-left: var(--sl-spacing-small);
+    }
+    footer .footer-right sl-divider {
+      height: 3em;
+      margin: var(--sl-spacing-small);
+    }
+    @media only screen and (max-width: 50rem) {
+      footer .footer-right :not(sl-icon) {
+        display: none;
+      }
     }
 
     #info {
@@ -170,6 +216,12 @@ export class AppMain extends LitElement {
       color: var(--sl-color-primary-600);
       align-items: center;
       gap: 0.5rem;
+    }
+
+    sl-drawer {
+      --size: 50vw;
+      flex-direction: column;
+      font-family: var(--sl-font-sans);
     }
   `;
 }
