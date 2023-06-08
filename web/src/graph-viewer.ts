@@ -247,7 +247,7 @@ export class GraphViewer extends LitElement {
 @customElement("packages-outline")
 export class PackagesOutline extends LitElement {
   // TODO Eventually, this should be a collection of Pkg and contain actual details.
-  @property({ attribute: false }) packages: Array<string> = ["hello"];
+  @property({ attribute: false }) packages: Array<string> = [];
 
   static styles = css`
     sl-details {
