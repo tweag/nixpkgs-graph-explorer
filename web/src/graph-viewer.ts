@@ -82,11 +82,16 @@ export class GraphViewer extends LitElement {
       flex-direction: column;
     }
 
-    #cy-container,
+    #cy-container {
+      max-height: 100%;
+      overflow: hidden;
+    }
+
     #cy {
       width: 100%;
       height: 100%;
     }
+
     #error {
       display: grid;
       place-items: center;
@@ -106,14 +111,14 @@ export class GraphViewer extends LitElement {
       color: var(--sl-color-neutral-800);
       line-height: var(--sl-line-height-normal);
       background: var(--sl-color-neutral-100);
-      overflow: scroll;
+      overflow-y: scroll;
     }
 
     .tab-content {
       border: 1px solid var(--sl-panel-border-color);
       border-top: none;
       flex-grow: 1;
-      overflow: scroll;
+      overflow: hidden;
     }
 
     sl-tab-group {
