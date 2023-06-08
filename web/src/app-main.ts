@@ -123,9 +123,6 @@ export class AppMain extends LitElement {
       margin: 0;
       padding: 0;
       font-family: var(--sl-font-sans);
-      grid-template-columns: 1fr;
-      grid-template-rows: auto 1fr auto;
-      grid-template-areas: "header" "main" "footer";
     }
 
     a {
@@ -164,7 +161,7 @@ export class AppMain extends LitElement {
     }
 
     main {
-      overflow: scroll;
+      overflow: hidden;
       flex-grow: 1;
       display: flex;
       gap: var(--sl-spacing-x-small);
@@ -179,7 +176,6 @@ export class AppMain extends LitElement {
 
     main graph-viewer {
       flex-grow: 1;
-      overflow: scroll;
       padding-right: var(--sl-spacing-small);
     }
 
