@@ -17,7 +17,7 @@ Glossary:
 - output path: full path of the realization of the derivation in the Nix store.
                e.g. /nix/store/py9jjqsgsya5b9cpps64gchaj8lq2h5i-python3.10-versioneer-0.28
 - attribute path: path from the root attribute set to get the desired value.
-                  e.g. python3Packages.versioneer
+                  e.g. python3Derivations.versioneer
 """  # noqa
 import copy
 import json
@@ -127,7 +127,7 @@ def process_attribute_path(
 
     # add its inputs to the queue if they have not been processed
     try:
-        description: model.Package = model.Package.parse_raw(description_str)
+        description: model.Derivation = model.Derivation.parse_raw(description_str)
     except Exception as e:
         logger.warning(
             "Failed to parse to model: attribute_path=%s, str=",
@@ -244,7 +244,7 @@ def queue_processor(
 @click.option(
     "--target-system",
     default="x86_64-linux",
-    help="The system in which to evaluate the packages",
+    help="The system in which to evaluate the derivations",
 )
 @click.option(
     "--n-workers",

@@ -83,22 +83,22 @@ class UniqueGraphElement(GraphElement):
         pass
 
 
-class Package(UniqueGraphElement):
-    """A package from nixpkgs"""
+class Derivation(UniqueGraphElement):
+    """A derivation"""
 
-    pname: str
-    outputPath: str
+    output_path: str
+    attribute_path: str | None
 
     @classmethod
     def label(cls) -> str:
-        return "package"
+        return "derivation"
 
     @classmethod
     def id_property_name(cls) -> str:
-        return "outputPath"
+        return "output_path"
 
     def get_id(self) -> str:
-        return ElementId(self.outputPath)
+        return ElementId(self.output_path)
 
 
 class Edge(GraphElement):
@@ -108,7 +108,7 @@ class Edge(GraphElement):
 
 
 class HasBuildInput(Edge):
-    """A directed edge indicating a Nix buildInput dependency between packages"""
+    """A directed edge indicating a Nix buildInput dependency between derivations"""
 
     @classmethod
     def label(cls) -> str:
@@ -118,7 +118,7 @@ class HasBuildInput(Edge):
 class HasPropagatedBuildInput(Edge):
     """
     A directed edge indicating a Nix propagatedBuildInput dependency between
-    packages
+    derivations
     """
 
     @classmethod
@@ -127,7 +127,9 @@ class HasPropagatedBuildInput(Edge):
 
 
 class HasNativeBuiltInput(Edge):
-    """A directed edge indicating a Nix nativeBuildInput dependency between packages"""
+    """
+    A directed edge indicating a Nix nativeBuildInput dependency between derivations
+    """
 
     @classmethod
     def label(cls) -> str:
@@ -135,10 +137,10 @@ class HasNativeBuiltInput(Edge):
 
 
 def insert_unique_directed_edge(
+    g: GraphTraversalSource,
     edge: GraphElement,
     from_vertex: UniqueGraphElement,
     to_vertex: UniqueGraphElement,
-    g: GraphTraversalSource,
 ) -> None:
     """Inserts an edge element using graph traversal source
 
@@ -183,7 +185,7 @@ def insert_unique_directed_edge(
     )
 
 
-def _traversal_insert_vertex(e: GraphElement, g: GraphTraversal) -> GraphTraversal:
+def _traversal_insert_vertex(g: GraphTraversal, e: GraphElement) -> GraphTraversal:
     # Extract dataclass properties
     properties = e.dict()
     traversal = g.add_v(e.label())
@@ -195,17 +197,17 @@ def _traversal_insert_vertex(e: GraphElement, g: GraphTraversal) -> GraphTravers
     return traversal
 
 
-def insert_vertex(e: GraphElement, g: GraphTraversalSource) -> None:
+def insert_vertex(g: GraphTraversalSource, e: GraphElement) -> None:
     """Inserts a vertex element using graph traversal source
 
     Args:
         e (GraphElement): the vertex element to insert
         g (GraphTraversalSource): the graph traversal source to use for the insertion
     """
-    _traversal_insert_vertex(e, g.get_graph_traversal()).iterate()
+    _traversal_insert_vertex(g.get_graph_traversal(), e).iterate()
 
 
-def insert_unique_vertex(e: UniqueGraphElement, g: GraphTraversalSource) -> None:
+def insert_unique_vertex(g: GraphTraversalSource, e: UniqueGraphElement) -> None:
     """
     Inserts a uniquely identifiable vertex if a vertex corresponding to it does not
     already exist in the graph. If an existing vertex is found, returns without
@@ -216,5 +218,26 @@ def insert_unique_vertex(e: UniqueGraphElement, g: GraphTraversalSource) -> None
         g (GraphTraversalSource): the graph traversal source to use for the insertion
     """
     g.V().has(e.label(), e.id_property_name(), e.get_id()).fold().coalesce(
-        __.unfold(), _traversal_insert_vertex(e, __.start())
+        __.unfold(), _traversal_insert_vertex(__.start(), e)
     ).iterate()
+
+
+def upsert_unique_vertex(g: GraphTraversalSource, e: UniqueGraphElement) -> None:
+    """
+    Inserts a uniquely identifiable vertex if a vertex corresponding to it does not
+    already exist in the graph. If an existing vertex is found, updates its properties.
+
+    Args:
+        e (UniqueGraphElement): the vertex element to insert or update
+        g (GraphTraversalSource): the graph traversal source to use for the insertion
+    """
+    insert_unique_vertex(g, e)
+
+    traversal = g.V().has(e.label(), e.id_property_name(), e.get_id())
+    properties = e.dict()
+    for property_name, property_value in properties.items():
+        # Note: if `property_value` cannot be converted to a valid Gremlin type by
+        # gremlin_python we may end up with runtime errors here. Note really sure how
+        # to restrict this though...
+        traversal = traversal.property(property_name, property_value)
+    traversal.iterate()

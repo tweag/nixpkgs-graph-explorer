@@ -10,12 +10,12 @@ from explorer.api.gremlin import default_remote_connection
 # Mock Data
 #######################################################################################
 
-dummy_pkg_d = model.Package(
+dummy_pkg_d = model.Derivation(
     name="D",
     attribute_path="D",
     output_path="/nix/store/D",
     derivation_path="/nix/store/D.drv",
-    output_paths=[model.OutputPath(name="out", path="/D")],
+    outputs=[model.Output(name="out", output_path="/D")],
     parsed_name=model.ParsedName(name="D", version="1.0"),
     nixpkgs_metadata=model.NixpkgsMetadata(
         pname="D", version="1.0", broken=False, license="MIT"
@@ -24,12 +24,12 @@ dummy_pkg_d = model.Package(
 )
 
 
-dummy_pkg_c = model.Package(
+dummy_pkg_c = model.Derivation(
     name="C",
     attribute_path="C",
     output_path="/nix/store/C",
     derivation_path="/nix/store/C.drv",
-    output_paths=[model.OutputPath(name="out", path="/C")],
+    outputs=[model.Output(name="out", output_path="/C")],
     parsed_name=model.ParsedName(name="C", version="1.0"),
     nixpkgs_metadata=model.NixpkgsMetadata(
         pname="C",
@@ -40,12 +40,12 @@ dummy_pkg_c = model.Package(
     build_inputs=[],
 )
 
-dummy_pkg_b = model.Package(
+dummy_pkg_b = model.Derivation(
     name="B",
     attribute_path="B",
     output_path="/nix/store/B",
     derivation_path="/nix/store/B.drv",
-    output_paths=[model.OutputPath(name="out", path="/B")],
+    outputs=[model.Output(name="out", output_path="/B")],
     parsed_name=model.ParsedName(name="B", version="1.0"),
     nixpkgs_metadata=model.NixpkgsMetadata(
         pname="B", version="1.0", broken=False, license="MIT"
@@ -54,17 +54,17 @@ dummy_pkg_b = model.Package(
         model.BuildInput(
             attribute_path="B.buildInputs.0",
             build_input_type=model.BuildInputType.BUILD_INPUT,
-            output_path=dummy_pkg_c.output_paths[0].path,
+            output_path=dummy_pkg_c.outputs[0].output_path,
         )
     ],
 )
 
-dummy_pkg_a = model.Package(
+dummy_pkg_a = model.Derivation(
     name="A",
     attribute_path="A",
     output_path="/nix/store/A",
     derivation_path="/nix/store/A.drv",
-    output_paths=[model.OutputPath(name="out", path="/A")],
+    outputs=[model.Output(name="out", output_path="/A")],
     parsed_name=model.ParsedName(name="A", version="1.0"),
     nixpkgs_metadata=model.NixpkgsMetadata(
         pname="A", version="1.0", broken=False, license="MIT"
@@ -73,18 +73,18 @@ dummy_pkg_a = model.Package(
         model.BuildInput(
             attribute_path="A.buildInputs.0",
             build_input_type=model.BuildInputType.BUILD_INPUT,
-            output_path=dummy_pkg_b.output_paths[0].path,
+            output_path=dummy_pkg_b.outputs[0].output_path,
         ),
         model.BuildInput(
             attribute_path="A.buildInputs.1",
             build_input_type=model.BuildInputType.BUILD_INPUT,
-            output_path=dummy_pkg_d.output_paths[0].path,
+            output_path=dummy_pkg_d.outputs[0].output_path,
         ),
     ],
 )
 
 dummy_nix_graph = model.NixGraph(
-    packages=[dummy_pkg_a, dummy_pkg_b, dummy_pkg_c, dummy_pkg_d]
+    derivations=[dummy_pkg_a, dummy_pkg_b, dummy_pkg_c, dummy_pkg_d]
 )
 
 
@@ -111,87 +111,36 @@ def graph_connection():
 
 
 def test_unit_core_to_graph_model():
-    """Unit test for mapping core packages to graph packages"""
+    """Unit test for mapping core derivations to graph derivations"""
     from explorer.api.ingest import core_to_graph_model
 
-    pkg = model.Package(
+    derivation = model.Derivation(
         name="foo",
         attribute_path="foo",
         derivation_path="/nix/store/foo.drv",
         output_path="/nix/store/foo",
         parsed_name=model.ParsedName(name="foo", version="1.0"),
-        output_paths=[
-            model.OutputPath(name="dev", path="/foo/dev"),
-            model.OutputPath(name="lib", path="/foo/lib"),
+        outputs=[
+            model.Output(name="dev", output_path="/foo/dev"),
+            model.Output(name="lib", output_path="/foo/lib"),
         ],
         nixpkgs_metadata=model.NixpkgsMetadata(
             pname="foo", version="1.0", broken=False, license="MIT"
         ),
         build_inputs=[],
     )
-    converted_pkgs = core_to_graph_model(pkg)
+    converted_derivations = core_to_graph_model(derivation)
 
-    expected_pkg_dev = graph.Package(pname="foo", outputPath="/foo/dev")
-    expected_pkg_lib = graph.Package(pname="foo", outputPath="/foo/lib")
-    assert expected_pkg_dev in converted_pkgs
-    assert expected_pkg_lib in converted_pkgs
-
-
-def test_unit_core_to_graph_model_no_output_path():
-    """Unit test for mapping core packages with no output path to graph packages"""
-    from explorer.api.ingest import core_to_graph_model
-
-    pkg = model.Package(
-        name="foo",
-        attribute_path="foo",
-        derivation_path="/nix/store/foo.drv",
-        output_path="/nix/store/foo",
-        output_paths=[],
-        parsed_name=model.ParsedName(name="foo", version="1.0"),
-        nixpkgs_metadata=model.NixpkgsMetadata(
-            pname="foo", version="1.0", broken=False, license="MIT"
-        ),
-        build_inputs=[],
+    expected_pkg_dev = graph.Derivation(
+        output_path="/foo/dev",
+        attribute_path="foo.dev",
     )
-    assert core_to_graph_model(pkg) == []
-
-
-def test_unit_core_to_graph_model_no_parsed_name_raises():
-    """Check that attempting to parse a package without nixpkgs_metadata fails"""
-    from explorer.api.ingest import IngestionError, core_to_graph_model
-
-    pkg = model.Package(
-        name="foo",
-        attribute_path="foo",
-        derivation_path="/nix/store/foo.drv",
-        output_path="/nix/store/foo",
-        output_paths=[],
-        parsed_name=None,
-        nixpkgs_metadata=None,
-        build_inputs=[],
+    expected_pkg_lib = graph.Derivation(
+        output_path="/foo/lib",
+        attribute_path="foo.lib",
     )
-    with pytest.raises(IngestionError):
-        core_to_graph_model(pkg)
-
-
-def test_unit_core_to_graph_model_no_pname_raises():
-    """Check that attempting to parse a package without a pname fails"""
-    from explorer.api.ingest import IngestionError, core_to_graph_model
-
-    pkg = model.Package(
-        name="foo",
-        attribute_path="foo",
-        derivation_path="/nix/store/foo.drv",
-        output_path="/nix/store/foo",
-        output_paths=[],
-        parsed_name=model.ParsedName(name=None, version="1.0"),
-        nixpkgs_metadata=model.NixpkgsMetadata(
-            pname=None, version="1.0", broken=False, license="MIT"
-        ),
-        build_inputs=[],
-    )
-    with pytest.raises(IngestionError):
-        core_to_graph_model(pkg)
+    assert expected_pkg_dev in converted_derivations
+    assert expected_pkg_lib in converted_derivations
 
 
 def test_unit_ingest_nix_graph(graph_connection: DriverRemoteConnection):

@@ -5,7 +5,7 @@ from gremlin_python.process.anonymous_traversal import traversal
 from explorer.api.graph import (
     HasBuildInput,
     HasPropagatedBuildInput,
-    Package,
+    Derivation,
     insert_unique_directed_edge,
     insert_unique_vertex,
 )
@@ -19,17 +19,17 @@ from explorer.api.queries.cytoscape import (
     NodeDefinition,
 )
 
-PACKAGE_A = Package(pname="package-a", outputPath="a/a/a")
-PACKAGE_B = Package(pname="package-b", outputPath="b/b/b")
-PACKAGE_C = Package(pname="package-c", outputPath="c/c/c")
-PACKAGE_AA = Package(pname="package-aa", outputPath="aa/aa/aa")
+DERIVATION_A = Derivation(output_path="/nix/store/a", attribute_path="a")
+DERIVATION_B = Derivation(output_path="/nix/store/b", attribute_path="b")
+DERIVATION_C = Derivation(output_path="/nix/store/c", attribute_path="c")
+DERIVATION_AA = Derivation(output_path="/nix/store/aa", attribute_path="a.a")
 
-DUMMY_PACKAGES = [PACKAGE_A, PACKAGE_B, PACKAGE_C, PACKAGE_AA]
+DUMMY_DERIVATIONS = [DERIVATION_A, DERIVATION_B, DERIVATION_C, DERIVATION_AA]
 
 EDGES = [
-    (HasBuildInput(), PACKAGE_A, PACKAGE_B),
-    (HasBuildInput(), PACKAGE_B, PACKAGE_C),
-    (HasPropagatedBuildInput(), PACKAGE_B, PACKAGE_AA),
+    (HasBuildInput(), DERIVATION_A, DERIVATION_B),
+    (HasBuildInput(), DERIVATION_B, DERIVATION_C),
+    (HasPropagatedBuildInput(), DERIVATION_B, DERIVATION_AA),
 ]
 
 
@@ -40,8 +40,8 @@ def graph_connection():
         "ws://localhost:8182/gremlin", traversal_source="g"
     )
     g = traversal().with_remote(conn)
-    # Insert package vertices
-    for p in DUMMY_PACKAGES:
+    # Insert derivation vertices
+    for p in DUMMY_DERIVATIONS:
         insert_unique_vertex(p, g)
     # Add edges between them
     for edge, from_vertex, to_vertex in EDGES:
@@ -68,39 +68,55 @@ def test_gremlin_query_non_path_end_step(graph_connection: DriverRemoteConnectio
 def test_gremlin_query_path_step(graph_connection: DriverRemoteConnection):
     from explorer.api.queries.query import GremlinResult, TableEntry
 
-    # Execute a query which returns a path with required 'pname' and 'label' properties
+    # Execute a query which returns a path with required 'output_path' and 'label'
+    # properties
     query = f"""
         g.V()
          .has(
-            '{PACKAGE_A.label()}',
-            '{PACKAGE_A.id_property_name()}',
-            '{PACKAGE_A.get_id()}'
+            '{DERIVATION_A.label()}',
+            '{DERIVATION_A.id_property_name()}',
+            '{DERIVATION_A.get_id()}'
          )
         .repeat(outE().otherV().simplePath())
         .until(
             outE().count().is(0)
         )
         .path()
-        .by('pname')
+        .by('output_path')
         .by('label')
     """
     result = GremlinResult(graph_connection._client, query).to_query_result()
     expected_table_data = [
-        TableEntry(id=PACKAGE_A.pname, neighbours=[PACKAGE_B.pname]),
-        TableEntry(id=PACKAGE_B.pname, neighbours=[PACKAGE_AA.pname, PACKAGE_C.pname]),
-        TableEntry(id=PACKAGE_AA.pname, neighbours=[]),
-        TableEntry(id=PACKAGE_C.pname, neighbours=[]),
+        TableEntry(id=DERIVATION_A.output_path, neighbours=[DERIVATION_B.output_path]),
+        TableEntry(
+            id=DERIVATION_B.output_path,
+            neighbours=[DERIVATION_AA.output_path, DERIVATION_C.output_path],
+        ),
+        TableEntry(id=DERIVATION_AA.output_path, neighbours=[]),
+        TableEntry(id=DERIVATION_C.output_path, neighbours=[]),
     ]
     expected_edges = [
-        EdgeDefinition(data=EdgeData(source=PACKAGE_A.pname, target=PACKAGE_B.pname)),
-        EdgeDefinition(data=EdgeData(source=PACKAGE_B.pname, target=PACKAGE_AA.pname)),
-        EdgeDefinition(data=EdgeData(source=PACKAGE_B.pname, target=PACKAGE_C.pname)),
+        EdgeDefinition(
+            data=EdgeData(
+                source=DERIVATION_A.output_path, target=DERIVATION_B.output_path
+            )
+        ),
+        EdgeDefinition(
+            data=EdgeData(
+                source=DERIVATION_B.output_path, target=DERIVATION_AA.output_path
+            )
+        ),
+        EdgeDefinition(
+            data=EdgeData(
+                source=DERIVATION_B.output_path, target=DERIVATION_C.output_path
+            )
+        ),
     ]
     expected_nodes = [
-        NodeDefinition(data=NodeData(id=PACKAGE_A.pname)),
-        NodeDefinition(data=NodeData(id=PACKAGE_B.pname)),
-        NodeDefinition(data=NodeData(id=PACKAGE_AA.pname)),
-        NodeDefinition(data=NodeData(id=PACKAGE_C.pname)),
+        NodeDefinition(data=NodeData(id=DERIVATION_A.output_path)),
+        NodeDefinition(data=NodeData(id=DERIVATION_B.output_path)),
+        NodeDefinition(data=NodeData(id=DERIVATION_AA.output_path)),
+        NodeDefinition(data=NodeData(id=DERIVATION_C.output_path)),
     ]
     expected_graph_data = CytoscapeJs(
         elements=ElementsDefinition(nodes=expected_nodes, edges=expected_edges)
