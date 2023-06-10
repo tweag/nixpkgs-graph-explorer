@@ -3,9 +3,9 @@ from gremlin_python.driver.driver_remote_connection import DriverRemoteConnectio
 from gremlin_python.process.anonymous_traversal import traversal
 
 from explorer.api.graph import (
+    Derivation,
     HasBuildInput,
     HasPropagatedBuildInput,
-    Derivation,
     insert_unique_directed_edge,
     insert_unique_vertex,
 )

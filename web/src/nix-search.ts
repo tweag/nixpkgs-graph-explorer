@@ -113,7 +113,12 @@ function hasPrevCursor(ctx: Context) {
   return ctx.cursor_position >= 0;
 }
 
-async function queryDerivations({ input, limit, cursors, cursor_position }: Context) {
+async function queryDerivations({
+  input,
+  limit,
+  cursors,
+  cursor_position,
+}: Context) {
   const result = await getDerivations({
     search: input,
     limit,
@@ -210,7 +215,9 @@ export class NixSearch extends LitElement {
               <sl-menu-item
                 @click=${this.clickDerivationHandler}
                 value=${output_path}
-                class=${classMap({ selected: this.selectedDerivation === output_path})}
+                class=${classMap({
+                  selected: this.selectedDerivation === output_path,
+                })}
                 >${output_path}</sl-menu-item
               >
             `
