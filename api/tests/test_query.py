@@ -40,12 +40,15 @@ def graph_connection():
         "ws://localhost:8182/gremlin", traversal_source="g"
     )
     g = traversal().with_remote(conn)
+    # Dropping all data from graph on start
+    g.V().drop().iterate()
+    g.E().drop().iterate()
     # Insert derivation vertices
-    for p in DUMMY_DERIVATIONS:
-        insert_unique_vertex(p, g)
+    for drv in DUMMY_DERIVATIONS:
+        insert_unique_vertex(g, drv)
     # Add edges between them
     for edge, from_vertex, to_vertex in EDGES:
-        insert_unique_directed_edge(edge, from_vertex, to_vertex, g)
+        insert_unique_directed_edge(g, edge, from_vertex, to_vertex)
     yield conn
     # Dropping all data from graph on teardown
     g.V().drop().iterate()

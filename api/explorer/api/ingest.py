@@ -1,8 +1,6 @@
 import logging
-import threading
-from concurrent.futures import ThreadPoolExecutor, wait
 from contextlib import closing
-from typing import IO, Callable, Concatenate, ParamSpec, TypeVar
+from typing import IO
 
 import click
 from explorer.core import model
@@ -14,9 +12,6 @@ from explorer.api import graph
 from explorer.api.gremlin import default_remote_connection
 
 logger = logging.getLogger(__name__)
-
-T = TypeVar("T")
-P = ParamSpec("P")
 
 
 class IngestionError(Exception):
@@ -79,84 +74,58 @@ def _edge_from_build_input_type(build_input_type: model.BuildInputType) -> graph
 
 def ingest_derivations(
     infile: IO[str],
-    g_factory: Callable[[], GraphTraversalSource],
+    g: GraphTraversalSource,
 ) -> None:
     """
-    Writes the entire provided Nix graph to the provided Gremlin traversal source
-
-    Args:
-        nix_graph (model.NixGraph): The Nix graph to ingest
-        g (GraphTraversalSource): The graph traversal source to use for ingesting
-            the Nix graph
+    Writes the entire provided Nix graph to the provided Gremlin traversal source.
     """
+    for line in infile:
+        print("LINE", line)
+        try:
+            derivation = model.Derivation.parse_raw(line)
+            print("PARSED", derivation)
+        except ValidationError as e:
+            click.echo(e, err=True)
+            continue
 
-    def with_local_client(
-        f: Callable[Concatenate[GraphTraversalSource, P], T]
-    ) -> Callable[P, T]:
-        """Utility function to"""
-        thread_local = threading.local()
-        g = getattr(thread_local, "g", None)
-        if g is None:
-            thread_local.g = g_factory()
+        # convert from extraction to db model
+        # possibly handling multi-outputs derivation
+        derivation_nodes = core_to_graph(derivation)
+        print("NODES", derivation_nodes)
+        build_input_nodes = [
+            graph.Derivation(
+                output_path=build_input.output_path,
+                attribute_path=None,
+            )
+            for build_input in derivation.build_inputs
+            if build_input.output_path is not None
+        ]
 
-        def wrapped(*args: P.args, **kwargs: P.kwargs):
-            return f(thread_local.g, *args, **kwargs)
+        # insert nodes
+        for node in derivation_nodes:
+            # insert if it does not exist, otherwise update properties
+            graph.upsert_unique_vertex(g, node)
+        for node in build_input_nodes:
+            # insert build input nodes to allow creating the edge
+            graph.insert_unique_vertex(g, node)
 
-        return wrapped
-
-    with ThreadPoolExecutor() as pool:
-        for line in infile:
-            try:
-                derivation = model.Derivation.parse_raw(line)
-            except ValidationError as e:
-                click.echo(e, err=True)
-                continue
-
-            # convert from extraction to db model
-            # possibly handling multi-outputs derivation
-            derivation_nodes = core_to_graph(derivation)
-            build_input_nodes = [
-                graph.Derivation(
-                    output_path=build_input.output_path,
-                    attribute_path=None,
+        # insert edges
+        for derivation_node in derivation_nodes:
+            for build_input, build_input_node in zip(
+                derivation.build_inputs,
+                build_input_nodes,
+            ):
+                edge: graph.Edge = _edge_from_build_input_type(
+                    build_input.build_input_type
                 )
-                for build_input in derivation.build_inputs
-                if build_input.output_path is not None
-            ]
+                graph.insert_unique_directed_edge(
+                    g=g,
+                    edge=edge,
+                    from_vertex=derivation_node,
+                    to_vertex=build_input_node,
+                )
 
-            # nodes
-            derivation_node_operations = [
-                # derivation output nodes might have been inserted already,
-                # upsert them
-                pool.submit(with_local_client(graph.upsert_unique_vertex), node)
-                for node in derivation_nodes
-            ] + [
-                # insert build input nodes to allow creating the edge
-                pool.submit(with_local_client(graph.insert_unique_vertex), node)
-                for node in build_input_nodes
-            ]
-            wait(derivation_node_operations)
-
-            # edges
-            derivation_edge_operations = []
-            for derivation_node in derivation_nodes:
-                for build_input, build_input_node in zip(
-                    derivation.build_inputs,
-                    build_input_nodes,
-                ):
-                    edge: graph.Edge = _edge_from_build_input_type(
-                        build_input.build_input_type
-                    )
-                    promise = pool.submit(
-                        with_local_client(graph.insert_unique_directed_edge),
-                        edge,
-                        derivation_node,
-                        build_input_node,
-                    )
-                    derivation_edge_operations.append(promise)
-            wait(derivation_edge_operations)
-
-            logger.info("%s", derivation.output_path)
+        logger.info("%s", derivation.output_path)
 
 
 @click.command(context_settings={"show_default": True})
@@ -195,11 +164,8 @@ def main(
             traversal_source=gremlin_source,
         ),
     ) as remote:
-        # util function to create traversals on the remote
-        def g_factory() -> GraphTraversalSource:
-            return traversal().with_remote(remote)
-
-        ingest_derivations(infile, g_factory)
+        g = traversal().with_remote(remote)
+        ingest_derivations(infile, g=g)
 
 
 if __name__ == "__main__":

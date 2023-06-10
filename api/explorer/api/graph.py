@@ -193,7 +193,8 @@ def _traversal_insert_vertex(g: GraphTraversal, e: GraphElement) -> GraphTravers
         # Note: if `property_value` cannot be converted to a valid Gremlin type by
         # gremlin_python we may end up with runtime errors here. Note really sure how
         # to restrict this though...
-        traversal = traversal.property(property_name, property_value)
+        if property_value is not None:
+            traversal = traversal.property(property_name, property_value)
     return traversal
 
 
@@ -217,6 +218,7 @@ def insert_unique_vertex(g: GraphTraversalSource, e: UniqueGraphElement) -> None
         e (UniqueGraphElement): the vertex element to insert
         g (GraphTraversalSource): the graph traversal source to use for the insertion
     """
+    print("INSERT", e)
     g.V().has(e.label(), e.id_property_name(), e.get_id()).fold().coalesce(
         __.unfold(), _traversal_insert_vertex(__.start(), e)
     ).iterate()
