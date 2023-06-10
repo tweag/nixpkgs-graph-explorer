@@ -218,7 +218,6 @@ def insert_unique_vertex(g: GraphTraversalSource, e: UniqueGraphElement) -> None
         e (UniqueGraphElement): the vertex element to insert
         g (GraphTraversalSource): the graph traversal source to use for the insertion
     """
-    print("INSERT", e)
     g.V().has(e.label(), e.id_property_name(), e.get_id()).fold().coalesce(
         __.unfold(), _traversal_insert_vertex(__.start(), e)
     ).iterate()

@@ -80,10 +80,8 @@ def ingest_derivations(
     Writes the entire provided Nix graph to the provided Gremlin traversal source.
     """
     for line in infile:
-        print("LINE", line)
         try:
             derivation = model.Derivation.parse_raw(line)
-            print("PARSED", derivation)
         except ValidationError as e:
             click.echo(e, err=True)
             continue
@@ -91,7 +89,6 @@ def ingest_derivations(
         # convert from extraction to db model
         # possibly handling multi-outputs derivation
         derivation_nodes = core_to_graph(derivation)
-        print("NODES", derivation_nodes)
         build_input_nodes = [
             graph.Derivation(
                 output_path=build_input.output_path,
