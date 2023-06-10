@@ -27,7 +27,7 @@ def cli(out: str, stdout: bool, pretty: bool):
     else:
         indent = None
 
-    schema_json = model.Package.schema_json(indent=indent)
+    schema_json = model.Derivation.schema_json(indent=indent)
 
     if stdout:
         print(schema_json)
