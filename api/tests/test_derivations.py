@@ -1,3 +1,4 @@
+from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 import pytest
 from gremlin_python.process.anonymous_traversal import traversal
 
@@ -34,76 +35,66 @@ def graph_connection():
     conn.close()
 
 
-def test_unit_name_filter_multi_matches(graph_connection):
+@pytest.mark.parametrize(
+    "search_predicate,expected_derivations",
+    [
+        ("a", [DERIVATION_A, DERIVATION_AA]),
+        ("b", [DERIVATION_B]),
+        ("does-not-exist", []),
+    ],
+)
+def test_unit_name_filter_matches(
+    graph_connection: DriverRemoteConnection,
+    search_predicate: str,
+    expected_derivations: list[Derivation],
+):
     cursor = None
-    search_predicate = "a"
     request = derivations.ListDerivationsRequest(
         cursor=cursor, search_predicate=search_predicate
     )
     response = derivations.list_derivations(request, graph_connection)
     expected_response = derivations.ListDerivationsResponse(
         new_cursor=None,
-        derivations=[DERIVATION_A, DERIVATION_AA],
+        derivations=expected_derivations,
     )
     assert response == expected_response
 
 
-def test_unit_name_filter_single_match(graph_connection):
-    cursor = None
-    search_predicate = "b"
-    request = derivations.ListDerivationsRequest(
-        cursor=cursor, search_predicate=search_predicate
-    )
-    response = derivations.list_derivations(request, graph_connection)
-    expected_response = derivations.ListDerivationsResponse(
-        new_cursor=None,
-        derivations=[DERIVATION_B],
-    )
-    assert response == expected_response
-
-
-def test_unit_name_filter_no_match(graph_connection):
-    cursor = None
-    search_predicate = "does-not-exist"
-    request = derivations.ListDerivationsRequest(
-        cursor=cursor, search_predicate=search_predicate
-    )
-    response = derivations.list_derivations(request, graph_connection)
-    expected_response = derivations.ListDerivationsResponse(
-        new_cursor=None,
-        derivations=[],
-    )
-    assert response == expected_response
-
-
-def test_unit_cursor_direction_previous(graph_connection):
-    cursor = Cursor.from_unique_element(
-        DERIVATION_B, direction=CursorDirection.PREVIOUS
-    )
-    search_predicate = None
-    request = derivations.ListDerivationsRequest(
-        cursor=cursor, search_predicate=search_predicate, limit=2
-    )
-    response = derivations.list_derivations(request, graph_connection)
-    expected_response = derivations.ListDerivationsResponse(
-        new_cursor=Cursor.from_unique_element(
-            DERIVATION_A, direction=CursorDirection.PREVIOUS
+@pytest.mark.parametrize(
+    "cursor,expected_cursor,expected_derivations",
+    [
+        (
+            Cursor.from_unique_element(
+                DERIVATION_B, direction=CursorDirection.PREVIOUS
+            ),
+            Cursor.from_unique_element(
+                DERIVATION_A, direction=CursorDirection.PREVIOUS
+            ),
+            [DERIVATION_B, DERIVATION_AA],
         ),
-        derivations=[DERIVATION_B, DERIVATION_AA],
-    )
-    assert response == expected_response
-
-
-def test_unit_cursor_direction_next(graph_connection):
-    cursor = Cursor.from_unique_element(DERIVATION_B, direction=CursorDirection.NEXT)
+        (
+            Cursor.from_unique_element(DERIVATION_B, direction=CursorDirection.NEXT),
+            None,
+            [DERIVATION_B, DERIVATION_C],
+        ),
+    ],
+)
+def test_unit_cursor(
+    graph_connection: DriverRemoteConnection,
+    cursor: Cursor,
+    expected_cursor: Cursor,
+    expected_derivations: list[Derivation],
+):
     search_predicate = None
     request = derivations.ListDerivationsRequest(
-        cursor=cursor, search_predicate=search_predicate, limit=2
+        cursor=cursor,
+        search_predicate=search_predicate,
+        limit=2,
     )
     response = derivations.list_derivations(request, graph_connection)
     expected_response = derivations.ListDerivationsResponse(
-        new_cursor=None,
-        derivations=[DERIVATION_B, DERIVATION_C],
+        new_cursor=expected_cursor,
+        derivations=expected_derivations,
     )
     assert response == expected_response
 
