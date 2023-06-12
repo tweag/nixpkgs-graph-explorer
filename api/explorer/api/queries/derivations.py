@@ -44,7 +44,7 @@ def list_derivations(
     # Since the provided search predicate filters by name, we need to know the name
     # of the relevant vertex property. There might be smarter ways to extract this
     # rather than hard-coding it here.
-    SEARCH_PROPERTY = Derivation.id_property_name()
+    search_property = Derivation.id_property_name()
 
     # Connect to Gremlin Server and start a new traversal
     g = traversal().withRemote(conn)
@@ -57,10 +57,10 @@ def list_derivations(
             request.search_predicate,
         )
         filtered_traversal = g.V().has(
-            SEARCH_PROPERTY, TextP.containing(request.search_predicate)
+            search_property, TextP.containing(request.search_predicate)
         )
     else:
-        filtered_traversal = g.V().order().by(SEARCH_PROPERTY)
+        filtered_traversal = g.V().order().by(search_property)
 
     # Apply ordering to the traversal
     if not request.cursor or request.cursor.direction is CursorDirection.NEXT:
@@ -68,7 +68,7 @@ def list_derivations(
     else:
         ordering = Order.desc  # type: ignore
     ordered_filtered_traversal = filtered_traversal.order().by(
-        SEARCH_PROPERTY, ordering
+        search_property, ordering
     )
 
     # Then we can filter based on the cursor, if one exists.
