@@ -80,9 +80,7 @@ def list_derivations(
             logger.debug("cursor direction=previous")
             cursor_predicate = TextP.lte(request.cursor.row_id)
         page_traversal = (
-            ordered_filtered_traversal.has(
-                Derivation.id_property_name(), cursor_predicate
-            )
+            ordered_filtered_traversal.has(search_property, cursor_predicate)
             .limit(request.limit + 1)
             .element_map()
         )
