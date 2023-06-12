@@ -11,7 +11,9 @@ from explorer.api.queries.cytoscape import (
 from tests.constants import DERIVATION_A, DERIVATION_AA, DERIVATION_B, DERIVATION_C
 
 
-def test_gremlin_query_non_path_end_step(populated_graph_connection: DriverRemoteConnection):
+def test_gremlin_query_non_path_end_step(
+    populated_graph_connection: DriverRemoteConnection,
+):
     from explorer.api.queries.query import GremlinResult, QueryResult, WarningMessage
 
     # Execute a query

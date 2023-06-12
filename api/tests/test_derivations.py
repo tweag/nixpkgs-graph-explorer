@@ -4,12 +4,7 @@ from gremlin_python.driver.driver_remote_connection import DriverRemoteConnectio
 import explorer.api.queries.derivations as derivations
 from explorer.api.graph import Derivation
 from explorer.api.queries.pagination import Cursor, CursorDirection
-from tests.constants import (
-    DERIVATION_A,
-    DERIVATION_AA,
-    DERIVATION_B,
-    DERIVATION_C,
-)
+from tests.constants import DERIVATION_A, DERIVATION_AA, DERIVATION_B, DERIVATION_C
 
 
 @pytest.mark.parametrize(
