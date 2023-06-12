@@ -1,15 +1,5 @@
-import pytest
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
-from gremlin_python.process.anonymous_traversal import traversal
 
-from explorer.api.graph import (
-    Derivation,
-    HasBuildInput,
-    HasPropagatedBuildInput,
-    insert_unique_directed_edge,
-    insert_unique_vertex,
-)
-from explorer.api.gremlin import default_remote_connection
 from explorer.api.queries.cytoscape import (
     CytoscapeJs,
     EdgeData,
@@ -18,57 +8,22 @@ from explorer.api.queries.cytoscape import (
     NodeData,
     NodeDefinition,
 )
-
-DERIVATION_A = Derivation(output_path="/nix/store/a", attribute_path="a")
-DERIVATION_B = Derivation(output_path="/nix/store/b", attribute_path="b")
-DERIVATION_C = Derivation(output_path="/nix/store/c", attribute_path="c")
-DERIVATION_AA = Derivation(output_path="/nix/store/aa", attribute_path="a.a")
-
-DUMMY_DERIVATIONS = [DERIVATION_A, DERIVATION_B, DERIVATION_C, DERIVATION_AA]
-
-EDGES = [
-    (HasBuildInput(), DERIVATION_A, DERIVATION_B),
-    (HasBuildInput(), DERIVATION_B, DERIVATION_C),
-    (HasPropagatedBuildInput(), DERIVATION_B, DERIVATION_AA),
-]
+from tests.constants import DERIVATION_A, DERIVATION_AA, DERIVATION_B, DERIVATION_C
 
 
-@pytest.fixture
-def graph_connection():
-    # FIXME: use a traversal_source purely dedicated to tests
-    conn = default_remote_connection(
-        "ws://localhost:8182/gremlin", traversal_source="g"
-    )
-    g = traversal().with_remote(conn)
-    # Dropping all data from graph on start
-    g.V().drop().iterate()
-    g.E().drop().iterate()
-    # Insert derivation vertices
-    for drv in DUMMY_DERIVATIONS:
-        insert_unique_vertex(g, drv)
-    # Add edges between them
-    for edge, from_vertex, to_vertex in EDGES:
-        insert_unique_directed_edge(g, edge, from_vertex, to_vertex)
-    yield conn
-    # Dropping all data from graph on teardown
-    g.V().drop().iterate()
-    g.E().drop().iterate()
-    conn.close()
-
-
-def test_gremlin_query_non_path_end_step(graph_connection: DriverRemoteConnection):
+def test_gremlin_query_non_path_end_step(populated_graph_connection: DriverRemoteConnection):
     from explorer.api.queries.query import GremlinResult, QueryResult, WarningMessage
 
     # Execute a query
     query = "g.V().count()"
-    result = GremlinResult(graph_connection._client, query).to_query_result()
+    result = GremlinResult(populated_graph_connection._client, query).to_query_result()
     expected = QueryResult(
         raw="[4]", warning=WarningMessage.RESULT_IS_NOT_PLOTTABLE, cyto=None
     )
     assert result == expected
 
 
-def test_gremlin_query_path_step(graph_connection: DriverRemoteConnection):
+def test_gremlin_query_path_step(populated_graph_connection: DriverRemoteConnection):
     from explorer.api.queries.query import GremlinResult, TableEntry
 
     # Execute a query which returns a path with required 'output_path' and 'label'
@@ -88,7 +43,7 @@ def test_gremlin_query_path_step(graph_connection: DriverRemoteConnection):
         .by('output_path')
         .by('label')
     """
-    result = GremlinResult(graph_connection._client, query).to_query_result()
+    result = GremlinResult(populated_graph_connection._client, query).to_query_result()
     expected_table_data = [
         TableEntry(id=DERIVATION_A.output_path, neighbours=[DERIVATION_B.output_path]),
         TableEntry(

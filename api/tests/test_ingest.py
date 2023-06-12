@@ -97,7 +97,7 @@ dummy_derivations = [
 # Fixture(s)
 #######################################################################################
 @pytest.fixture
-def graph_connection():
+def populated_graph_connection():
     # FIXME: use a traversal_source purely dedicated to tests
     conn = default_remote_connection(
         "ws://localhost:8182/gremlin", traversal_source="g"
@@ -148,11 +148,11 @@ def test_unit_core_to_graph_model():
     assert expected_drv_lib in converted_derivations
 
 
-def test_unit_ingest_derivations(graph_connection: DriverRemoteConnection):
+def test_unit_ingest_derivations(populated_graph_connection: DriverRemoteConnection):
     """Check that all expected nodes and edges are created when ingesting derivations"""
     from explorer.api.ingest import ingest_derivations
 
-    g = traversal().with_remote(graph_connection)
+    g = traversal().with_remote(populated_graph_connection)
 
     derivations_str = "\n".join(drv.json() for drv in dummy_derivations)
 
