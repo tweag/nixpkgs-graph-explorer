@@ -9,14 +9,14 @@ import "@shoelace-style/shoelace/dist/components/spinner/spinner.js";
 import "@shoelace-style/shoelace/dist/components/alert/alert.js";
 import "@shoelace-style/shoelace/dist/components/icon/icon.js";
 import { classMap } from "lit/directives/class-map.js";
-import { getGraph, getPackages } from "./api";
-import type { Cursor, Pkg, QueryResultPayload } from "./api";
+import { getGraph, getDerivations } from "./api";
+import type { Cursor, Derivation, QueryResultPayload } from "./api";
 import { assign, createMachine, interpret } from "xstate";
 
 type EventInput = Event & { target: HTMLInputElement };
 
 type Context = {
-  pkgs: Pkg[];
+  derivations: Derivation[];
   selectedPkg?: string;
   input: string;
   cursor?: Cursor;
@@ -28,8 +28,8 @@ type Context = {
 type InputEvent = { type: "INPUT"; input: string };
 
 type QueryDone = {
-  type: "done.invoke.queryPkgs";
-  data: Pick<Context, "pkgs" | "cursor">;
+  type: "done.invoke.queryDerivations";
+  data: Pick<Context, "derivations" | "cursor">;
 };
 
 type SearchEvent = InputEvent | QueryDone | { type: "NEXT" } | { type: "PREV" };
@@ -37,7 +37,7 @@ type SearchEvent = InputEvent | QueryDone | { type: "NEXT" } | { type: "PREV" };
 const searchMachine = createMachine<Context, SearchEvent>({
   initial: "loading",
   context: {
-    pkgs: [],
+    derivations: [],
     input: "",
     limit: 10,
     cursors: [],
@@ -49,14 +49,14 @@ const searchMachine = createMachine<Context, SearchEvent>({
         INPUT: { target: "debouncing", actions: "saveInput" },
       },
       invoke: {
-        id: "queryPkgs",
-        src: "queryPkgs",
+        id: "queryDerivations",
+        src: "queryDerivations",
         onDone: {
           target: "waiting",
           actions: assign((ctx, event: QueryDone) => {
-            const { pkgs, cursor } = event.data;
+            const { derivations, cursor } = event.data;
             return {
-              pkgs,
+              derivations,
               cursors: cursor ? [...ctx.cursors, cursor] : ctx.cursors,
             };
           }),
@@ -113,14 +113,19 @@ function hasPrevCursor(ctx: Context) {
   return ctx.cursor_position >= 0;
 }
 
-async function queryPkgs({ input, limit, cursors, cursor_position }: Context) {
-  const result = await getPackages({
+async function queryDerivations({
+  input,
+  limit,
+  cursors,
+  cursor_position,
+}: Context) {
+  const result = await getDerivations({
     search: input,
     limit,
     cursor: cursor_position === -1 ? null : cursors[cursor_position],
   });
   return {
-    pkgs: result.packages,
+    derivations: result.derivations,
     // Add only new cursors
     cursor: hasNextCursor({ cursors, cursor_position })
       ? null
@@ -139,7 +144,7 @@ export class NixSearch extends LitElement {
   private searchMachine = interpret(
     searchMachine.withConfig({
       guards: { hasPrevCursor, hasNextCursor },
-      services: { queryPkgs },
+      services: { queryDerivations },
       actions: { saveInput },
     })
   )
@@ -147,7 +152,7 @@ export class NixSearch extends LitElement {
     .start();
 
   @state()
-  selectedPkg?: string;
+  selectedDerivation?: string;
 
   updateSearchQuery(ev: EventInput) {
     this.searchMachine.send({ type: "INPUT", input: ev.target.value });
@@ -162,7 +167,7 @@ export class NixSearch extends LitElement {
     return html`
       <sl-input
         @input=${this.updateSearchQuery}
-        placeholder="Search by package name..."
+        placeholder="Search by derivation name..."
         clearable
       >
       </sl-input>
@@ -178,7 +183,7 @@ export class NixSearch extends LitElement {
 
   renderTable() {
     const { context, value: currentState } = this.searchMachine.getSnapshot();
-    if (context.pkgs.length === 0)
+    if (context.derivations.length === 0)
       return html`<sl-alert open>
         <sl-icon slot="icon" name="info-circle"></sl-icon>
         No results
@@ -186,7 +191,7 @@ export class NixSearch extends LitElement {
     if (currentState === "error")
       return html`<sl-alert variant="danger" open>
         <sl-icon slot="icon" name="exclamation-circle"></sl-icon>
-        Error getting packages, try again later
+        Error getting derivations, try again later
       </sl-alert> `;
     return html`
       <nav>
@@ -204,14 +209,16 @@ export class NixSearch extends LitElement {
         </sl-button>
       </nav>
       <sl-menu>
-        ${context.pkgs.map(
-          ({ pname }) =>
+        ${context.derivations.map(
+          ({ output_path }) =>
             html`
               <sl-menu-item
-                @click=${this.clickPackageHandler}
-                value=${pname}
-                class=${classMap({ selected: this.selectedPkg === pname })}
-                >${pname}</sl-menu-item
+                @click=${this.clickDerivationHandler}
+                value=${output_path}
+                class=${classMap({
+                  selected: this.selectedDerivation === output_path,
+                })}
+                >${output_path}</sl-menu-item
               >
             `
         )}
@@ -219,9 +226,9 @@ export class NixSearch extends LitElement {
     `;
   }
 
-  private async clickPackageHandler(ev: EventInput) {
+  private async clickDerivationHandler(ev: EventInput) {
     const name = ev.target.value.trim();
-    this.selectedPkg = name;
+    this.selectedDerivation = name;
 
     if (name) {
       let data: any;

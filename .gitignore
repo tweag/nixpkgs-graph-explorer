@@ -173,3 +173,6 @@ web/public/assets/*
 
 # Editor config
 .vscode
+
+# Other data
+tmp/

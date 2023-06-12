@@ -9,28 +9,32 @@ def snake_case_to_camel_case(name: str):
 
 
 class NixpkgsMetadata(BaseModel):
-    """Package metadata defined by nixpkgs specifically."""
+    """Derivation metadata defined by nixpkgs specifically."""
 
     pname: str | None = Field(
         default=None, description="The pname attribute of the Nix derivation"
     )
-    version: str = Field(description="The package's version")
-    broken: bool = Field(description="Flag indicating whether the package is broken")
-    license: str = Field(description="The package's license")
+    version: str = Field(description="The derivation's version")
+    broken: bool = Field(description="Flag indicating whether the derivation is broken")
+    license: str = Field(description="The derivation's license")
 
 
-class OutputPath(BaseModel):
-    """A Nix outputPath"""
+class Output(BaseModel):
+    """An output of a derivation, as specified for multi-output derivations."""
 
     name: str = Field(description="The output path's name (out, doc, dev, ...)")
-    path: str = Field(description="The output path")
+    output_path: str = Field(description="The output path")
+
+    class Config:
+        alias_generator = snake_case_to_camel_case
+        allow_population_by_field_name = True
 
 
 class ParsedName(BaseModel):
     """The parsed output of the builtins.parseDrvName function."""
 
     name: str | None = Field(
-        default=None, description="The package name of the Nix derivation"
+        default=None, description="The derivation name of the Nix derivation"
     )
     version: str = Field(description="The version of the Nix derivation")
 
@@ -47,7 +51,7 @@ class BuildInput(BaseModel):
     """A build input to a Nix derivation"""
 
     attribute_path: str = Field(
-        description="Attribute path from the flake package set",
+        description="Attribute path from the flake derivation set",
     )
     build_input_type: BuildInputType = Field(
         description="The type of build input",
@@ -63,12 +67,11 @@ class BuildInput(BaseModel):
         allow_population_by_field_name = True
 
 
-# FIXME rename to "Derivation"
-class Package(BaseModel):
-    """A Nix package, which is an evaluated (not realized) derivation."""
+class Derivation(BaseModel):
+    """A Nix derivation, which is an evaluated (not realized) derivation."""
 
     attribute_path: str = Field(
-        description="Attribute path from the flake package set",
+        description="Attribute path from the flake derivation set",
     )
     derivation_path: str = Field(
         description="The derivation path of this derivation",
@@ -77,25 +80,25 @@ class Package(BaseModel):
     output_path: str | None = Field(
         description="The output path of this derivation",
     )
-    output_paths: list[OutputPath] = Field(
-        description="A list of the package's output paths",
+    outputs: list[Output] = Field(
+        description="A list of the derivation's output paths",
     )
 
     name: str = Field(
-        description="The name of the package",
+        description="The name of the derivation",
     )
     parsed_name: ParsedName | None = Field(
         default=None,
         description=(
-            "The parsed package name and version of the package by Nix builtins"
+            "The parsed derivation name and version of the derivation by Nix builtins"
         ),
     )
     nixpkgs_metadata: NixpkgsMetadata | None = Field(
         default=None,
-        description="Optional metadata specific to packages from nixpkgs",
+        description="Optional metadata specific to derivations from nixpkgs",
     )
     build_inputs: list[BuildInput] = Field(
-        description="The package's build inputs",
+        description="The derivation's build inputs",
     )
 
     class Config:
@@ -107,4 +110,4 @@ class Package(BaseModel):
 
 
 class NixGraph(BaseModel):
-    packages: list[Package]
+    derivations: list[Derivation]

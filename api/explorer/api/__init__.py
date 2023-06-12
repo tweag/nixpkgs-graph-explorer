@@ -12,10 +12,10 @@ from pydantic import BaseModel
 from starlette.applications import Starlette
 
 from explorer.api.gremlin import WebSocketTransport, default_remote_connection
-from explorer.api.queries.packages import (
-    ListPackagesRequest,
-    ListPackagesResponse,
-    list_packages,
+from explorer.api.queries.derivations import (
+    ListDerivationsRequest,
+    ListDerivationsResponse,
+    list_derivations,
 )
 from explorer.api.queries.query import GremlinResult, QueryResult
 
@@ -105,12 +105,12 @@ class GremlinRequest(BaseModel):
 app = FastAPI(lifespan=lifespan)
 
 
-@app.post("/packages")
-def packages(
-    list_packages_request: ListPackagesRequest, raw_request: Request
-) -> ListPackagesResponse:
+@app.post("/derivations")
+def derivations(
+    list_derivations_request: ListDerivationsRequest, raw_request: Request
+) -> ListDerivationsResponse:
     remote_connection = get_state(raw_request)["gremlin_remote_connection"]
-    return list_packages(list_packages_request, remote_connection)
+    return list_derivations(list_derivations_request, remote_connection)
 
 
 @app.post("/gremlin")

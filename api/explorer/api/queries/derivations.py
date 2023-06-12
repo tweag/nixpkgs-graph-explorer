@@ -3,64 +3,73 @@ from typing import Optional
 
 from gremlin_python.driver.driver_remote_connection import DriverRemoteConnection
 from gremlin_python.process.anonymous_traversal import traversal
+from gremlin_python.process.graph_traversal import GraphTraversal
 from gremlin_python.process.traversal import Order, TextP
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
-from explorer.api.graph import Package
+from explorer.api.graph import Derivation
 from explorer.api.queries.pagination import Cursor, CursorDirection
 
 logger = logging.getLogger(__name__)
 
 
 # @dataclass
-class ListPackagesRequest(BaseModel):
+class ListDerivationsRequest(BaseModel):
     cursor: Optional[Cursor] = None
-    search_predicate: Optional[str] = None
+    search_predicate: Optional[str] = Field(
+        description="Regex to use to search derivation",
+    )
     limit: int = 10
 
 
 # @dataclass
-class ListPackagesResponse(BaseModel):
+class ListDerivationsResponse(BaseModel):
     new_cursor: Optional[Cursor]
-    packages: list[Package]
+    derivations: list[Derivation]
 
 
-def list_packages(
-    request: ListPackagesRequest, conn: DriverRemoteConnection
-) -> ListPackagesResponse:
-    """Lists packages available in the specified Gremlin Server
+def list_derivations(
+    request: ListDerivationsRequest, conn: DriverRemoteConnection
+) -> ListDerivationsResponse:
+    """Lists derivations available in the specified Gremlin Server
 
     Args:
-        request (ListPackagesRequest): The request parameters
+        request (ListDerivationsRequest): The request parameters
         conn (DriverRemoteConnection): A Gremlin Driver remote connection
 
     Returns:
-        ListPackagesResponse: A new cursor (if available) and the
-        list of packages matching the provided request.
+        ListDerivationsResponse: A new cursor (if available) and the
+        list of derivations matching the provided request.
     """
     # Since the provided search predicate filters by name, we need to know the name
     # of the relevant vertex property. There might be smarter ways to extract this
     # rather than hard-coding it here.
-    NAME_PROPERTY = "pname"
+    search_property = Derivation.id_property_name()
 
     # Connect to Gremlin Server and start a new traversal
     g = traversal().withRemote(conn)
 
     # First filter traversal based on predicate if one exists
+    filtered_traversal: GraphTraversal
     if request.search_predicate:
-        logger.debug("Filtering traversal using provided predicate.")
+        logger.debug(
+            "Filtering traversal using predicate: %s",
+            request.search_predicate,
+        )
         filtered_traversal = g.V().has(
-            NAME_PROPERTY, TextP.startingWith(request.search_predicate)
+            search_property, TextP.containing(request.search_predicate)
         )
     else:
-        filtered_traversal = g.V().order().by(NAME_PROPERTY)
+        filtered_traversal = g.V().order().by(search_property)
 
     # Apply ordering to the traversal
     if not request.cursor or request.cursor.direction is CursorDirection.NEXT:
         ordering = Order.asc  # type: ignore
     else:
         ordering = Order.desc  # type: ignore
-    ordered_filtered_traversal = filtered_traversal.order().by(NAME_PROPERTY, ordering)
+    ordered_filtered_traversal = filtered_traversal.order().by(
+        search_property, ordering
+    )
 
     # Then we can filter based on the cursor, if one exists.
     if request.cursor:
@@ -71,7 +80,7 @@ def list_packages(
             logger.debug("cursor direction=previous")
             cursor_predicate = TextP.lte(request.cursor.row_id)
         page_traversal = (
-            ordered_filtered_traversal.has(Package.id_property_name(), cursor_predicate)
+            ordered_filtered_traversal.has(search_property, cursor_predicate)
             .limit(request.limit + 1)
             .element_map()
         )
@@ -85,15 +94,15 @@ def list_packages(
         ).element_map()
 
     # Execute traversal and parse results
-    packages = [Package.from_element_map(em) for em in page_traversal.to_list()]
+    derivations = [Derivation.from_element_map(em) for em in page_traversal.to_list()]
 
-    if not packages:
-        return ListPackagesResponse(new_cursor=None, packages=[])
+    if not derivations:
+        return ListDerivationsResponse(new_cursor=None, derivations=[])
 
     # If result set has same length as limit, we have reached the end of the result set
     # and do not need to return a new cursor.
-    if len(packages) <= request.limit:
-        return ListPackagesResponse(new_cursor=None, packages=packages)
+    if len(derivations) <= request.limit:
+        return ListDerivationsResponse(new_cursor=None, derivations=derivations)
 
     # Otherwise, construct the new cursor from the last item in the query result and
     # return all other items.
@@ -101,8 +110,8 @@ def list_packages(
         CursorDirection.NEXT if not request.cursor else request.cursor.direction
     )
     new_cursor = Cursor.from_unique_element(
-        packages[-1], direction=new_cursor_direction
+        derivations[-1], direction=new_cursor_direction
     )
     # Note: Ignoring last item in result set since it is only used for constructing
     # our new cursor
-    return ListPackagesResponse(new_cursor=new_cursor, packages=packages[:-1])
+    return ListDerivationsResponse(new_cursor=new_cursor, derivations=derivations[:-1])
