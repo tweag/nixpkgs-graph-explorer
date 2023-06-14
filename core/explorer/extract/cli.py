@@ -276,7 +276,7 @@ def cli(
     verbose: bool,
 ):
     """
-    Extract the graph of derivations from a flake as JSON.
+    Extract the graph of derivations from a flake as JSONL.
 
     OUTFILE is the path to the output file to write to, use "-" to write to stdout.
     """

@@ -13,7 +13,7 @@ poetry install --only main
 ### Load data
 
 This package comes with a command line utility to load a JSONL file of Nix derivations, where each line follows [`derivation.schema.json`](../core/derivation.schema.json).
-To extract such JSON, see [the `core` package instructions](../core/README.md).
+To extract such JSONL, see [the `core` package instructions](../core/README.md).
 
 ```console
 poetry run python -m explorer.api.ingest PATH_TO_FILE
