@@ -66,16 +66,15 @@ To fill it, run the extraction using the `core` component:
 
 ```console
 cd core
-poetry run python -m explorer.extract ../graph.json
+poetry run python -m explorer.extract ../derivations.jsonl
 ```
 
-Then load this data using the `api` compnent:
+Then load this data using the `api` component:
 
 ```console
 cd api
-poetry run python -m explorer.api.ingest --graph-json ../graph.json
+poetry run python -m explorer.api.ingest ../derivations.jsonl
 ```
-
 
 ### Repository structure
 

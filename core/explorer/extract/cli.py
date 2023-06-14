@@ -236,6 +236,10 @@ def queue_processor(
 
 
 @click.command()
+@click.argument(
+    "outfile",
+    type=click.File("wt"),
+)
 @click.option(
     "--target-flake-ref",
     default="github:nixos/nixpkgs/master",
@@ -263,20 +267,16 @@ def queue_processor(
     is_flag=True,
     help="Increase verbosity",
 )
-@click.argument(
-    "outfile",
-    type=click.File("wt"),
-)
 def cli(
+    outfile: IO[str],
     target_flake_ref: str,
     target_system: str,
     n_workers: int,
     offline: bool,
     verbose: bool,
-    outfile: IO[str],
 ):
     """
-    Extract the graph of derivations from a flake as JSON.
+    Extract the graph of derivations from a flake as JSONL.
 
     OUTFILE is the path to the output file to write to, use "-" to write to stdout.
     """
