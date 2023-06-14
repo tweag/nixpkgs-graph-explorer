@@ -19,7 +19,7 @@ poetry install --only main
 To extract the data from nixpkgs, use:
 
 ```console
-poetry run python -m explorer.extract derivations.json
+poetry run python -m explorer.extract derivations.jsonl
 ```
 
 To write to stdout, use `-` instead of a file path
