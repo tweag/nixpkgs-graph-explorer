@@ -1,41 +1,29 @@
+from typing import IO
+
 import click
 
 from explorer.core import model
 
 
 @click.command()
-@click.option(
-    "--out",
-    default="derivation.schema.json",
-    help="The output path at which to write the JSON Schema",
-    type=click.Path(),
+@click.argument(
+    "outfile",
+    type=click.File("wt"),
 )
 @click.option(
-    "--stdout",
-    default=False,
-    help="Write outputs to stdout instead of to a file",
+    "--pretty",
     is_flag=True,
+    help="Enable pretty printing of the output JSON Schema",
 )
-@click.option(
-    "--pretty/--no-pretty",
-    default=True,
-    help="Enable/disable pretty printing of the output JSON Schema",
-)
-def cli(out: str, stdout: bool, pretty: bool):
-    if pretty:
-        indent = 2
-    else:
-        indent = None
+def cli(outfile: IO[str], pretty: bool):
+    """
+    Write the JSON schema for Derivation to OUTFILE.
 
+    OUTFILE must be a path to a file, or '-' to write to stdout.
+    """
+    indent = 2 if pretty else None
     schema_json = model.Derivation.schema_json(indent=indent)
-
-    if stdout:
-        print(schema_json)
-    else:
-        click.echo(f"Writing schema to {out}")
-        with open(out, "w") as f:
-            print(schema_json, file=f)
-        click.echo("Done.")
+    outfile.write(schema_json)
 
 
 cli()

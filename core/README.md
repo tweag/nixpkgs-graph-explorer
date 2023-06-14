@@ -2,9 +2,9 @@
 
 Core data model used for extracting Nix dependencies and related utilities.
 
-This package
-- defines [a schema](./nixpkgs-graph.schema.json) for a graph of derivations of nixpkgs.
-- provides a command line tool to extract corresponding data
+This package provides a command line tool to extract derivations from a Nix flake.
+
+Result of this extraction is a JSONL file, each line complying to [`./derivation.schema.json`](./derivation.schema.json).
 
 ## Usage
 
@@ -19,7 +19,7 @@ poetry install --only main
 To extract the data from nixpkgs, use:
 
 ```console
-poetry run python -m explorer.extract graph.json
+poetry run python -m explorer.extract derivations.json
 ```
 
 To write to stdout, use `-` instead of a file path
@@ -28,7 +28,11 @@ To write to stdout, use `-` instead of a file path
 poetry run python -m explorer.extract -
 ```
 
-You can use `--help` to see the tool documentation.
+To learn more about the available options:
+
+```console
+poetry run python -m explorer.extract --help
+```
 
 ## Development
 
@@ -47,6 +51,6 @@ The JSON schema is written as a [`pydantic`](https://docs.pydantic.dev/latest/) 
 Once modified, update the JSON schema using the command:
 
 ```console
-poetry run python -m explorer.core
+poetry run python -m explorer.core ./derivation.schema.json
 ```
 

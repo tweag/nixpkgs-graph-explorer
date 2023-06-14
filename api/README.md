@@ -12,11 +12,17 @@ poetry install --only main
 
 ### Load data
 
-This package comes with a command line utility called `explorer-ingest-graph` to load a Nix graph JSON file that follows [`nixpkgs-graph.schema.json`](../core/nixpkgs-graph.schema.json).
+This package comes with a command line utility to load a JSONL file of Nix derivations, where each line follows [`derivation.schema.json`](../core/derivation.schema.json).
 To extract such JSON, see [the `core` package instructions](../core/README.md).
 
 ```console
-poetry run python -m explorer.api.ingest --graph-json PATH_TO_FILE
+poetry run python -m explorer.api.ingest PATH_TO_FILE
+```
+
+or to ingest from stdin:
+
+```console
+poetry run python -m explorer.api.ingest -
 ```
 
 ## Development
