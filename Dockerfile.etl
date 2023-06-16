@@ -42,4 +42,4 @@ COPY ./api .
 RUN poetry build && /venv/bin/pip install dist/*.whl
 
 # Run the ETL commands
-CMD ["sh", "-c", "python -m explorer.extract nodes.json && python -m explorer.api.ingest --graph-json nodes.json"]
+CMD ["sh", "-c", "python -m explorer.extract nodes.jsonl && python -m explorer.api.ingest nodes.jsonl"]
