@@ -103,4 +103,4 @@ This repository is a monorepo, each component in its folder.
 
 - [core](./core): tools to extract the graph of derivations in nixpkgs
 - [api](./api): tools to load the extracted graph in a database and serve it with an API
-- [web](./web): a frontend client to interact with the API and explore the graph viusally
+- [web](./web): a frontend client to interact with the API and explore the graph visually
