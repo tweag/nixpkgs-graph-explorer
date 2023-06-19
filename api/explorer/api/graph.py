@@ -198,17 +198,17 @@ def _traversal_insert_vertex(g: GraphTraversal, e: GraphElement) -> GraphTravers
     return traversal
 
 
-def insert_vertex(g: GraphTraversalSource, e: GraphElement) -> None:
+def insert_vertex(g: GraphTraversal, e: GraphElement) -> GraphTraversal:
     """Inserts a vertex element using graph traversal source
 
     Args:
         e (GraphElement): the vertex element to insert
-        g (GraphTraversalSource): the graph traversal source to use for the insertion
+        g (GraphTraversal): the graph traversal to use for the insertion
     """
-    _traversal_insert_vertex(g.get_graph_traversal(), e).iterate()
+    return _traversal_insert_vertex(g, e)
 
 
-def insert_unique_vertex(g: GraphTraversalSource, e: UniqueGraphElement) -> None:
+def insert_unique_vertex(g: GraphTraversal, e: UniqueGraphElement) -> GraphTraversal:
     """
     Inserts a uniquely identifiable vertex if a vertex corresponding to it does not
     already exist in the graph. If an existing vertex is found, returns without
@@ -216,29 +216,39 @@ def insert_unique_vertex(g: GraphTraversalSource, e: UniqueGraphElement) -> None
 
     Args:
         e (UniqueGraphElement): the vertex element to insert
-        g (GraphTraversalSource): the graph traversal source to use for the insertion
+        g (GraphTraversal): the graph traversal to use for the insertion
     """
-    g.V().has(e.label(), e.id_property_name(), e.get_id()).fold().coalesce(
-        __.unfold(), _traversal_insert_vertex(__.start(), e)
-    ).iterate()
+    return (
+        g.V()
+        .has(e.label(), e.id_property_name(), e.get_id())
+        # Trust me, it works (for inserting a unique vertex)
+        # See the examples here for more details:
+        # https://docs.aws.amazon.com/neptune/latest/userguide/transactions-examples.html
+        .fold()
+        .coalesce(__.unfold(), _traversal_insert_vertex(__.start(), e))
+    )
 
 
-def upsert_unique_vertex(g: GraphTraversalSource, e: UniqueGraphElement) -> None:
+def upsert_unique_vertex(g: GraphTraversal, e: UniqueGraphElement) -> GraphTraversal:
     """
     Inserts a uniquely identifiable vertex if a vertex corresponding to it does not
     already exist in the graph. If an existing vertex is found, updates its properties.
 
     Args:
         e (UniqueGraphElement): the vertex element to insert or update
-        g (GraphTraversalSource): the graph traversal source to use for the insertion
+        g (GraphTraversal): the graph traversal to use for the insertion
     """
-    insert_unique_vertex(g, e)
+    # Construct a traversal for inserting the vertex if it does not exist
+    insert_vertex_traversal = insert_unique_vertex(g, e)
 
-    traversal = g.V().has(e.label(), e.id_property_name(), e.get_id())
+    # Append a traversal which updates all vertex properties to the traversal we construct above
+    traversal = insert_vertex_traversal.V().has(
+        e.label(), e.id_property_name(), e.get_id()
+    )
     properties = e.dict()
     for property_name, property_value in properties.items():
         # Note: if `property_value` cannot be converted to a valid Gremlin type by
         # gremlin_python we may end up with runtime errors here. Note really sure how
         # to restrict this though...
         traversal = traversal.property(property_name, property_value)
-    traversal.iterate()
+    return traversal
