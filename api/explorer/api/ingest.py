@@ -150,16 +150,26 @@ def ingest_derivations(
         " Server."
     ),
 )
+@click.option(
+    "--verbose",
+    is_flag=True,
+)
 def main(
     infile: IO[str],
     gremlin_server: str,
     gremlin_source: str,
+    verbose: bool,
 ):
     """
     Ingests from INFILE to a Gremlin Server.
 
     INFILE should be a JSONL stream of derivations as defined by `model.Derivation`.
     """
+    logging.basicConfig(level=logging.DEBUG if verbose else logging.INFO)
+    logging.getLogger("websockets.client").setLevel(logging.WARNING)
+    logging.getLogger("gremlinpython").setLevel(
+        logging.INFO if verbose else logging.WARNING
+    )
     with closing(
         default_remote_connection(
             gremlin_server,
@@ -171,6 +181,4 @@ def main(
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-    logging.getLogger("gremlinpython").setLevel(logging.WARNING)
     main()
