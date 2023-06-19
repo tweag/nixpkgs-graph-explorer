@@ -120,7 +120,7 @@ def test_unit_insert_unique_directed_edge_both_vertices_exist(
         edge=DummyEdgeNoProps(),
         from_vertex=vertex1,
         to_vertex=vertex2,
-    )
+    ).iterate()
     assert g.E().count().to_list() == [1]
 
 
@@ -141,7 +141,7 @@ def test_unit_insert_unique_directed_edge_does_nothing_if_from_vertex_not_found(
         edge=DummyEdgeNoProps(),
         from_vertex=missing_vertex,
         to_vertex=vertex,
-    )
+    ).iterate()
     assert g.E().count().to_list() == [0]
 
 
@@ -162,7 +162,7 @@ def test_unit_insert_unique_directed_edge_does_nothing_if_to_vertex_not_found(
         edge=DummyEdgeNoProps(),
         from_vertex=vertex,
         to_vertex=missing_vertex,
-    )
+    ).iterate()
     assert g.E().count().to_list() == [0]
 
 
@@ -184,14 +184,14 @@ def test_unit_insert_unique_directed_edge_does_not_create_duplicates(
         edge=DummyEdgeNoProps(),
         from_vertex=vertex1,
         to_vertex=vertex2,
-    )
+    ).iterate()
     # Attempt to insert it again
     insert_unique_directed_edge(
         g=g,
         edge=DummyEdgeNoProps(),
         from_vertex=vertex1,
         to_vertex=vertex2,
-    )
+    ).iterate()
 
     assert g.E().count().to_list() == [1]
 
@@ -215,7 +215,7 @@ def test_unit_insert_unique_directed_edge_created_edge_properties(
         edge=edge,
         from_vertex=vertex1,
         to_vertex=vertex2,
-    )
+    ).iterate()
     # Attempt to read the edge's properties
     element_maps = cast(
         Mapping[Any, Any], g.E().hasLabel(edge.label()).element_map().to_list()

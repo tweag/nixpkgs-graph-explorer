@@ -31,9 +31,10 @@ def populated_graph_connection(empty_graph_connection):
     # Add nodes
     for drv in DUMMY_DERIVATIONS:
         graph_traversal = insert_unique_vertex(graph_traversal, drv)
-    graph_traversal.iterate()
 
     # Add edges between them
     for edge, from_vertex, to_vertex in EDGES:
-        insert_unique_directed_edge(g, edge, from_vertex, to_vertex)
+        graph_traversal = insert_unique_directed_edge(graph_traversal, edge, from_vertex, to_vertex)
+
+    graph_traversal.iterate()
     yield empty_graph_connection

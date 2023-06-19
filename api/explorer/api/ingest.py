@@ -98,7 +98,9 @@ def ingest_derivations(
             if build_input.output_path is not None
         ]
 
+        # share same traversal to run all operations at once
         traversal = g.get_graph_traversal()
+
         # insert nodes
         for node in derivation_nodes:
             # insert if it does not exist, otherwise update properties
@@ -107,7 +109,6 @@ def ingest_derivations(
             # insert build input nodes to allow creating the edge
             traversal = graph.insert_unique_vertex(traversal, node)
         # Now that the traversal has been constructed, let's evaluate it
-        traversal.iterate()
 
         # insert edges
         for derivation_node in derivation_nodes:
@@ -118,13 +119,14 @@ def ingest_derivations(
                 edge: graph.Edge = _edge_from_build_input_type(
                     build_input.build_input_type
                 )
-                graph.insert_unique_directed_edge(
-                    g=g,
+                traversal = graph.insert_unique_directed_edge(
+                    g=traversal,
                     edge=edge,
                     from_vertex=derivation_node,
                     to_vertex=build_input_node,
                 )
 
+        traversal.iterate()
         logger.info("%s", derivation.output_path)
 
 
