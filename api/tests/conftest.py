@@ -26,8 +26,13 @@ def empty_graph_connection():
 @pytest.fixture
 def populated_graph_connection(empty_graph_connection):
     g = traversal().with_remote(empty_graph_connection)
+    graph_traversal = g.get_graph_traversal()
+
+    # Add nodes
     for drv in DUMMY_DERIVATIONS:
-        insert_unique_vertex(g, drv)
+        graph_traversal = insert_unique_vertex(graph_traversal, drv)
+    graph_traversal.iterate()
+
     # Add edges between them
     for edge, from_vertex, to_vertex in EDGES:
         insert_unique_directed_edge(g, edge, from_vertex, to_vertex)

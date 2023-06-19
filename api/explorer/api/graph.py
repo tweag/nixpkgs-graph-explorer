@@ -185,7 +185,10 @@ def insert_unique_directed_edge(
     )
 
 
-def _traversal_insert_vertex(g: GraphTraversal, e: GraphElement) -> GraphTraversal:
+def _traversal_insert_vertex(
+    g: GraphTraversal | GraphTraversalSource,
+    e: GraphElement,
+) -> GraphTraversal:
     # Extract dataclass properties
     properties = e.dict()
     traversal = g.add_v(e.label())
@@ -198,7 +201,10 @@ def _traversal_insert_vertex(g: GraphTraversal, e: GraphElement) -> GraphTravers
     return traversal
 
 
-def insert_vertex(g: GraphTraversal, e: GraphElement) -> GraphTraversal:
+def insert_vertex(
+    g: GraphTraversal | GraphTraversalSource,
+    e: GraphElement,
+) -> GraphTraversal:
     """Inserts a vertex element using graph traversal source
 
     Args:
@@ -208,7 +214,10 @@ def insert_vertex(g: GraphTraversal, e: GraphElement) -> GraphTraversal:
     return _traversal_insert_vertex(g, e)
 
 
-def insert_unique_vertex(g: GraphTraversal, e: UniqueGraphElement) -> GraphTraversal:
+def insert_unique_vertex(
+    g: GraphTraversal | GraphTraversalSource,
+    e: UniqueGraphElement,
+) -> GraphTraversal:
     """
     Inserts a uniquely identifiable vertex if a vertex corresponding to it does not
     already exist in the graph. If an existing vertex is found, returns without
@@ -229,7 +238,10 @@ def insert_unique_vertex(g: GraphTraversal, e: UniqueGraphElement) -> GraphTrave
     )
 
 
-def upsert_unique_vertex(g: GraphTraversal, e: UniqueGraphElement) -> GraphTraversal:
+def upsert_unique_vertex(
+    g: GraphTraversal | GraphTraversalSource,
+    e: UniqueGraphElement,
+) -> GraphTraversal:
     """
     Inserts a uniquely identifiable vertex if a vertex corresponding to it does not
     already exist in the graph. If an existing vertex is found, updates its properties.
@@ -241,7 +253,8 @@ def upsert_unique_vertex(g: GraphTraversal, e: UniqueGraphElement) -> GraphTrave
     # Construct a traversal for inserting the vertex if it does not exist
     insert_vertex_traversal = insert_unique_vertex(g, e)
 
-    # Append a traversal which updates all vertex properties to the traversal we construct above
+    # Append a traversal which updates all vertex properties to the traversal we
+    # construct above
     traversal = insert_vertex_traversal.V().has(
         e.label(), e.id_property_name(), e.get_id()
     )
