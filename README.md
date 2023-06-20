@@ -71,12 +71,12 @@ To extract and ingest the data using Docker, follow these steps:
 1. Build the Docker image:
 
 ```console
-docker build -f Dockerfile.etl -t etl .
+docker build -f docker/etl/Dockerfile -t nixpkgs-graph-explorer-etl .
 ```
 
 2. Run the Docker container to execute the extract and ingest commands:
 ```console
-docker run -it --rm --network host etl
+docker run -it --rm --network host nixpkgs-graph-explorer-etl
 ```
 
 #### Running the commands directly
