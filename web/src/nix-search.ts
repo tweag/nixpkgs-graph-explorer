@@ -38,7 +38,7 @@ const searchMachine = createMachine<Context, SearchEvent>({
   initial: "loading",
   context: {
     derivations: [],
-    input: " ",
+    input: "",
     limit: 20,
     cursors: [],
     cursor_position: -1,
@@ -119,6 +119,13 @@ async function queryDerivations({
   cursors,
   cursor_position,
 }: Context) {
+  // no result if the search input is empty
+  if (input === "") {
+    return {
+      derivations: [],
+    }
+  }
+  // fetch from the API
   const result = await getDerivations({
     search: input,
     limit,
