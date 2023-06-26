@@ -25,7 +25,13 @@ function renderCyGraph(result: QueryResultPayload, container: HTMLElement) {
   const cy = cytoscape({
     container,
     ...data,
-    layout: { name: "dagre" },
+    layout: {
+      name: "dagre",
+      // 'TB' for top to bottom flow, 'LR' for left to right
+      rankDir: "LR",
+      // whether labels should be included in determining the space used by a node
+      nodeDimensionsIncludeLabels: true,
+    },
     style: [
       {
         selector: "node",
