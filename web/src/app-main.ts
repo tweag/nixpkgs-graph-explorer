@@ -42,10 +42,7 @@ export class AppMain extends LitElement {
       </header>
 
       <main>
-        <sl-tab-group>
-          <nix-search @query-result=${this.setQueryResult}> </nix-search>
-        </sl-tab-group>
-
+        <nix-search @query-result=${this.setQueryResult}> </nix-search>
         <graph-viewer slot="end" .queryResult=${this._queryResult}>
         </graph-viewer>
       </main>
@@ -158,10 +155,10 @@ export class AppMain extends LitElement {
       gap: var(--sl-spacing-x-small);
     }
 
-    main sl-tab-group {
+    main nix-search {
       flex-grow: 0;
       flex-shrink: 0;
-      width: min(25%, 20rem);
+      width: min(40%, 40rem);
       padding-left: var(--sl-spacing-small);
     }
 

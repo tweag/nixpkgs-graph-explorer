@@ -38,8 +38,8 @@ const searchMachine = createMachine<Context, SearchEvent>({
   initial: "loading",
   context: {
     derivations: [],
-    input: "",
-    limit: 10,
+    input: " ",
+    limit: 20,
     cursors: [],
     cursor_position: -1,
   },
@@ -252,6 +252,9 @@ export class NixSearch extends LitElement {
 
   static styles = css`
     :host {
+      padding: 1em;
+      display: flex;
+      flex-direction: column;
     }
     sl-input {
       margin-bottom: 1em;
