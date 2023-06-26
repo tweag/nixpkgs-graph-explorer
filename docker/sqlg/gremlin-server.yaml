@@ -1,5 +1,6 @@
 host: localhost
 port: 8182
+evaluationTimeout: 0
 channelizer: org.apache.tinkerpop.gremlin.server.channel.WsAndHttpChannelizer
 graphs: { graph: /secrets/sqlg.properties }
 scriptEngines:
