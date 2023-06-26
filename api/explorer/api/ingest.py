@@ -79,55 +79,61 @@ def ingest_derivations(
     """
     Writes the entire provided Nix graph to the provided Gremlin traversal source.
     """
-    for line in infile:
-        try:
-            derivation = model.Derivation.parse_raw(line)
-        except ValidationError as e:
-            click.echo(e, err=True)
-            continue
+    # Count the number of lines in the file
+    line_count = sum(1 for _ in infile)
+    # Reset the file pointer to the beginning
+    infile.seek(0)
+    with click.progressbar(
+        infile, length=line_count, show_pos=True, show_percent=True
+    ) as bar:
+        for line in bar:
+            try:
+                derivation = model.Derivation.parse_raw(line)
+            except ValidationError as e:
+                click.echo(e, err=True)
+                continue
 
-        # convert from extraction to db model
-        # possibly handling multi-outputs derivation
-        derivation_nodes = core_to_graph(derivation)
-        build_input_nodes = [
-            graph.Derivation(
-                output_path=build_input.output_path,
-                attribute_path=None,
-            )
-            for build_input in derivation.build_inputs
-            if build_input.output_path is not None
-        ]
-
-        # share same traversal to run all operations at once
-        traversal = g.get_graph_traversal()
-
-        # insert nodes
-        for node in derivation_nodes:
-            # insert if it does not exist, otherwise update properties
-            traversal = graph.upsert_unique_vertex(traversal, node)
-        for node in build_input_nodes:
-            # insert build input nodes to allow creating the edge
-            traversal = graph.insert_unique_vertex(traversal, node)
-        # Now that the traversal has been constructed, let's evaluate it
-
-        # insert edges
-        for derivation_node in derivation_nodes:
-            for build_input, build_input_node in zip(
-                derivation.build_inputs,
-                build_input_nodes,
-            ):
-                edge: graph.Edge = _edge_from_build_input_type(
-                    build_input.build_input_type
+            # convert from extraction to db model
+            # possibly handling multi-outputs derivation
+            derivation_nodes = core_to_graph(derivation)
+            build_input_nodes = [
+                graph.Derivation(
+                    output_path=build_input.output_path,
+                    attribute_path=None,
                 )
-                traversal = graph.insert_unique_directed_edge(
-                    g=traversal,
-                    edge=edge,
-                    from_vertex=derivation_node,
-                    to_vertex=build_input_node,
-                )
+                for build_input in derivation.build_inputs
+                if build_input.output_path is not None
+            ]
 
-        traversal.iterate()
-        logger.info("%s", derivation.output_path)
+            # share same traversal to run all operations at once
+            traversal = g.get_graph_traversal()
+
+            # insert nodes
+            for node in derivation_nodes:
+                # insert if it does not exist, otherwise update properties
+                traversal = graph.upsert_unique_vertex(traversal, node)
+            for node in build_input_nodes:
+                # insert build input nodes to allow creating the edge
+                traversal = graph.insert_unique_vertex(traversal, node)
+            # Now that the traversal has been constructed, let's evaluate it
+
+            # insert edges
+            for derivation_node in derivation_nodes:
+                for build_input, build_input_node in zip(
+                    derivation.build_inputs,
+                    build_input_nodes,
+                ):
+                    edge: graph.Edge = _edge_from_build_input_type(
+                        build_input.build_input_type
+                    )
+                    traversal = graph.insert_unique_directed_edge(
+                        g=traversal,
+                        edge=edge,
+                        from_vertex=derivation_node,
+                        to_vertex=build_input_node,
+                    )
+
+            traversal.iterate()
 
 
 @click.command(context_settings={"show_default": True})
