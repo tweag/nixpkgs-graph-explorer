@@ -15,7 +15,6 @@ import type { QueryResultPayload } from "./api";
 
 import "./nix-search";
 import "./graph-viewer";
-import "./code-editor";
 
 import tweagLogo from "./assets/tweag-logo.svg";
 import graphLogo from "./assets/line-chart.svg";
@@ -44,15 +43,7 @@ export class AppMain extends LitElement {
 
       <main>
         <sl-tab-group>
-          <sl-tab slot="nav" panel="search">Search</sl-tab>
-          <sl-tab slot="nav" panel="query">Query</sl-tab>
-
-          <sl-tab-panel name="search">
-            <nix-search @query-result=${this.setQueryResult}> </nix-search>
-          </sl-tab-panel>
-          <sl-tab-panel name="query">
-            <code-editor @query-result=${this.setQueryResult}> </code-editor>
-          </sl-tab-panel>
+          <nix-search @query-result=${this.setQueryResult}> </nix-search>
         </sl-tab-group>
 
         <graph-viewer slot="end" .queryResult=${this._queryResult}>
