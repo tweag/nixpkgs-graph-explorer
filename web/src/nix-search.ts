@@ -123,7 +123,7 @@ async function queryDerivations({
   if (input === "") {
     return {
       derivations: [],
-    }
+    };
   }
   // fetch from the API
   const result = await getDerivations({
