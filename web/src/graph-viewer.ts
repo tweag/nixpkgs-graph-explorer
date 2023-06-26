@@ -25,6 +25,7 @@ function renderCyGraph(result: QueryResultPayload, container: HTMLElement) {
   const cy = cytoscape({
     container,
     ...data,
+    wheelSensitivity: 0.2,
     layout: {
       name: "dagre",
       // 'TB' for top to bottom flow, 'LR' for left to right
