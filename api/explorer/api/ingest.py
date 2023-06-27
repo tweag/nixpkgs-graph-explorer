@@ -1,17 +1,25 @@
 import logging
 from contextlib import closing
-from typing import IO
+from typing import IO, Literal
 
 import click
 from explorer.core import model
 from gremlin_python.process.anonymous_traversal import traversal
 from gremlin_python.process.graph_traversal import GraphTraversalSource
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from explorer.api import graph
 from explorer.api.gremlin import default_remote_connection
 
 logger = logging.getLogger(__name__)
+
+
+class IngestionEvent(BaseModel):
+    event = "ingest"
+    status: Literal["success"] | Literal["failure"]
+    output_path: str | None = None
+    i_line: int | None = None
+    exception_str: str | None = None
 
 
 class IngestionError(Exception):
@@ -79,11 +87,28 @@ def ingest_derivations(
     """
     Writes the entire provided Nix graph to the provided Gremlin traversal source.
     """
-    for line in infile:
+    for i_line, line in enumerate(infile):
         try:
             derivation = model.Derivation.parse_raw(line)
         except ValidationError as e:
-            click.echo(e, err=True)
+            logger.error(
+                IngestionEvent(
+                    status="failure",
+                    i_line=i_line,
+                    exception_str=str(e),
+                )
+            )
+            logger.debug(e, exc_info=True)
+            continue
+
+        if derivation.output_path is None:
+            logger.error(
+                IngestionEvent(
+                    status="failure",
+                    i_line=i_line,
+                    exception_str="Missing output_path",
+                ).json(indent=None)
+            )
             continue
 
         # convert from extraction to db model
@@ -126,8 +151,30 @@ def ingest_derivations(
                     to_vertex=build_input_node,
                 )
 
-        traversal.iterate()
-        logger.info("%s", derivation.output_path)
+        traversal_success: bool
+        try:
+            traversal.iterate()
+            traversal_success = True
+        except Exception as e:
+            logger.error(
+                IngestionEvent(
+                    status="failure",
+                    i_line=i_line,
+                    output_path=derivation.output_path,
+                    exception_str=str(e),
+                ).json(indent=None)
+            )
+            logger.debug(e, exc_info=True)
+            traversal_success = False
+
+        if traversal_success is True:
+            logger.info(
+                IngestionEvent(
+                    status="success",
+                    i_line=i_line,
+                    output_path=derivation.output_path,
+                ).json(indent=None)
+            )
 
 
 @click.command(context_settings={"show_default": True})
