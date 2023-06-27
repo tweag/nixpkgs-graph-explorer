@@ -1,5 +1,6 @@
 host: localhost
 port: 8182
+# Time in milliseconds that an evaluation is allowed to run and its results potentially transformed. Set to zero to have no timeout set.
 evaluationTimeout: 0
 channelizer: org.apache.tinkerpop.gremlin.server.channel.WsAndHttpChannelizer
 graphs: { graph: /secrets/sqlg.properties }
