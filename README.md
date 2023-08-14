@@ -4,6 +4,11 @@
 
 This project aims to make the software dependency graph data from `nixpkgs` more easily accessible for analytics and general exploration use cases.
 
+## UPDATE 2023-08-14
+
+The project is moving to a focus on the extraction part first.
+See [`nixtract](https://github.com/tweag/nixtract) which focuses on the `core` component of this project.
+
 ## Running locally
 
 ```console
