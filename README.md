@@ -21,13 +21,13 @@ nixtract ./derivations.jsonl
 To write to stdout, use `-` instead of a file path
 
 ```console
-poetry run python -m explorer.extract -
+nixtract -
 ```
 
 To learn more about the available options:
 
 ```console
-poetry run python -m explorer.extract --help
+nixtract --help
 ```
 
 ## Development
@@ -39,14 +39,3 @@ Use the Nix development shell provided in this repository, see `../README.md#use
 ```console
 poetry install
 ```
-
-### JSON schema
-
-The JSON schema is written as a [`pydantic`](https://docs.pydantic.dev/latest/) model in `explorer.core`.
-
-Once modified, update the JSON schema using the command:
-
-```console
-poetry run python -m explorer.core ./derivation.schema.json
-```
-
