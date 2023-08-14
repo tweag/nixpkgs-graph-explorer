@@ -55,27 +55,6 @@
             in
             [
               ##################################################################
-              # Frontend commands
-              ##################################################################
-              {
-                name = "format-prettier";
-                help = "Format frontend code";
-                command = ''
-                  echo 'Formatting code with prettier...'
-                  ${prettierCmd} --write web
-                '';
-                category = "Frontend";
-              }
-              {
-                name = "check-prettier";
-                help = "Check Prettier formatting";
-                command = ''
-                  ${prettierCmd} --check web
-                '';
-                category = "Frontend";
-              }
-
-              ##################################################################
               # Python-specific commands
               ##################################################################
               {
@@ -135,7 +114,6 @@
                 help = "Format code for entire project";
                 command = ''
                   format-python
-                  format-prettier
                   format-nix
                 '';
               }
@@ -144,7 +122,6 @@
                 help = "Check formatting for entire project";
                 command = ''
                   check-python
-                  check-prettier
                   check-nix
                 '';
               }
