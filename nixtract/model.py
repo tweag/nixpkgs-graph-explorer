@@ -107,7 +107,3 @@ class Derivation(BaseModel):
         alias_generator = snake_case_to_camel_case
         # use the snake_case attribute names in the model class as kwargs constructor
         allow_population_by_field_name = True
-
-
-class NixGraph(BaseModel):
-    derivations: list[Derivation]

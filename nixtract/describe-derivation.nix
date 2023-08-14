@@ -1,4 +1,4 @@
-# Describe a derivation in the NixGraph core model
+# Describe a derivation
 #
 # Args (as environment variables):
 #     TARGET_FLAKE_REF: flake reference to evaluate
@@ -70,4 +70,3 @@ in
       [ "nativeBuildInputs" "buildInputs" "propagatedBuildInputs" ]
     );
 }
-

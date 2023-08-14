@@ -159,15 +159,6 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 
-
-# NodeJS stuff
-node_modules
-__previewjs__
-.vite
-web/types
-web/dist
-web/public/assets/*
-
 # direnv
 .direnv
 

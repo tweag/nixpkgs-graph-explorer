@@ -33,8 +33,8 @@ from typing import IO
 
 import click
 
-from explorer.core import model
-from explorer.extract.threading import thread
+from nixtract import model
+from nixtract.threading import thread
 
 
 @thread
@@ -281,6 +281,7 @@ def cli(
     OUTFILE is the path to the output file to write to, use "-" to write to stdout.
     """
     logger = logging.getLogger(__name__)
+    logger.addHandler(logging.StreamHandler())
     if verbose:
         logger.setLevel(logging.INFO)
 

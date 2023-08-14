@@ -5,10 +5,11 @@ from pathlib import Path
 
 from click.testing import CliRunner
 
-import explorer.extract.cli
-
 
 def test_trivial():
+    import nixtract.cli
+    from nixtract.cli import cli
+
     # need absolute path
     trivial_flake_path = (
         Path(__file__).parent / "fixtures" / "flake-trivial"
@@ -21,7 +22,7 @@ def test_trivial():
 
     # CLI logger
     cli_stderr_handler = StringIO()
-    logging.getLogger(explorer.extract.cli.__name__).addHandler(
+    logging.getLogger(nixtract.cli.__name__).addHandler(
         logging.StreamHandler(stream=cli_stderr_handler)
     )
 
@@ -30,7 +31,7 @@ def test_trivial():
         mix_stderr=False,
     )
     result = runner.invoke(
-        cli=explorer.extract.cli.cli,
+        cli=cli,
         args=[
             "--target-flake-ref",
             f"path:{trivial_flake_path}",

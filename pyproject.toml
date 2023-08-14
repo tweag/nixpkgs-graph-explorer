@@ -1,15 +1,19 @@
 [tool.poetry]
-name = "nixpkgs-graph-core"
+name = "nixtract"
 version = "1.0.0"
-description = "Core data model and related utilities for nixpkgs-graph-explorer"
+description = "A CLI tool to extract the graph of derivations from a Nix flake."
 authors = [
+    "Guillaume Desforges <guillaume.desforges@tweag.io>",
     "Dorran Howell <dorran.howell@tweag.io>"
 ]
 license = "MIT"
 readme = "README.md"
 packages = [
-  { include = "explorer" },
+  { include = "nixtract" },
 ]
+
+[tool.poetry.scripts]
+nixtract = "nixtract.cli:cli"
 
 [tool.poetry.dependencies]
 python = "^3.10"
